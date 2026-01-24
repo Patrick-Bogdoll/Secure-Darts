@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schlag den Littler</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #f0f0f0;
+            --accent-green: #4caf50;
+            --accent-red: #f44336;
+            --accent-yellow: #ff9800;
+            --card-bg: #2d2d2d;
+            --disabled-bg: #444;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { margin-bottom: 10px; color: var(--accent-green); text-align: center; }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        /* Setup Screen */
+        #setup-screen { text-align: center; }
+        input[type="text"] {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            width: 70%;
+            margin-bottom: 10px;
+        }
+        
+        /* Game Screen */
+        #game-screen { display: none; }
+        
+        .info-panel {
+            display: flex;
+            justify-content: space-between;
+            background: #333;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .target-wrapper {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+
+        .target-label { font-size: 0.9em; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+        .target-display {
+            font-size: 3.5em;
+            color: var(--accent-green);
+            font-weight: bold;
+            line-height: 1.2;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+            margin-top: 20px;
+        }
+        
+        .dart-counter { font-size: 0.9em; color: #aaa; }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .controls.secure { grid-template-columns: repeat(3, 1fr); }
+
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.2s;
+            background-color: #555;
+            color: white;
+            font-weight: bold;
+        }
+
+        button:active { transform: scale(0.98); }
+        button:disabled {
+            background-color: #333 !important;
+            color: #666;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        button.primary { background-color: var(--accent-green); width: 100%; margin-top: 20px;}
+        button.reset { background-color: var(--accent-yellow); color: #222; width: 100%; margin-top: 10px;}
+        
+        button.hit { background-color: #2196F3; }
+        button.miss { background-color: var(--accent-red); opacity: 0.8; }
+        button.bull { background-color: #d32f2f; }
+        
+        .count-display {
+            grid-column: span 4;
+            text-align: center;
+            margin-bottom: 5px;
+            color: #ccc;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #444;
+            text-align: center;
+        }
+        tr.active-player {
+            background-color: rgba(76, 175, 80, 0.2);
+            border-left: 4px solid var(--accent-green);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎯 Schlag den Littler</h1>
+
+    <div class="container">
+        <div id="setup-screen">
+            <h3>Spieler hinzufügen</h3>
+            <input type="text" id="player-input" placeholder="Spielername...">
+            <button onclick="addPlayer()">Spieler +</button>
+            <div id="player-list-setup" style="margin: 15px 0;"></div>
+            <button class="primary" onclick="startGame()">Spiel Starten</button>
+        </div>
+
+        <div id="game-screen">
+            <div class="info-panel">
+                <span id="current-player-name">Spieler 1</span>
+                <span>Gesamt: <span id="current-player-score">0</span></span>
+            </div>
+
+            <div class="target-wrapper">
+                <div class="target-label">Aktuelles Ziel für ALLE</div>
+                <div id="current-target" class="target-display">1</div>
+            </div>
+
+            <div class="section-header">
+                <span>1. Punkte werfen</span>
+                <span class="dart-counter" id="score-darts-count">0/3</span>
+            </div>
+            <div class="count-display">Punkte geworfen: <span id="raw-score" style="color:white; font-weight:bold;">0</span></div>
+            <div class="controls" id="controls-score">
+                <button class="miss" onclick="addRawScore(0)">0</button>
+                <button class="hit" onclick="addRawScore(1)">Single</button>
+                <button class="hit" onclick="addRawScore(2)">Double</button>
+                <button class="hit" onclick="addRawScore(3)">Triple</button>
+            </div>
+
+            <div class="section-header">
+                <span>2. Sichern auf Bull</span>
+                <span class="dart-counter" id="secure-darts-count">0/3</span>
+            </div>
+            <div class="count-display" id="secure-status">Status: Offen</div>
+            <div class="controls secure" id="controls-secure">
+                <button class="miss" onclick="addSecure(0)">0</button>
+                <button class="bull" style="background:#b71c1c" onclick="addSecure(1)">25 (S)</button>
+                <button class="bull" style="background:#f44336" onclick="addSecure(2)">50 (D)</button>
+            </div>
+
+            <div style="text-align: center; margin-top: 20px; font-size: 1.2em; background:#222; padding:10px; border-radius:5px;">
+                Runden-Ergebnis: <strong id="round-result" style="color: var(--accent-green)">0</strong>
+            </div>
+
+            <button class="reset" onclick="resetTurnInputs()">↺ Reset Wurf</button>
+            <button class="primary" onclick="nextTurn()">✅ Wurf bestätigen</button>
+
+            <h3>Spielstand</h3>
+            <table id="scoreboard">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Punkte Gesamt</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // --- LOGIK ---
+
+        const targets = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25, 50];
+        
+        let players = [];
+        let currentPlayerIndex = 0;
+        let globalTargetIndex = 0; // NEU: Globaler Index für alle Spieler
+        
+        // Turn Variables
+        let currentRawScore = 0;
+        let secureMultiplier = 0; 
+        let isSecured = false;
+        
+        // Input Limits
+        let thrownScore = 0;
+        let thrownSecure = 0;
+        const MAX_DARTS = 3;
+        
+        // Setup
+        function addPlayer() {
+            const input = document.getElementById('player-input');
+            const name = input.value.trim();
+            if (name) {
+                players.push({
+                    name: name,
+                    score: 0
+                });
+                const list = document.getElementById('player-list-setup');
+                list.innerHTML += `<div>${name}</div>`;
+                input.value = '';
+            }
+        }
+
+        function startGame() {
+            if (players.length === 0) return alert("Bitte mindestens einen Spieler hinzufügen!");
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+            updateUI();
+            resetTurnInputs();
+        }
+
+        // Game Loop
+        function updateUI() {
+            const player = players[currentPlayerIndex];
+            document.getElementById('current-player-name').innerText = player.name;
+            document.getElementById('current-player-score').innerText = player.score;
+
+            const targetVal = targets[globalTargetIndex];
+            let targetText = targetVal;
+            if(targetVal === 25) targetText = "Single Bull (25)";
+            if(targetVal === 50) targetText = "BULLSEYE (50)";
+            document.getElementById('current-target').innerText = targetText;
+
+            updateScoreboard();
+        }
+
+        function resetTurnInputs() {
+            currentRawScore = 0;
+            secureMultiplier = 0;
+            isSecured = false;
+            
+            // Reset Counter
+            thrownScore = 0;
+            thrownSecure = 0;
+            
+            updateTurnDisplay();
+        }
+
+        function addRawScore(multiplier) {
+            if (thrownScore >= MAX_DARTS) return;
+
+            const targetValue = targets[globalTargetIndex];
+            
+            currentRawScore += (targetValue * multiplier);
+            thrownScore++;
+            
+            updateTurnDisplay();
+        }
+
+        function addSecure(type) {
+            if (thrownSecure >= MAX_DARTS) return;
+
+            // type: 0=Miss, 1=SingleBull, 2=Bullseye
+            if (type === 1) {
+                if (!isSecured) {
+                    isSecured = true;
+                    if (secureMultiplier === 0) secureMultiplier = 1;
+                }
+            } else if (type === 2) {
+                isSecured = true;
+                if (secureMultiplier === 0) secureMultiplier = 1;
+                secureMultiplier *= 2;
+            }
+            
+            thrownSecure++;
+            updateTurnDisplay();
+        }
+
+        function updateTurnDisplay() {
+            document.getElementById('raw-score').innerText = currentRawScore;
+            
+            document.getElementById('score-darts-count').innerText = `${thrownScore}/${MAX_DARTS}`;
+            document.getElementById('secure-darts-count').innerText = `${thrownSecure}/${MAX_DARTS}`;
+
+            // Buttons deaktivieren
+            const scoreBtns = document.getElementById('controls-score').getElementsByTagName('button');
+            for(let btn of scoreBtns) btn.disabled = (thrownScore >= MAX_DARTS);
+
+            const secureBtns = document.getElementById('controls-secure').getElementsByTagName('button');
+            for(let btn of secureBtns) btn.disabled = (thrownSecure >= MAX_DARTS);
+
+            // Secure Status Text
+            let statusText = "Nicht gesichert (0 Punkte)";
+            if (isSecured) {
+                statusText = "Gesichert! (Ziel wird freigeschaltet)";
+                if (secureMultiplier > 1) {
+                    statusText += ` - Punkte x${secureMultiplier}`;
+                }
+            }
+            document.getElementById('secure-status').innerText = statusText;
+            
+            // Ergebnis-Vorschau
+            let finalRoundScore = 0;
+            if (isSecured) {
+                finalRoundScore = currentRawScore * secureMultiplier;
+            }
+            document.getElementById('round-result').innerText = finalRoundScore;
+        }
+
+        function nextTurn() {
+            let finalPoints = 0;
+            
+            // Punktevergabe nur wenn gesichert wurde
+            if (isSecured) {
+                finalPoints = currentRawScore * secureMultiplier;
+                
+                // LOGIK-UPDATE: Nur wenn gesichert wurde, springt das Ziel weiter
+                if (globalTargetIndex < targets.length - 1) {
+                    globalTargetIndex++; 
+                } else {
+                    alert(`SPIELENDE! ${players[currentPlayerIndex].name} hat das Spiel beendet!`);
+                }
+            }
+            // Wenn NICHT gesichert wurde:
+            // - Keine Punkte (finalPoints bleibt 0)
+            // - globalTargetIndex bleibt gleich -> Nächster Spieler wirft auf die gleiche Zahl
+            
+            players[currentPlayerIndex].score += finalPoints;
+
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+            resetTurnInputs();
+            updateUI();
+        }
+
+        function updateScoreboard() {
+            const tbody = document.querySelector('#scoreboard tbody');
+            tbody.innerHTML = '';
+            // Sortierung nach Punkten (höchste oben)
+            const sortedPlayers = [...players].sort((a,b) => b.score - a.score);
+
+            sortedPlayers.forEach((p) => {
+                const tr = document.createElement('tr');
+                // Markiere den Spieler in der Tabelle, der gerade dran ist
+                if (p === players[currentPlayerIndex]) tr.className = 'active-player';
+                
+                tr.innerHTML = `<td>${p.name}</td><td>${p.score}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>
