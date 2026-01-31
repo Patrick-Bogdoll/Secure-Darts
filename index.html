@@ -123,7 +123,10 @@
         <div id="setup-screen">
             <h3 style="text-align:center; color:#888;">Setup</h3>
             <div style="display:flex; gap:10px;">
-                <input type="text" id="player-input" placeholder="Name..." style="flex:1; padding:15px; border-radius:8px; border:none; background:#333; color:white;">
+                <input type="text" id="player-input" list="player-suggestions" placeholder="Name wählen oder tippen..." style="flex:1; padding:15px; border-radius:8px; border:none; background:#333; color:white;">
+                
+                <datalist id="player-suggestions"></datalist>
+                
                 <button onclick="addPlayer()" style="width:auto; margin:0; background:#444;">+</button>
             </div>
             <div id="player-list-setup" style="margin: 20px 0; text-align:center;"></div>
@@ -564,6 +567,40 @@
                 document.getElementById('stats-modal').style.display = 'none';
             }
         }
+
+        // --- AUTO-SUGGEST FOR NAMES ---
+        async function loadPlayerSuggestions() {
+            // Wir holen nur die Namen aus der DB
+            let { data: players, error } = await _supabase
+                .from('highscores')
+                .select('name');
+            
+            if(error || !players) return;
+
+            // Set (Liste ohne Duplikate) erstellen
+            const uniqueNames = new Set();
+            
+            players.forEach(p => {
+                // Wir filtern " (Training)" raus, damit man nur den Basis-Namen sieht
+                // Die Training-Logik macht der Haken ja automatisch
+                let cleanName = p.name.replace(" (Training)", "").trim();
+                uniqueNames.add(cleanName);
+            });
+
+            const datalist = document.getElementById('player-suggestions');
+            datalist.innerHTML = ''; // Leeren
+
+            uniqueNames.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                datalist.appendChild(option);
+            });
+        }
+
+        // Diese Funktion sofort beim Laden der Seite ausführen
+        window.onload = function() {
+            loadPlayerSuggestions();
+        };
     </script>
 </body>
 </html>
