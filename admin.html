@@ -1,0 +1,108 @@
+<script>
+    // ---------------------------------------------------------
+    // KONFIGURATION
+    const SUPABASE_URL = 'https://etzkulwnjhkoiklrohbt.supabase.co'; 
+    const SUPABASE_KEY = 'sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy';
+    const ADMIN_HASH = 'd9cafea78ff95cf59f6925e0707c266b19cffb85a31bbbffd146f38b1f119ba8'; 
+    // ---------------------------------------------------------
+
+    const { createClient } = supabase;
+    const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Diese Funktion wandelt Text in einen SHA-256 Hash um
+    async function sha256(message) {
+        const msgBuffer = new TextEncoder().encode(message);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+    }
+
+    async function checkPass() {
+        const input = document.getElementById('admin-pass').value;
+        
+        // Wir berechnen den Hash der Eingabe
+        const inputHash = await sha256(input);
+
+        // ... und vergleichen ihn mit dem gespeicherten Hash
+        if(inputHash === ADMIN_HASH) {
+            document.getElementById('login-overlay').style.display = 'none';
+            loadData();
+        } else {
+            alert("Falsches Passwort!");
+            document.getElementById('admin-pass').value = '';
+        }
+    }
+
+    async function loadData() {
+        const tbody = document.querySelector('#admin-table tbody');
+        tbody.innerHTML = '<tr><td colspan="5">Lade Daten...</td></tr>';
+
+        let { data: players, error } = await _supabase
+            .from('highscores')
+            .select('*')
+            .order('id', { ascending: true });
+
+        if (error) {
+            alert("Fehler beim Laden: " + error.message);
+            return;
+        }
+
+        renderTable(players);
+    }
+
+    function renderTable(players) {
+        const tbody = document.querySelector('#admin-table tbody');
+        tbody.innerHTML = '';
+
+        players.forEach(player => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="color:#666; font-size:0.8em;">${player.id}</td>
+                <td><b>${player.name}</b></td>
+                <td>${player.wins}</td>
+                <td>${player.highscore}</td>
+                <td>
+                    <button class="btn-edit" onclick="editPlayer(${player.id}, '${player.name}', ${player.wins}, ${player.highscore})">✏️</button>
+                    <button class="btn-delete" onclick="deletePlayer(${player.id}, '${player.name}')">🗑️</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function deletePlayer(id, name) {
+        if(!confirm(`Willst du "${name}" wirklich unwiderruflich LÖSCHEN?`)) return;
+
+        const { error } = await _supabase
+            .from('highscores')
+            .delete()
+            .eq('id', id);
+
+        if(error) alert("Fehler beim Löschen: " + error.message);
+        else loadData(); 
+    }
+
+    async function editPlayer(id, oldName, oldWins, oldHighscore) {
+        const newName = prompt("Name bearbeiten:", oldName);
+        if(newName === null) return; 
+
+        const newWins = prompt("Anzahl Siege:", oldWins);
+        if(newWins === null) return;
+
+        const newHigh = prompt("Highscore:", oldHighscore);
+        if(newHigh === null) return;
+
+        const { error } = await _supabase
+            .from('highscores')
+            .update({ 
+                name: newName, 
+                wins: parseInt(newWins), 
+                highscore: parseInt(newHigh) 
+            })
+            .eq('id', id);
+
+        if(error) alert("Fehler beim Speichern: " + error.message);
+        else loadData();
+    }
+</script>

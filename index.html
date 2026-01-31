@@ -130,6 +130,28 @@
 
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 2s linear infinite; margin: 0 auto; display:none;}
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .footer-nav {
+            margin-top: 40px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .admin-link {
+            color: #444; /* Dunkelgrau, damit es nicht ablenkt */
+            text-decoration: none;
+            font-size: 0.8em;
+            padding: 8px 15px;
+            border: 1px solid #333;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .admin-link:hover {
+            color: var(--accent-red); /* Wird rot beim Drüberfahren */
+            border-color: var(--accent-red);
+            background: rgba(244, 67, 54, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -215,6 +237,11 @@
                 <tbody></tbody>
             </table>
         </div>
+
+        <div class="footer-nav">
+            <a href="admin.html" class="admin-link">⚙️ Admin Login</a>
+        </div>
+        
     </div>
 
     <script>
