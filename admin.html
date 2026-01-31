@@ -1,108 +1,234 @@
-<script>
-    // ---------------------------------------------------------
-    // KONFIGURATION
-    const SUPABASE_URL = 'https://etzkulwnjhkoiklrohbt.supabase.co'; 
-    const SUPABASE_KEY = 'sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy';
-    const ADMIN_HASH = 'd9cafea78ff95cf59f6925e0707c266b19cffb85a31bbbffd146f38b1f119ba8'; 
-    // ---------------------------------------------------------
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Darts Admin Panel</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #f0f0f0;
+            --card-bg: #2d2d2d;
+            --accent-red: #f44336;
+            --accent-blue: #2196F3;
+            --accent-green: #4caf50;
+        }
 
-    const { createClient } = supabase;
-    const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+        body {
+            font-family: sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-    // Diese Funktion wandelt Text in einen SHA-256 Hash um
-    async function sha256(message) {
-        const msgBuffer = new TextEncoder().encode(message);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        return hashHex;
-    }
+        h1 { border-bottom: 2px solid var(--accent-red); padding-bottom: 10px; }
 
-    async function checkPass() {
-        const input = document.getElementById('admin-pass').value;
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #444;
+        }
+
+        th { background-color: #333; color: #aaa; }
         
-        // Wir berechnen den Hash der Eingabe
-        const inputHash = await sha256(input);
-
-        // ... und vergleichen ihn mit dem gespeicherten Hash
-        if(inputHash === ADMIN_HASH) {
-            document.getElementById('login-overlay').style.display = 'none';
-            loadData();
-        } else {
-            alert("Falsches Passwort!");
-            document.getElementById('admin-pass').value = '';
-        }
-    }
-
-    async function loadData() {
-        const tbody = document.querySelector('#admin-table tbody');
-        tbody.innerHTML = '<tr><td colspan="5">Lade Daten...</td></tr>';
-
-        let { data: players, error } = await _supabase
-            .from('highscores')
-            .select('*')
-            .order('id', { ascending: true });
-
-        if (error) {
-            alert("Fehler beim Laden: " + error.message);
-            return;
+        button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+            margin-right: 5px;
         }
 
-        renderTable(players);
-    }
+        .btn-edit { background-color: var(--accent-blue); }
+        .btn-delete { background-color: var(--accent-red); }
+        .btn-refresh { background-color: var(--accent-green); margin-bottom: 15px; }
 
-    function renderTable(players) {
-        const tbody = document.querySelector('#admin-table tbody');
-        tbody.innerHTML = '';
+        input {
+            background: #444;
+            border: 1px solid #555;
+            color: white;
+            padding: 10px;
+            border-radius: 3px;
+            margin-bottom: 10px;
+        }
 
-        players.forEach(player => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="color:#666; font-size:0.8em;">${player.id}</td>
-                <td><b>${player.name}</b></td>
-                <td>${player.wins}</td>
-                <td>${player.highscore}</td>
-                <td>
-                    <button class="btn-edit" onclick="editPlayer(${player.id}, '${player.name}', ${player.wins}, ${player.highscore})">✏️</button>
-                    <button class="btn-delete" onclick="deletePlayer(${player.id}, '${player.name}')">🗑️</button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
+        /* Passwort-Schutz Overlay */
+        #login-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: #111;
+            display: flex; justify-content: center; align-items: center;
+            z-index: 999;
+        }
+        
+        .login-box {
+            background: #2d2d2d;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0,0,0,0.7);
+        }
+    </style>
+</head>
+<body>
 
-    async function deletePlayer(id, name) {
-        if(!confirm(`Willst du "${name}" wirklich unwiderruflich LÖSCHEN?`)) return;
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2>Admin Login</h2>
+            <input type="password" id="admin-pass" placeholder="Passwort eingeben">
+            <br>
+            <button onclick="checkPass()" style="background:var(--accent-green); width:100%;">Login</button>
+        </div>
+    </div>
 
-        const { error } = await _supabase
-            .from('highscores')
-            .delete()
-            .eq('id', id);
+    <div class="container">
+        <h1>🛠️ Datenbank Verwaltung</h1>
+        
+        <button class="btn-refresh" onclick="loadData()">🔄 Tabelle neu laden</button>
+        
+        <table id="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Siege</th>
+                    <th>Highscore</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+    </div>
 
-        if(error) alert("Fehler beim Löschen: " + error.message);
-        else loadData(); 
-    }
+    <script>
+        // ---------------------------------------------------------
+        const SUPABASE_URL = 'https://etzkulwnjhkoiklrohbt.supabase.co'; 
+        const SUPABASE_KEY = 'sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy';
+        const ADMIN_HASH = 'd9cafea78ff95cf59f6925e0707c266b19cffb85a31bbbffd146f38b1f119ba8'; 
+        // ---------------------------------------------------------
 
-    async function editPlayer(id, oldName, oldWins, oldHighscore) {
-        const newName = prompt("Name bearbeiten:", oldName);
-        if(newName === null) return; 
+        const { createClient } = supabase;
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        const newWins = prompt("Anzahl Siege:", oldWins);
-        if(newWins === null) return;
+        // Diese Funktion wandelt Text in einen SHA-256 Hash um
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex;
+        }
 
-        const newHigh = prompt("Highscore:", oldHighscore);
-        if(newHigh === null) return;
+        async function checkPass() {
+            const input = document.getElementById('admin-pass').value;
+            
+            // Wir berechnen den Hash der Eingabe
+            const inputHash = await sha256(input);
 
-        const { error } = await _supabase
-            .from('highscores')
-            .update({ 
-                name: newName, 
-                wins: parseInt(newWins), 
-                highscore: parseInt(newHigh) 
-            })
-            .eq('id', id);
+            // ... und vergleichen ihn mit dem gespeicherten Hash
+            if(inputHash === ADMIN_HASH) {
+                document.getElementById('login-overlay').style.display = 'none';
+                loadData();
+            } else {
+                alert("Falsches Passwort!");
+                document.getElementById('admin-pass').value = '';
+            }
+        }
 
-        if(error) alert("Fehler beim Speichern: " + error.message);
-        else loadData();
-    }
-</script>
+        async function loadData() {
+            const tbody = document.querySelector('#admin-table tbody');
+            tbody.innerHTML = '<tr><td colspan="5">Lade Daten...</td></tr>';
+
+            let { data: players, error } = await _supabase
+                .from('highscores')
+                .select('*')
+                .order('id', { ascending: true });
+
+            if (error) {
+                alert("Fehler beim Laden: " + error.message);
+                return;
+            }
+
+            renderTable(players);
+        }
+
+        function renderTable(players) {
+            const tbody = document.querySelector('#admin-table tbody');
+            tbody.innerHTML = '';
+
+            players.forEach(player => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="color:#666; font-size:0.8em;">${player.id}</td>
+                    <td><b>${player.name}</b></td>
+                    <td>${player.wins}</td>
+                    <td>${player.highscore}</td>
+                    <td>
+                        <button class="btn-edit" onclick="editPlayer(${player.id}, '${player.name}', ${player.wins}, ${player.highscore})">✏️</button>
+                        <button class="btn-delete" onclick="deletePlayer(${player.id}, '${player.name}')">🗑️</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function deletePlayer(id, name) {
+            if(!confirm(`Willst du "${name}" wirklich unwiderruflich LÖSCHEN?`)) return;
+
+            const { error } = await _supabase
+                .from('highscores')
+                .delete()
+                .eq('id', id);
+
+            if(error) alert("Fehler beim Löschen: " + error.message);
+            else loadData(); 
+        }
+
+        async function editPlayer(id, oldName, oldWins, oldHighscore) {
+            const newName = prompt("Name bearbeiten:", oldName);
+            if(newName === null) return; 
+
+            const newWins = prompt("Anzahl Siege:", oldWins);
+            if(newWins === null) return;
+
+            const newHigh = prompt("Highscore:", oldHighscore);
+            if(newHigh === null) return;
+
+            const { error } = await _supabase
+                .from('highscores')
+                .update({ 
+                    name: newName, 
+                    wins: parseInt(newWins), 
+                    highscore: parseInt(newHigh) 
+                })
+                .eq('id', id);
+
+            if(error) alert("Fehler beim Speichern: " + error.message);
+            else loadData();
+        }
+    </script>
+</body>
+</html>
