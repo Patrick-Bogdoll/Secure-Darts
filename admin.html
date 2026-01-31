@@ -27,16 +27,24 @@
             align-items: center;
         }
 
-       /* Navbar Styling */
-       .app-header {
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        /* Navbar Styling */
+        .app-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             width: 100%;
-            max-width: 800px;
             margin-bottom: 20px;
             padding-bottom: 15px;
-            border-bottom: 2px solid var(--accent-red); /* Die rote Linie von vorher */
+            border-bottom: 2px solid var(--accent-red);
         }
 
         .header-title {
@@ -54,44 +62,18 @@
             font-weight: bold;
             display: flex;
             align-items: center;
-            gap: 8px; /* Abstand zwischen Icon und Text */
+            gap: 8px;
             transition: background 0.2s;
             font-size: 0.9em;
         }
+        .nav-btn-back:hover { background-color: #666; }
 
-        .nav-btn-back:hover {
-            background-color: #666;
-        }
-
-        /* Damit der Titel auf Handys nicht zu riesig ist */
-        @media (max-width: 500px) {
-            .header-title { font-size: 1.2em; text-align: right; }
-            .nav-btn-back { padding: 8px 10px; font-size: 0.8em; }
-        }
-
-        .container {
-            width: 100%;
-            max-width: 800px;
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #444;
-        }
-
+        /* Tabelle Styling */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #444; }
         th { background-color: #333; color: #aaa; }
         
+        /* Buttons allgemein */
         button {
             padding: 8px 12px;
             border: none;
@@ -112,6 +94,8 @@
             color: white;
             padding: 10px;
             border-radius: 3px;
+            width: 100%; /* Volle Breite im Login */
+            box-sizing: border-box; 
             margin-bottom: 10px;
         }
 
@@ -128,7 +112,21 @@
             padding: 30px;
             border-radius: 10px;
             text-align: center;
+            width: 300px;
             box-shadow: 0 0 20px rgba(0,0,0,0.7);
+        }
+
+        /* Neuer Cancel Button Style */
+        .btn-cancel {
+            background-color: #444; /* Dunkelgrau */
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn-cancel:hover { background-color: var(--accent-red); }
+
+        @media (max-width: 500px) {
+            .header-title { font-size: 1.2em; text-align: right; }
+            .nav-btn-back { padding: 8px 10px; font-size: 0.8em; }
         }
     </style>
 </head>
@@ -140,24 +138,39 @@
             <input type="password" id="admin-pass" placeholder="Passwort eingeben">
             <br>
             <button onclick="checkPass()" style="background:var(--accent-green); width:100%;">Login</button>
+            
+            <button onclick="window.location.href='index.html'" class="btn-cancel">Abbrechen</button>
         </div>
     </div>
 
     <div class="container">
-        
         <div class="app-header">
             <a href="index.html" class="nav-btn-back">
                 <span>🏠</span> Zum Spiel
             </a>
-            <h2 class="header-title">🛠️ Admin Panel</h2>
+            <h2 class="header-title">Admin Panel</h2>
         </div>
-
+        
         <button class="btn-refresh" onclick="loadData()">🔄 Tabelle neu laden</button>
         
         <table id="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Siege</th>
+                    <th>Highscore</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+    </div>
 
     <script>
         // ---------------------------------------------------------
+        // KONFIGURATION (Deine Daten)
         const SUPABASE_URL = 'https://etzkulwnjhkoiklrohbt.supabase.co'; 
         const SUPABASE_KEY = 'sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy';
         const ADMIN_HASH = 'd9cafea78ff95cf59f6925e0707c266b19cffb85a31bbbffd146f38b1f119ba8'; 
@@ -166,7 +179,7 @@
         const { createClient } = supabase;
         const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Diese Funktion wandelt Text in einen SHA-256 Hash um
+        // Hashing Funktion
         async function sha256(message) {
             const msgBuffer = new TextEncoder().encode(message);
             const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -177,11 +190,8 @@
 
         async function checkPass() {
             const input = document.getElementById('admin-pass').value;
-            
-            // Wir berechnen den Hash der Eingabe
             const inputHash = await sha256(input);
 
-            // ... und vergleichen ihn mit dem gespeicherten Hash
             if(inputHash === ADMIN_HASH) {
                 document.getElementById('login-overlay').style.display = 'none';
                 loadData();
@@ -204,7 +214,6 @@
                 alert("Fehler beim Laden: " + error.message);
                 return;
             }
-
             renderTable(players);
         }
 
