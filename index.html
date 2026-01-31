@@ -72,6 +72,19 @@
         button.hit { background-color: var(--accent-blue); }
         button.miss { background-color: var(--accent-red); opacity: 0.8; }
         button.bull { background-color: #d32f2f; }
+        
+        /* Bot Button Style */
+        .btn-bot { background-color: #673ab7; color: white; width: auto; font-size: 1em; padding: 15px; }
+
+        /* Bot Overlay im Spiel */
+        .bot-overlay {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.6);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.5em; font-weight: bold; color: var(--accent-green);
+            z-index: 10; border-radius: 12px;
+            backdrop-filter: blur(2px);
+        }
 
         /* Tables & Links */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -110,7 +123,6 @@
         .kpi-label { font-size: 0.7em; color: #aaa; text-transform: uppercase; margin-bottom: 5px; }
         .kpi-value { font-size: 1.2em; font-weight: 800; color: white; }
         
-        /* Chart Container */
         .chart-container { position: relative; height: 250px; width: 100%; margin-top: 10px; }
 
         /* Rules Style */
@@ -134,23 +146,35 @@
         <button class="nav-btn" onclick="showScreen('rules')">Regeln 📜</button>
     </div>
 
-    <div class="container">
+    <div class="container" style="position:relative">
+        
         <div id="setup-screen">
             <h3 style="text-align:center; color:#888;">Setup</h3>
-            <div style="display:flex; gap:10px;">
+            
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
                 <input type="text" id="player-input" list="player-suggestions" placeholder="Name wählen oder tippen...">
                 <datalist id="player-suggestions"></datalist>
                 <button onclick="addPlayer()" style="width:auto; margin:0; background:#444;">+</button>
             </div>
+
+            <button onclick="addBot()" class="btn-bot" style="width:100%; margin-bottom:15px;">🤖 Bot hinzufügen</button>
+
             <div id="player-list-setup" style="margin: 20px 0; text-align:center;"></div>
+            
             <label class="checkbox-wrapper">
                 <input type="checkbox" id="chk-training">
                 <span>Trainings-Modus (Separat speichern)</span>
             </label>
+
             <button class="primary" onclick="startGame()">START</button>
         </div>
 
         <div id="game-screen" style="display:none;">
+            
+            <div id="bot-overlay" style="display:none;" class="bot-overlay">
+                <span id="bot-status-text">Bot spielt...</span>
+            </div>
+
             <div class="info-panel">
                 <span id="current-player-name">Spieler 1</span>
                 <span>Score: <span id="current-player-score" style="color:white;">0</span></span>
@@ -226,6 +250,9 @@
 
             <h4>4. Trainings-Modus</h4>
             <p>Setze den Haken im Setup. Deine Statistiken werden separat gespeichert und zählen nicht zu deinen offiziellen Siegen.</p>
+            
+            <h4>5. Bot-Gegner</h4>
+            <p>Wähle im Setup einen Bot aus. Bots werden <b>nicht</b> in der Statistik gespeichert.</p>
         </div>
     </div>
     </div>
@@ -238,7 +265,6 @@
                 <h2 id="modal-name" class="stats-name">Name</h2>
                 <button class="close-btn" onclick="closeStats(event)">×</button>
             </div>
-            
             <div class="kpi-grid">
                 <div class="kpi-box"><div class="kpi-label">Siege</div><div class="kpi-value" id="kpi-wins" style="color:var(--accent-green)">-</div></div>
                 <div class="kpi-box"><div class="kpi-label">Highscore</div><div class="kpi-value" id="kpi-high" style="color:var(--accent-purple)">-</div></div>
@@ -247,13 +273,8 @@
                 <div class="kpi-box"><div class="kpi-label">Secure Rate</div><div class="kpi-value" id="kpi-secure-rate" style="color:var(--accent-blue)">-</div></div>
                 <div class="kpi-box"><div class="kpi-label">Double Rate</div><div class="kpi-value" id="kpi-double-rate" style="color:var(--accent-red)">-</div></div>
             </div>
-
             <h4 style="border-bottom:1px solid #444; padding-bottom:10px; margin-bottom:15px; color:#aaa;">📊 DURCHSCHNITT PRO ZAHL</h4>
-            
-            <div class="chart-container">
-                <canvas id="statsChart"></canvas>
-            </div>
-            
+            <div class="chart-container"><canvas id="statsChart"></canvas></div>
         </div>
     </div>
 
@@ -273,58 +294,43 @@
         let currentPlayerIndex = 0;
         let globalTargetIndex = 0;
         let isTrainingMode = false;
-        let statsChart = null; // Variable für das Diagramm
+        let statsChart = null;
 
-        // Spielstatus
+        // Turn Vars
         let currentRawScore = 0;
         let secureMultiplier = 0; isSecured = false; isDoubleHit = false; 
         let thrownScore = 0; thrownSecure = 0; const MAX_DARTS = 3;
 
-        // --- NAMENS VORSCHLÄGE ---
-        async function loadPlayerSuggestions() {
-            let { data: playersDB, error } = await _supabase.from('highscores').select('name');
-            if(error || !playersDB) return;
-            const uniqueNames = new Set();
-            playersDB.forEach(p => { uniqueNames.add(p.name.replace(" (Training)", "").trim()); });
-            const datalist = document.getElementById('player-suggestions');
-            datalist.innerHTML = ''; 
-            uniqueNames.forEach(name => {
-                const option = document.createElement('option'); option.value = name; datalist.appendChild(option);
-            });
-        }
-        window.onload = function() { loadPlayerSuggestions(); };
-
-        // --- NAVIGATION ---
-        function showScreen(screen) {
-            document.getElementById('setup-screen').style.display = 'none';
-            document.getElementById('game-screen').style.display = 'none';
-            document.getElementById('highscore-screen').style.display = 'none';
-            document.getElementById('rules-screen').style.display = 'none';
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-
-            if(screen === 'game') {
-                document.querySelectorAll('.nav-btn')[0].classList.add('active');
-                if(players.length > 0) document.getElementById('game-screen').style.display = 'block';
-                else document.getElementById('setup-screen').style.display = 'block';
-            } else if (screen === 'highscores') {
-                document.querySelectorAll('.nav-btn')[1].classList.add('active');
-                document.getElementById('highscore-screen').style.display = 'block';
-                loadHighscores();
-            } else if (screen === 'rules') {
-                document.querySelectorAll('.nav-btn')[2].classList.add('active');
-                document.getElementById('rules-screen').style.display = 'block';
-            }
-        }
-
-        // --- GAME LOGIC ---
+        // --- SETUP & BOT ---
         function addPlayer() {
             const input = document.getElementById('player-input');
             const name = input.value.trim();
             if (name) {
-                players.push({ name: name, score: 0, stats: { rounds: 0, secures: 0, doubles: 0, numberData: {} } });
+                players.push({ isBot: false, name: name, score: 0, stats: { rounds: 0, secures: 0, doubles: 0, numberData: {} } });
                 document.getElementById('player-list-setup').innerHTML += `<div style="background:#333; padding:5px; margin:5px; display:inline-block; border-radius:5px;">${name}</div>`;
                 input.value = '';
             }
+        }
+
+        function addBot() {
+            // Einfache Schwierigkeits-Abfrage per Prompt (Quick & Dirty)
+            let choice = prompt("Wähle Bot-Stärke:\n1 = Kneipen-Held (Leicht)\n2 = Liga-Spieler (Mittel)\n3 = THE LITTLER (Profi)");
+            let name = "Bot";
+            let diff = 1;
+
+            if(choice === "1") { name = "🤖 Kneipen-Held"; diff = 1; }
+            else if(choice === "2") { name = "🤖 Liga-Spieler"; diff = 2; }
+            else if(choice === "3") { name = "🔥 THE LITTLER"; diff = 3; }
+            else return; // Abgebrochen
+
+            players.push({ 
+                isBot: true, 
+                difficulty: diff, 
+                name: name, 
+                score: 0, 
+                stats: { rounds: 0, secures: 0, doubles: 0, numberData: {} } 
+            });
+            document.getElementById('player-list-setup').innerHTML += `<div style="background:#673ab7; padding:5px; margin:5px; display:inline-block; border-radius:5px;">${name}</div>`;
         }
 
         function startGame() {
@@ -340,43 +346,105 @@
             showScreen('game');
             updateUI();
             resetTurnInputs();
+            checkBotTurn(); // Prüfen ob der erste Spieler ein Bot ist
         }
 
-        function updateUI() {
-            const player = players[currentPlayerIndex];
-            document.getElementById('current-player-name').innerText = player.name;
-            document.getElementById('current-player-score').innerText = player.score;
-            let t = targets[globalTargetIndex];
-            document.getElementById('current-target').innerText = (t === 25) ? "BULL" : (t === 50 ? "BULLSEYE" : t);
-        }
-
-        function resetTurnInputs() {
-            currentRawScore = 0; secureMultiplier = 0; isSecured = false; isDoubleHit = false;
-            thrownScore = 0; thrownSecure = 0;
-            updateTurnDisplay();
-        }
-        function addRawScore(m) { if (thrownScore < MAX_DARTS) { currentRawScore += (targets[globalTargetIndex] * m); thrownScore++; updateTurnDisplay(); } }
-        function addSecure(t) { 
-            if (thrownSecure < MAX_DARTS) {
-                if (t === 1) { if (!isSecured) { isSecured = true; if (secureMultiplier === 0) secureMultiplier = 1; } }
-                else if (t === 2) { isSecured = true; isDoubleHit = true; if (secureMultiplier === 0) secureMultiplier = 1; secureMultiplier *= 2; }
-                thrownSecure++; updateTurnDisplay();
+        // --- BOT LOGIC ---
+        function checkBotTurn() {
+            const p = players[currentPlayerIndex];
+            if(p.isBot) {
+                // UI blockieren
+                document.getElementById('bot-overlay').style.display = 'flex';
+                document.getElementById('bot-status-text').innerText = `${p.name} zielt...`;
+                
+                // Bot Simulation starten
+                setTimeout(() => playBot(p), 1000);
+            } else {
+                // UI freigeben
+                document.getElementById('bot-overlay').style.display = 'none';
             }
         }
-        function updateTurnDisplay() {
-            document.getElementById('raw-score').innerText = currentRawScore;
-            document.getElementById('score-darts-count').innerText = `${thrownScore}/${MAX_DARTS}`;
-            document.getElementById('secure-darts-count').innerText = `${thrownSecure}/${MAX_DARTS}`;
-            [...document.getElementById('controls-score').children].forEach(b => b.disabled = thrownScore >= MAX_DARTS);
-            [...document.getElementById('controls-secure').children].forEach(b => b.disabled = thrownSecure >= MAX_DARTS);
-            let txt = isSecured ? `Gesichert (x${secureMultiplier})` : "Offen";
-            document.getElementById('secure-status').innerText = txt;
-            document.getElementById('secure-status').style.color = isSecured ? "var(--accent-green)" : "#aaa";
-            document.getElementById('round-result').innerText = isSecured ? currentRawScore * secureMultiplier : 0;
+
+        function playBot(bot) {
+            const diff = bot.difficulty;
+            const targetVal = targets[globalTargetIndex];
+
+            // 1. PHASE: PUNKTE (Simulation der 3 Darts)
+            let botMultiplier = 0;
+            
+            // Wahrscheinlichkeiten pro Wurf (Single, Double, Triple, Miss)
+            // Amateur (1) / Pro (2) / Littler (3)
+            for(let i=0; i<3; i++) {
+                let rnd = Math.random();
+                let hit = 0; // 0=Miss, 1=Single, 2=Double, 3=Triple
+
+                if(diff === 1) { // Amateur: 40% Miss, 50% Single, 10% Glück
+                    if(rnd > 0.4) hit = 1;
+                    if(rnd > 0.9) hit = 2;
+                    if(rnd > 0.98) hit = 3; 
+                } else if(diff === 2) { // Liga: 10% Miss, 60% Single, 15% D, 15% T
+                    if(rnd > 0.1) hit = 1;
+                    if(rnd > 0.7) hit = 2;
+                    if(rnd > 0.85) hit = 3;
+                } else { // Littler: 1% Miss, 20% Single, 20% Double, 59% Triple
+                    if(rnd > 0.01) hit = 1;
+                    if(rnd > 0.2) hit = 2;
+                    if(rnd > 0.4) hit = 3;
+                }
+                botMultiplier += hit;
+            }
+            
+            // UI Update: Zeige Punkte
+            currentRawScore = targetVal * botMultiplier;
+            thrownScore = 3;
+            updateTurnDisplay();
+            document.getElementById('bot-status-text').innerText = `${pName(bot)} trifft ${currentRawScore} Punkte!`;
+
+            // Kurze Pause, dann Sichern
+            setTimeout(() => playBotSecure(bot), 1500);
         }
 
+        function playBotSecure(bot) {
+            const diff = bot.difficulty;
+            
+            // 2. PHASE: SICHERN
+            let rnd = Math.random();
+            let secureType = 0; // 0=Miss, 1=SingleBull, 2=Bullseye
+
+            if(diff === 1) { // Amateur: 15% S-Bull, 5% Eye
+                if(rnd < 0.20) secureType = 1;
+                if(rnd < 0.05) secureType = 2;
+            } else if(diff === 2) { // Liga: 40% S-Bull, 20% Eye
+                if(rnd < 0.60) secureType = 1;
+                if(rnd < 0.20) secureType = 2;
+            } else { // Littler: 30% S-Bull, 50% Eye (80% Hit Rate)
+                if(rnd < 0.80) secureType = 1;
+                if(rnd < 0.50) secureType = 2;
+            }
+
+            if(secureType === 1) { isSecured=true; secureMultiplier=1; }
+            if(secureType === 2) { isSecured=true; isDoubleHit=true; secureMultiplier=2; }
+            
+            thrownSecure = 3;
+            updateTurnDisplay();
+
+            let txt = "verfehlt Bull...";
+            if(isSecured) txt = "SICHERT!";
+            if(secureMultiplier > 1) txt = "BULLSEYE!! 🔥";
+            
+            document.getElementById('bot-status-text').innerText = `${pName(bot)} ${txt}`;
+
+            // Pause, dann Nächster
+            setTimeout(() => nextTurn(), 1500);
+        }
+
+        function pName(p) { return p.name.split(" ")[1] || p.name; } // Kurzer Name für Status
+
+        // --- GAMEPLAY CORE ---
         async function nextTurn() {
             const p = players[currentPlayerIndex];
+            
+            // Stats Tracking (auch für Bots, für die Runden-Logik)
             p.stats.rounds++; if(isSecured) p.stats.secures++; if(isDoubleHit) p.stats.doubles++;
             let key = targets[globalTargetIndex].toString();
             if(!p.stats.numberData[key]) p.stats.numberData[key] = { points: 0, count: 0 };
@@ -389,14 +457,22 @@
             }
             p.score += final;
             currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+            
             resetTurnInputs();
             updateUI();
+            checkBotTurn(); // Prüfen ob nächster ein Bot ist
         }
 
         async function handleGameEnd() {
             const winner = players[currentPlayerIndex];
+            document.getElementById('bot-overlay').style.display = 'none'; // Overlay weg falls Bot gewinnt
+            
             alert(`🏆 ${winner.name} hat gewonnen!`);
+            
             for (let p of players) {
+                // BOTS NICHT SPEICHERN!
+                if(p.isBot) continue;
+
                 let dbName = isTrainingMode ? `${p.name} (Training)` : p.name;
                 let isWin = (!isTrainingMode && p.name === winner.name);
                 await saveProStats(dbName, p, isWin);
@@ -404,38 +480,67 @@
             location.reload();
         }
 
+        // --- UI & HELPERS ---
+        function updateUI() {
+            const player = players[currentPlayerIndex];
+            document.getElementById('current-player-name').innerText = player.name;
+            document.getElementById('current-player-score').innerText = player.score;
+            let t = targets[globalTargetIndex];
+            document.getElementById('current-target').innerText = (t === 25) ? "BULL" : (t === 50 ? "BULLSEYE" : t);
+        }
+        function resetTurnInputs() {
+            currentRawScore = 0; secureMultiplier = 0; isSecured = false; isDoubleHit = false;
+            thrownScore = 0; thrownSecure = 0; updateTurnDisplay();
+        }
+        function addRawScore(m) { if (thrownScore < MAX_DARTS) { currentRawScore += (targets[globalTargetIndex] * m); thrownScore++; updateTurnDisplay(); } }
+        function addSecure(t) { if (thrownSecure < MAX_DARTS) { if (t === 1) { if (!isSecured) { isSecured = true; if (secureMultiplier === 0) secureMultiplier = 1; } } else if (t === 2) { isSecured = true; isDoubleHit = true; if (secureMultiplier === 0) secureMultiplier = 1; secureMultiplier *= 2; } thrownSecure++; updateTurnDisplay(); } }
+        function updateTurnDisplay() {
+            document.getElementById('raw-score').innerText = currentRawScore;
+            document.getElementById('score-darts-count').innerText = `${thrownScore}/${MAX_DARTS}`;
+            document.getElementById('secure-darts-count').innerText = `${thrownSecure}/${MAX_DARTS}`;
+            [...document.getElementById('controls-score').children].forEach(b => b.disabled = thrownScore >= MAX_DARTS);
+            [...document.getElementById('controls-secure').children].forEach(b => b.disabled = thrownSecure >= MAX_DARTS);
+            let txt = isSecured ? `Gesichert (x${secureMultiplier})` : "Offen";
+            document.getElementById('secure-status').innerText = txt;
+            document.getElementById('secure-status').style.color = isSecured ? "var(--accent-green)" : "#aaa";
+            document.getElementById('round-result').innerText = isSecured ? currentRawScore * secureMultiplier : 0;
+        }
+
+        // --- DATABASE & CHARTS (GLEICH WIE VORHER) ---
+        async function loadPlayerSuggestions() {
+            let { data: playersDB, error } = await _supabase.from('highscores').select('name');
+            if(error || !playersDB) return;
+            const uniqueNames = new Set();
+            playersDB.forEach(p => { uniqueNames.add(p.name.replace(" (Training)", "").trim()); });
+            const datalist = document.getElementById('player-suggestions'); datalist.innerHTML = ''; 
+            uniqueNames.forEach(name => { const option = document.createElement('option'); option.value = name; datalist.appendChild(option); });
+        }
+        window.onload = function() { loadPlayerSuggestions(); };
+
+        function showScreen(screen) {
+            document.getElementById('setup-screen').style.display = 'none'; document.getElementById('game-screen').style.display = 'none'; document.getElementById('highscore-screen').style.display = 'none'; document.getElementById('rules-screen').style.display = 'none';
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            if(screen === 'game') { document.querySelectorAll('.nav-btn')[0].classList.add('active'); if(players.length > 0) document.getElementById('game-screen').style.display = 'block'; else document.getElementById('setup-screen').style.display = 'block'; }
+            else if (screen === 'highscores') { document.querySelectorAll('.nav-btn')[1].classList.add('active'); document.getElementById('highscore-screen').style.display = 'block'; loadHighscores(); }
+            else if (screen === 'rules') { document.querySelectorAll('.nav-btn')[2].classList.add('active'); document.getElementById('rules-screen').style.display = 'block'; }
+        }
+
         async function saveProStats(name, pObj, isWin) {
             let { data: ex } = await _supabase.from('highscores').select('*').eq('name', name).single();
-            if (!ex) {
-                await _supabase.from('highscores').insert([{
-                    name: name, wins: isWin?1:0, highscore: pObj.score, games_played: 1, total_points: pObj.score,
-                    rounds_played: pObj.stats.rounds, secure_count: pObj.stats.secures, double_count: pObj.stats.doubles, number_stats: pObj.stats.numberData
-                }]);
-            } else {
-                let mStats = ex.number_stats || {};
-                let cStats = pObj.stats.numberData;
-                for(let k in cStats) {
-                    if(!mStats[k]) mStats[k] = { points: 0, count: 0 };
-                    mStats[k].points += cStats[k].points; mStats[k].count += cStats[k].count;
-                }
-                await _supabase.from('highscores').update({
-                    wins: ex.wins + (isWin?1:0), highscore: Math.max(ex.highscore, pObj.score),
-                    games_played: (ex.games_played||0)+1, total_points: (ex.total_points||0)+pObj.score,
-                    rounds_played: (ex.rounds_played||0)+pObj.stats.rounds, secure_count: (ex.secure_count||0)+pObj.stats.secures,
-                    double_count: (ex.double_count||0)+pObj.stats.doubles, number_stats: mStats
-                }).eq('name', name);
+            if (!ex) { await _supabase.from('highscores').insert([{ name: name, wins: isWin?1:0, highscore: pObj.score, games_played: 1, total_points: pObj.score, rounds_played: pObj.stats.rounds, secure_count: pObj.stats.secures, double_count: pObj.stats.doubles, number_stats: pObj.stats.numberData }]); }
+            else {
+                let mStats = ex.number_stats || {}; let cStats = pObj.stats.numberData;
+                for(let k in cStats) { if(!mStats[k]) mStats[k] = { points: 0, count: 0 }; mStats[k].points += cStats[k].points; mStats[k].count += cStats[k].count; }
+                await _supabase.from('highscores').update({ wins: ex.wins + (isWin?1:0), highscore: Math.max(ex.highscore, pObj.score), games_played: (ex.games_played||0)+1, total_points: (ex.total_points||0)+pObj.score, rounds_played: (ex.rounds_played||0)+pObj.stats.rounds, secure_count: (ex.secure_count||0)+pObj.stats.secures, double_count: (ex.double_count||0)+pObj.stats.doubles, number_stats: mStats }).eq('name', name);
             }
         }
 
         async function loadHighscores() {
-            const tbody = document.querySelector('#lifetime-table tbody');
-            tbody.innerHTML = '<tr><td colspan="4">Lade Daten...</td></tr>';
+            const tbody = document.querySelector('#lifetime-table tbody'); tbody.innerHTML = '<tr><td colspan="4">Lade Daten...</td></tr>';
             let { data: highscores, error } = await _supabase.from('highscores').select('*').order('wins', { ascending: false }).order('highscore', { ascending: false });
-            if(error) return;
-            tbody.innerHTML = '';
+            if(error) return; tbody.innerHTML = '';
             highscores.forEach((entry, idx) => {
-                const tr = document.createElement('tr');
-                const safeData = encodeURIComponent(JSON.stringify(entry));
+                const tr = document.createElement('tr'); const safeData = encodeURIComponent(JSON.stringify(entry));
                 let dName = entry.name.replace(' (Training)', ' <span style="color:#d500f9; font-size:0.8em;">(Training)</span>');
                 tr.innerHTML = `<td style="color:#666">${idx + 1}</td><td><a href="#" class="clickable-name" onclick="openProStats('${safeData}')">${dName}</a></td><td>${entry.wins}</td><td>${entry.highscore}</td>`;
                 tbody.appendChild(tr);
@@ -443,95 +548,26 @@
         }
 
         function openProStats(encodedData) {
-            const data = JSON.parse(decodeURIComponent(encodedData));
-            const m = document.getElementById('stats-modal');
+            const data = JSON.parse(decodeURIComponent(encodedData)); const m = document.getElementById('stats-modal');
             document.getElementById('modal-name').innerText = data.name.replace(" (Training)", "");
-            
-            // KPIs
-            document.getElementById('kpi-wins').innerText = data.wins;
-            document.getElementById('kpi-high').innerText = data.highscore;
+            document.getElementById('kpi-wins').innerText = data.wins; document.getElementById('kpi-high').innerText = data.highscore;
             let gp = data.games_played || 0; let rp = data.rounds_played || 0;
             document.getElementById('kpi-winrate').innerText = gp > 0 ? Math.round((data.wins/gp)*100)+"%" : "0%";
             document.getElementById('kpi-avg').innerText = gp > 0 ? Math.round(data.total_points/gp) : "0";
             document.getElementById('kpi-secure-rate').innerText = rp > 0 ? Math.round((data.secure_count/rp)*100)+"%" : "0%";
             document.getElementById('kpi-double-rate').innerText = rp > 0 ? Math.round((data.double_count/rp)*100)+"%" : "0%";
-
-            // --- CHART ERSTELLEN ---
-            // 1. Daten vorbereiten (X-Achse: 1-20, Bull, Bullseye)
-            const allTargets = [];
-            for(let i=1; i<=20; i++) allTargets.push(i.toString());
-            allTargets.push("25"); // Single Bull
-            allTargets.push("50"); // Bullseye
             
-            const chartLabels = allTargets.map(t => {
-                if(t==="25") return "BULL";
-                if(t==="50") return "B-EYE";
-                return t;
-            });
-
-            // 2. Werte aus JSON holen
+            const allTargets = []; for(let i=1; i<=20; i++) allTargets.push(i.toString()); allTargets.push("25"); allTargets.push("50");
+            const chartLabels = allTargets.map(t => { if(t==="25") return "BULL"; if(t==="50") return "B-EYE"; return t; });
             const numStats = data.number_stats || {};
-            const chartData = allTargets.map(key => {
-                const s = numStats[key];
-                if(s && s.count > 0) return (s.points / s.count).toFixed(1);
-                return 0;
-            });
+            const chartData = allTargets.map(key => { const s = numStats[key]; if(s && s.count > 0) return (s.points / s.count).toFixed(1); return 0; });
 
-            // 3. Altes Chart zerstören falls vorhanden
-            if(statsChart) {
-                statsChart.destroy();
-            }
-
-            // 4. Neues Chart zeichnen
+            if(statsChart) { statsChart.destroy(); }
             const ctx = document.getElementById('statsChart').getContext('2d');
-            statsChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: chartLabels,
-                    datasets: [{
-                        label: 'Ø Punkte pro Aufnahme',
-                        data: chartData,
-                        backgroundColor: 'rgba(41, 121, 255, 0.6)',
-                        borderColor: 'rgba(41, 121, 255, 1)',
-                        borderWidth: 1,
-                        borderRadius: 3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: '#333' },
-                            ticks: { color: '#aaa' }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: '#aaa', font: {size: 10} }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: '#222',
-                            titleColor: '#fff',
-                            bodyColor: '#fff',
-                            borderColor: '#555',
-                            borderWidth: 1
-                        }
-                    }
-                }
-            });
-
+            statsChart = new Chart(ctx, { type: 'bar', data: { labels: chartLabels, datasets: [{ label: 'Ø Punkte pro Aufnahme', data: chartData, backgroundColor: 'rgba(41, 121, 255, 0.6)', borderColor: 'rgba(41, 121, 255, 1)', borderWidth: 1, borderRadius: 3 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: '#333' }, ticks: { color: '#aaa' } }, x: { grid: { display: false }, ticks: { color: '#aaa', font: {size: 10} } } }, plugins: { legend: { display: false } } } });
             m.style.display = 'flex';
         }
-
-        function closeStats(e) {
-            if(e.target.id === 'stats-modal' || e.target.className === 'close-btn') {
-                document.getElementById('stats-modal').style.display = 'none';
-            }
-        }
+        function closeStats(e) { if(e.target.id === 'stats-modal' || e.target.className === 'close-btn') document.getElementById('stats-modal').style.display = 'none'; }
     </script>
 </body>
 </html>
