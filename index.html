@@ -152,6 +152,32 @@
             border-color: var(--accent-red);
             background: rgba(244, 67, 54, 0.1);
         }
+
+        /* Design für den Trainingsmodus */
+        body.training-active {
+            background-color: #0d47a1; /* Dunkelblau */
+        }
+        body.training-active .container {
+            background-color: #1565c0; /* Helleres Blau */
+        }
+        body.training-active h1 {
+            color: #90caf9;
+        }
+
+        /* Checkbox Styling */
+        .checkbox-wrapper {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+        input[type="checkbox"] {
+            transform: scale(1.5);
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -187,6 +213,10 @@
             <input type="text" id="player-input" placeholder="Spielername...">
             <button onclick="addPlayer()">Spieler +</button>
             <div id="player-list-setup" style="margin: 15px 0;"></div>
+            <label class="checkbox-wrapper">
+                <input type="checkbox" id="chk-training">
+                <span>🧪 Trainings-Modus (Separat speichern)</span>
+            </label>
             <button class="primary" onclick="startGame()">Spiel Starten</button>
         </div>
 
@@ -241,7 +271,7 @@
         <div class="footer-nav">
             <a href="admin.html" class="admin-link">⚙️ Admin Login</a>
         </div>
-        
+
     </div>
 
     <script>
@@ -261,6 +291,7 @@
         let players = [];
         let currentPlayerIndex = 0;
         let globalTargetIndex = 0;
+        let isTrainingMode = false;
         
         let currentRawScore = 0;
         let secureMultiplier = 0; 
@@ -304,6 +335,19 @@
 
         function startGame() {
             if (players.length === 0) return alert("Bitte Spieler hinzufügen!");
+            
+            // Prüfen ob Training angehakt ist
+            isTrainingMode = document.getElementById('chk-training').checked;
+            
+            // Design ändern wenn Training
+            if(isTrainingMode) {
+                document.body.classList.add('training-active');
+                document.querySelector('h1').innerText = "🧪 Schlag den Littler (Training)";
+            } else {
+                document.body.classList.remove('training-active');
+                document.querySelector('h1').innerText = "🎯 Schlag den Littler";
+            }
+
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'block';
             updateUI();
@@ -402,17 +446,34 @@
         // --- DATENBANK FUNKTIONEN ---
 
         async function handleGameEnd() {
-            const winner = players[currentPlayerIndex]; // Der, der den letzten Schuss gemacht hat
-            alert(`SPIELENDE! ${winner.name} hat gewonnen! Speichere Daten...`);
+            const winner = players[currentPlayerIndex]; 
+            
+            let msg = `SPIELENDE! ${winner.name} hat gewonnen!`;
+            if(isTrainingMode) msg = "TRAINING BEENDET! Speichere Stats...";
+            
+            alert(msg);
 
             // Alle Spieler durchgehen und in DB speichern
             for (let p of players) {
-                let isWinner = (p.name === winner.name);
-                await saveToDatabase(p.name, p.score, isWinner);
+                // Im Training zählt man keine "Siege" für die Liga, nur Highscores
+                // Wir hängen " (Training)" an den Namen an
+                
+                let saveName = p.name;
+                let saveWin = false;
+
+                if (isTrainingMode) {
+                    saveName = p.name + " (Training)";
+                    saveWin = false; // Training gibt keine Wins für die Statistik
+                } else {
+                    // Normales Spiel: Der Gewinner kriegt den Win
+                    saveWin = (p.name === winner.name);
+                }
+
+                await saveToDatabase(saveName, p.score, saveWin);
             }
             
-            alert("Daten gespeichert! Schau dir die Rangliste an.");
-            location.reload(); // Seite neu laden für neues Spiel
+            alert("Gespeichert!");
+            location.reload(); 
         }
 
         async function saveToDatabase(playerName, score, isWin) {
