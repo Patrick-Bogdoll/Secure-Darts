@@ -24,31 +24,32 @@
             color: var(--text-color);
             margin: 0; padding: 20px;
             display: flex; flex-direction: column; align-items: center;
+            padding-bottom: 60px; /* Platz unten für den Button */
         }
 
-        /* LILA TRAINING DESIGN */
+        /* TRAINING DESIGN (LILA) */
         body.training-active { background-color: #1a0029; }
         body.training-active .container { background-color: #320b42; box-shadow: 0 4px 20px rgba(180, 80, 255, 0.4); }
         body.training-active h1 { color: #e1bee7; }
 
-        h1 { margin-bottom: 20px; color: var(--accent-green); text-transform: uppercase; letter-spacing: 2px; font-size: 1.8em; }
+        h1 { margin-bottom: 20px; color: var(--accent-green); text-transform: uppercase; letter-spacing: 2px; font-size: 1.8em; text-align: center; }
 
         .container {
             max-width: 600px; width: 100%;
             background-color: var(--card-bg);
             padding: 25px; border-radius: 12px;
             box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-            margin-bottom: 40px;
         }
 
-        /* UI Elements */
-        .nav-tabs { display: flex; justify-content: center; margin-bottom: 25px; gap: 15px; }
+        /* Navigation Tabs */
+        .nav-tabs { display: flex; justify-content: center; margin-bottom: 25px; gap: 10px; flex-wrap: wrap; }
         .nav-btn {
-            background: #333; border: none; color: #aaa; padding: 12px 25px;
-            cursor: pointer; border-radius: 30px; transition: 0.3s; font-weight: bold;
+            background: #333; border: none; color: #aaa; padding: 10px 20px;
+            cursor: pointer; border-radius: 30px; transition: 0.3s; font-weight: bold; font-size: 0.9em;
         }
         .nav-btn.active { background: var(--accent-blue); color: white; transform: scale(1.05); box-shadow: 0 4px 15px rgba(41, 121, 255, 0.4); }
 
+        /* Game UI */
         .info-panel { display: flex; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; border-left: 4px solid var(--accent-green); }
         
         .target-wrapper { text-align: center; margin: 20px 0; padding: 10px; border-bottom: 1px solid #333; }
@@ -67,19 +68,34 @@
         
         button.primary { background-color: var(--accent-green); width: 100%; margin-top: 25px; color: #000; font-weight: 800; font-size: 1.2em; }
         button.reset { background-color: #ff9800; color: #000; width: 100%; margin-top: 15px; font-size: 0.9em;}
-        
         button.hit { background-color: var(--accent-blue); }
         button.miss { background-color: var(--accent-red); opacity: 0.8; }
         button.bull { background-color: #d32f2f; }
 
-        /* Tables */
+        /* Tables & Links */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { text-align: left; color: #666; font-size: 0.8em; text-transform: uppercase; padding: 10px; border-bottom: 1px solid #333; }
         td { padding: 12px 10px; border-bottom: 1px solid #333; }
         .clickable-name { color: var(--accent-blue); cursor: pointer; font-weight: bold; text-decoration: none; position: relative; }
-        .clickable-name:hover::after { content: ' 📊'; position: absolute; right: -25px; }
+        .clickable-name:hover::after { content: ' 📊'; position: absolute; right: -25px; opacity: 0.5; }
 
-        /* STATS MODAL & GRID */
+        /* RULES SCREEN STYLE */
+        .rules-content h3 { color: var(--accent-green); border-bottom: 1px solid #333; padding-bottom: 10px; margin-top: 0; }
+        .rules-content h4 { color: var(--accent-blue); margin-bottom: 5px; margin-top: 20px; }
+        .rules-content p, .rules-content li { line-height: 1.6; color: #ccc; font-size: 0.95em; }
+        .rules-content ul { padding-left: 20px; }
+        .example-box { background: rgba(255,255,255,0.1); padding: 10px; border-left: 3px solid var(--accent-purple); margin: 10px 0; border-radius: 4px; font-size: 0.9em; }
+
+        /* ADMIN BUTTON (Unten Rechts Fixed) */
+        .admin-link {
+            position: fixed; bottom: 20px; right: 20px;
+            background: rgba(0, 0, 0, 0.6); padding: 10px 15px; border-radius: 30px;
+            color: #888; text-decoration: none; font-size: 0.8em; transition: all 0.3s;
+            z-index: 999; border: 1px solid #444; backdrop-filter: blur(5px);
+        }
+        .admin-link:hover { background: var(--accent-red); color: white; border-color: var(--accent-red); transform: scale(1.05); }
+
+        /* MODAL */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px);
@@ -105,9 +121,10 @@
         .num-stat-val { display: block; font-weight: bold; color: var(--accent-green); font-size: 1.1em; margin-top: 3px; }
         .num-label { color: #666; font-size: 0.9em; font-weight: bold; }
 
-        .admin-link { position: fixed; bottom: 10px; right: 10px; opacity: 0.3; text-decoration: none; color: white; font-size: 0.8em; }
-        input[type="checkbox"] { transform: scale(1.3); margin-right: 10px; }
+        /* Checkbox & Input */
         .checkbox-wrapper { display:flex; justify-content:center; align-items:center; margin: 20px 0; color:#aaa; cursor: pointer; }
+        input[type="checkbox"] { transform: scale(1.3); margin-right: 10px; cursor: pointer; }
+        input[type="text"] { flex:1; padding:15px; border-radius:8px; border:none; background:#333; color:white; font-size:1em; }
     </style>
 </head>
 <body>
@@ -117,18 +134,20 @@
     <div class="nav-tabs">
         <button class="nav-btn active" onclick="showScreen('game')">Game</button>
         <button class="nav-btn" onclick="showScreen('highscores')">Pro Stats 📊</button>
+        <button class="nav-btn" onclick="showScreen('rules')">Regeln 📜</button>
     </div>
 
     <div class="container">
         <div id="setup-screen">
             <h3 style="text-align:center; color:#888;">Setup</h3>
+            
             <div style="display:flex; gap:10px;">
-                <input type="text" id="player-input" list="player-suggestions" placeholder="Name wählen oder tippen..." style="flex:1; padding:15px; border-radius:8px; border:none; background:#333; color:white;">
-                
+                <input type="text" id="player-input" list="player-suggestions" placeholder="Name wählen oder tippen...">
                 <datalist id="player-suggestions"></datalist>
                 
                 <button onclick="addPlayer()" style="width:auto; margin:0; background:#444;">+</button>
             </div>
+
             <div id="player-list-setup" style="margin: 20px 0; text-align:center;"></div>
             
             <label class="checkbox-wrapper">
@@ -191,6 +210,39 @@
             </table>
             <button class="primary" style="background:#333; margin-top:20px" onclick="loadHighscores()">Refresh</button>
         </div>
+
+        <div id="rules-screen" style="display:none;" class="rules-content">
+            <h3>📜 Spielregeln</h3>
+            
+            <p>Ziel ist es, die meisten Punkte zu sammeln, während man die Zahlen von <b>1 bis 20</b>, dann <b>25</b> (Single Bull) und <b>50</b> (Bullseye) durchläuft.</p>
+            
+            <h4>1. Punkte Sammeln</h4>
+            <p>In der ersten Phase (3 Darts) wirft man auf die aktuelle Zielzahl. Man sammelt so viele Punkte wie möglich.</p>
+            <ul>
+                <li>Single = Einfache Punktzahl</li>
+                <li>Double = Doppelte Punktzahl</li>
+                <li>Triple = Dreifache Punktzahl</li>
+            </ul>
+
+            <h4>2. Das Sichern</h4>
+            <p>In der zweiten Phase (3 Darts) muss man die Punkte über das Bullseye "sichern".</p>
+            <ul>
+                <li><b>Single Bull (25):</b> Die Punkte sind gesichert (x1).</li>
+                <li><b>Bullseye (50):</b> Die Punkte werden gesichert und <b>verdoppelt</b> (x2).</li>
+                <li><b>Nichts getroffen:</b> 0 Punkte für diese Runde.</li>
+            </ul>
+            <div class="example-box">
+                Beispiel: Du triffst 3x die 20 (60 Punkte).<br>
+                Dann triffst du 1x Bullseye.<br>
+                Ergebnis: 60 x 2 = <b>120 Punkte</b>.
+            </div>
+
+            <h4>3. Globaler Fortschritt</h4>
+            <p>Alle Spieler werfen auf die gleiche Zahl. Die Zahl erhöht sich erst für alle, wenn <b>mindestens ein Spieler</b> in der Runde erfolgreich gesichert hat.</p>
+
+            <h4>4. Trainings-Modus</h4>
+            <p>Setze den Haken im Setup. Deine Statistiken werden separat gespeichert und zählen nicht zu deinen offiziellen Siegen.</p>
+        </div>
     </div>
 
     <a href="admin.html" class="admin-link">⚙️ Admin</a>
@@ -220,7 +272,7 @@
 
     <script>
         // ---------------------------------------------------------
-        // DEINE SUPABASE CONFIG
+        // KONFIGURATION (DEINE DATEN)
         const SUPABASE_URL = 'https://etzkulwnjhkoiklrohbt.supabase.co'; 
         const SUPABASE_KEY = 'sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy';
         // ---------------------------------------------------------
@@ -228,55 +280,79 @@
         const { createClient } = supabase;
         const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --- GLOBAL VARIABLES ---
+        // GLOBALE VARIABLEN
         const targets = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25, 50];
         let players = [];
         let currentPlayerIndex = 0;
         let globalTargetIndex = 0;
         let isTrainingMode = false;
 
-        // Turn Variables
+        // Spielstatus
         let currentRawScore = 0;
         let secureMultiplier = 0; 
         let isSecured = false;
-        let isDoubleHit = false; // Hat er Bullseye getroffen?
+        let isDoubleHit = false; 
         let thrownScore = 0;
         let thrownSecure = 0;
         const MAX_DARTS = 3;
 
-        // UI Management
+        // --- NAMENS VORSCHLÄGE LADEN ---
+        async function loadPlayerSuggestions() {
+            let { data: playersDB, error } = await _supabase.from('highscores').select('name');
+            if(error || !playersDB) return;
+
+            const uniqueNames = new Set();
+            playersDB.forEach(p => {
+                let cleanName = p.name.replace(" (Training)", "").trim();
+                uniqueNames.add(cleanName);
+            });
+
+            const datalist = document.getElementById('player-suggestions');
+            datalist.innerHTML = ''; 
+            uniqueNames.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                datalist.appendChild(option);
+            });
+        }
+        // Sofort laden
+        window.onload = function() { loadPlayerSuggestions(); };
+
+        // --- UI NAVIGATION ---
         function showScreen(screen) {
+            // Alle verstecken
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'none';
             document.getElementById('highscore-screen').style.display = 'none';
+            document.getElementById('rules-screen').style.display = 'none';
+            
+            // Buttons reset
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
 
             if(screen === 'game') {
                 document.querySelectorAll('.nav-btn')[0].classList.add('active');
                 if(players.length > 0) document.getElementById('game-screen').style.display = 'block';
                 else document.getElementById('setup-screen').style.display = 'block';
-            } else {
+            } else if (screen === 'highscores') {
                 document.querySelectorAll('.nav-btn')[1].classList.add('active');
                 document.getElementById('highscore-screen').style.display = 'block';
                 loadHighscores();
+            } else if (screen === 'rules') {
+                document.querySelectorAll('.nav-btn')[2].classList.add('active');
+                document.getElementById('rules-screen').style.display = 'block';
             }
         }
 
+        // --- SETUP ---
         function addPlayer() {
             const input = document.getElementById('player-input');
             const name = input.value.trim();
             if (name) {
-                // Initialize detailed stats object for this session
+                // Initialisiere detaillierte Stats für diese Session
                 players.push({ 
                     name: name, 
                     score: 0,
-                    // SESSION STATS
-                    stats: {
-                        rounds: 0,
-                        secures: 0,
-                        doubles: 0,
-                        numberData: {} // Saves { "1": {points: 10, count: 1}, "2": ... }
-                    }
+                    stats: { rounds: 0, secures: 0, doubles: 0, numberData: {} }
                 });
                 document.getElementById('player-list-setup').innerHTML += `<div style="background:#333; padding:5px; margin:5px; display:inline-block; border-radius:5px;">${name}</div>`;
                 input.value = '';
@@ -306,10 +382,8 @@
             document.getElementById('current-player-score').innerText = player.score;
             
             let t = targets[globalTargetIndex];
-            document.getElementById('current-target').innerText = (t === 25) ? "BULL" : (t === 50 ? "BULLSEYE" : t);
-            
-            // Scoreboard update
-            // (Kann man hier minimalistisch halten, da wir den Highscore Screen haben)
+            let disp = (t === 25) ? "BULL" : (t === 50 ? "BULLSEYE" : t);
+            document.getElementById('current-target').innerText = disp;
         }
 
         function resetTurnInputs() {
@@ -328,12 +402,12 @@
 
         function addSecure(type) {
             if (thrownSecure >= MAX_DARTS) return;
-            // type: 1 = Single Bull (25), 2 = Bullseye (50)
+            // type: 1 = Single Bull, 2 = Bullseye
             if (type === 1) {
                 if (!isSecured) { isSecured = true; if (secureMultiplier === 0) secureMultiplier = 1; }
             } else if (type === 2) {
                 isSecured = true;
-                isDoubleHit = true; // Mark as Double hit for stats
+                isDoubleHit = true; 
                 if (secureMultiplier === 0) secureMultiplier = 1;
                 secureMultiplier *= 2;
             }
@@ -346,7 +420,6 @@
             document.getElementById('score-darts-count').innerText = `${thrownScore}/${MAX_DARTS}`;
             document.getElementById('secure-darts-count').innerText = `${thrownSecure}/${MAX_DARTS}`;
             
-            // Disable logic
             [...document.getElementById('controls-score').children].forEach(b => b.disabled = thrownScore >= MAX_DARTS);
             [...document.getElementById('controls-secure').children].forEach(b => b.disabled = thrownSecure >= MAX_DARTS);
 
@@ -363,27 +436,24 @@
             const p = players[currentPlayerIndex];
             const currentTargetVal = targets[globalTargetIndex];
 
-            // 1. STATS TRACKING FÜR DIESE RUNDE
+            // 1. STATS TRACKING
             p.stats.rounds++;
             if(isSecured) p.stats.secures++;
             if(isDoubleHit) p.stats.doubles++;
             
-            // Track Points for Specific Number
-            // Wir nutzen den Wert als Key (z.B. "1", "20", "25")
             let key = currentTargetVal.toString();
             if(!p.stats.numberData[key]) p.stats.numberData[key] = { points: 0, count: 0 };
-            
-            p.stats.numberData[key].points += currentRawScore; // Nur die geworfenen Punkte auf die Zahl
-            p.stats.numberData[key].count += 1; // Eine Aufnahme auf diese Zahl gespielt
+            p.stats.numberData[key].points += currentRawScore; 
+            p.stats.numberData[key].count += 1;
 
-            // 2. LOGIC
+            // 2. SPIELLOGIK
             let finalPoints = 0;
             if (isSecured) {
                 finalPoints = currentRawScore * secureMultiplier;
                 if (globalTargetIndex < targets.length - 1) {
                     globalTargetIndex++;
                 } else {
-                    p.score += finalPoints; // Letzte Punkte addieren vor Ende
+                    p.score += finalPoints; 
                     await handleGameEnd();
                     return;
                 }
@@ -395,7 +465,7 @@
             updateUI();
         }
 
-        // --- DATABASE SAVE ---
+        // --- DATABASE SAVE (PRO STATS) ---
         async function handleGameEnd() {
             const winner = players[currentPlayerIndex];
             alert(`🏆 ${winner.name} hat gewonnen! Speichere Pro-Stats...`);
@@ -409,15 +479,9 @@
         }
 
         async function saveProStats(name, playerObj, isWin) {
-            // Fetch existing data to merge JSON
-            let { data: existing, error } = await _supabase
-                .from('highscores')
-                .select('*')
-                .eq('name', name)
-                .single();
+            let { data: existing, error } = await _supabase.from('highscores').select('*').eq('name', name).single();
 
             if (!existing) {
-                // New Player
                 await _supabase.from('highscores').insert([{
                     name: name,
                     wins: isWin ? 1 : 0,
@@ -430,20 +494,17 @@
                     number_stats: playerObj.stats.numberData
                 }]);
             } else {
-                // Merge Data
                 let newHigh = Math.max(existing.highscore, playerObj.score);
                 let newWins = existing.wins + (isWin ? 1 : 0);
                 let newGames = (existing.games_played || 0) + 1;
                 let newTotal = (existing.total_points || 0) + playerObj.score;
-                
                 let newRounds = (existing.rounds_played || 0) + playerObj.stats.rounds;
                 let newSecures = (existing.secure_count || 0) + playerObj.stats.secures;
                 let newDoubles = (existing.double_count || 0) + playerObj.stats.doubles;
 
-                // Merge JSON: Number Stats
+                // Merge JSON Number Stats
                 let mergedStats = existing.number_stats || {};
                 let currentStats = playerObj.stats.numberData;
-
                 for(let key in currentStats) {
                     if(!mergedStats[key]) mergedStats[key] = { points: 0, count: 0 };
                     mergedStats[key].points += currentStats[key].points;
@@ -463,7 +524,7 @@
             }
         }
 
-        // --- STATS DISPLAY ---
+        // --- HIGHSCORE & PRO STATS ANZEIGE ---
         async function loadHighscores() {
             const tbody = document.querySelector('#lifetime-table tbody');
             tbody.innerHTML = '<tr><td colspan="4">Lade Daten...</td></tr>';
@@ -471,8 +532,8 @@
             let { data: highscores, error } = await _supabase
                 .from('highscores')
                 .select('*')
-                .order('wins', { ascending: false }) // Nach Siegen sortieren
-                .order('highscore', { ascending: false }); // Dann nach Highscore
+                .order('wins', { ascending: false })
+                .order('highscore', { ascending: false });
 
             if(error) return console.log(error);
 
@@ -481,8 +542,7 @@
                 const tr = document.createElement('tr');
                 const safeData = encodeURIComponent(JSON.stringify(entry));
                 
-                // --- OPTISCHES UPDATE ---
-                // Wir machen " (Training)" lila und kleiner, falls es im Namen steht
+                // (Training) lila färben
                 let displayName = entry.name.replace(
                     ' (Training)', 
                     ' <span style="color:#d500f9; font-size:0.8em; text-transform:uppercase;">(Training)</span>'
@@ -490,11 +550,7 @@
 
                 tr.innerHTML = `
                     <td style="color:#666">${idx + 1}</td>
-                    <td>
-                        <a href="#" class="clickable-name" onclick="openProStats('${safeData}')">
-                            ${displayName}
-                        </a>
-                    </td>
+                    <td><a href="#" class="clickable-name" onclick="openProStats('${safeData}')">${displayName}</a></td>
                     <td>${entry.wins}</td>
                     <td>${entry.highscore}</td>
                 `;
@@ -506,40 +562,29 @@
             const data = JSON.parse(decodeURIComponent(encodedData));
             const m = document.getElementById('stats-modal');
             
-            document.getElementById('modal-name').innerText = data.name;
+            document.getElementById('modal-name').innerText = data.name.replace(" (Training)", "");
 
-            // Basic KPIs
             document.getElementById('kpi-wins').innerText = data.wins;
             document.getElementById('kpi-high').innerText = data.highscore;
             
-            // Winrate
             let wr = data.games_played > 0 ? Math.round((data.wins / data.games_played)*100) : 0;
             document.getElementById('kpi-winrate').innerText = wr + "%";
             
-            // Avg Score
             let avg = data.games_played > 0 ? Math.round(data.total_points / data.games_played) : 0;
             document.getElementById('kpi-avg').innerText = avg;
 
-            // Secure Rate (Secures / Rounds Played)
             let secRate = data.rounds_played > 0 ? Math.round((data.secure_count / data.rounds_played)*100) : 0;
             document.getElementById('kpi-secure-rate').innerText = secRate + "%";
 
-            // Double Rate (Doubles / Rounds Played) -> Wie oft hat man in einer Runde verdoppelt?
             let dblRate = data.rounds_played > 0 ? Math.round((data.double_count / data.rounds_played)*100) : 0;
             document.getElementById('kpi-double-rate').innerText = dblRate + "%";
 
-            // DETAIL GRID FOR NUMBERS
             const grid = document.getElementById('number-stats-grid');
             grid.innerHTML = '';
-
             const numStats = data.number_stats || {};
-            
-            // Sort keys numerically 1, 2 ... 20, 25, 50
             const sortedKeys = Object.keys(numStats).sort((a,b) => parseInt(a) - parseInt(b));
 
-            if(sortedKeys.length === 0) {
-                grid.innerHTML = '<div style="grid-column:span 3; color:#666; padding:10px;">Noch keine Detail-Daten verfügbar.</div>';
-            }
+            if(sortedKeys.length === 0) grid.innerHTML = '<div style="grid-column:span 3; color:#666; padding:10px;">Noch keine Detail-Daten.</div>';
 
             sortedKeys.forEach(key => {
                 const s = numStats[key];
@@ -552,13 +597,9 @@
 
                 const div = document.createElement('div');
                 div.className = 'num-stat-item';
-                div.innerHTML = `
-                    <span class="num-label">${label}</span>
-                    <span class="num-stat-val">Ø ${avgNum}</span>
-                `;
+                div.innerHTML = `<span class="num-label">${label}</span><span class="num-stat-val">Ø ${avgNum}</span>`;
                 grid.appendChild(div);
             });
-
             m.style.display = 'flex';
         }
 
@@ -567,40 +608,6 @@
                 document.getElementById('stats-modal').style.display = 'none';
             }
         }
-
-        // --- AUTO-SUGGEST FOR NAMES ---
-        async function loadPlayerSuggestions() {
-            // Wir holen nur die Namen aus der DB
-            let { data: players, error } = await _supabase
-                .from('highscores')
-                .select('name');
-            
-            if(error || !players) return;
-
-            // Set (Liste ohne Duplikate) erstellen
-            const uniqueNames = new Set();
-            
-            players.forEach(p => {
-                // Wir filtern " (Training)" raus, damit man nur den Basis-Namen sieht
-                // Die Training-Logik macht der Haken ja automatisch
-                let cleanName = p.name.replace(" (Training)", "").trim();
-                uniqueNames.add(cleanName);
-            });
-
-            const datalist = document.getElementById('player-suggestions');
-            datalist.innerHTML = ''; // Leeren
-
-            uniqueNames.forEach(name => {
-                const option = document.createElement('option');
-                option.value = name;
-                datalist.appendChild(option);
-            });
-        }
-
-        // Diese Funktion sofort beim Laden der Seite ausführen
-        window.onload = function() {
-            loadPlayerSuggestions();
-        };
     </script>
 </body>
 </html>
