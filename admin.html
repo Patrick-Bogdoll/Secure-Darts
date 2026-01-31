@@ -27,7 +27,47 @@
             align-items: center;
         }
 
-        h1 { border-bottom: 2px solid var(--accent-red); padding-bottom: 10px; }
+       /* Navbar Styling */
+       .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--accent-red); /* Die rote Linie von vorher */
+        }
+
+        .header-title {
+            margin: 0;
+            font-size: 1.5em;
+            color: var(--text-color);
+        }
+
+        .nav-btn-back {
+            text-decoration: none;
+            background-color: #444;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Abstand zwischen Icon und Text */
+            transition: background 0.2s;
+            font-size: 0.9em;
+        }
+
+        .nav-btn-back:hover {
+            background-color: #666;
+        }
+
+        /* Damit der Titel auf Handys nicht zu riesig ist */
+        @media (max-width: 500px) {
+            .header-title { font-size: 1.2em; text-align: right; }
+            .nav-btn-back { padding: 8px 10px; font-size: 0.8em; }
+        }
 
         .container {
             width: 100%;
@@ -104,24 +144,17 @@
     </div>
 
     <div class="container">
-        <h1>🛠️ Datenbank Verwaltung</h1>
         
+        <div class="app-header">
+            <a href="index.html" class="nav-btn-back">
+                <span>🏠</span> Zum Spiel
+            </a>
+            <h2 class="header-title">🛠️ Admin Panel</h2>
+        </div>
+
         <button class="btn-refresh" onclick="loadData()">🔄 Tabelle neu laden</button>
         
         <table id="admin-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Siege</th>
-                    <th>Highscore</th>
-                    <th>Aktionen</th>
-                </tr>
-            </thead>
-            <tbody>
-                </tbody>
-        </table>
-    </div>
 
     <script>
         // ---------------------------------------------------------
