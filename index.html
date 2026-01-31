@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Schlag den Littler Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         :root {
@@ -24,7 +25,7 @@
             color: var(--text-color);
             margin: 0; padding: 20px;
             display: flex; flex-direction: column; align-items: center;
-            padding-bottom: 60px; /* Platz unten für den Button */
+            padding-bottom: 60px;
         }
 
         /* TRAINING DESIGN (LILA) */
@@ -79,14 +80,7 @@
         .clickable-name { color: var(--accent-blue); cursor: pointer; font-weight: bold; text-decoration: none; position: relative; }
         .clickable-name:hover::after { content: ' 📊'; position: absolute; right: -25px; opacity: 0.5; }
 
-        /* RULES SCREEN STYLE */
-        .rules-content h3 { color: var(--accent-green); border-bottom: 1px solid #333; padding-bottom: 10px; margin-top: 0; }
-        .rules-content h4 { color: var(--accent-blue); margin-bottom: 5px; margin-top: 20px; }
-        .rules-content p, .rules-content li { line-height: 1.6; color: #ccc; font-size: 0.95em; }
-        .rules-content ul { padding-left: 20px; }
-        .example-box { background: rgba(255,255,255,0.1); padding: 10px; border-left: 3px solid var(--accent-purple); margin: 10px 0; border-radius: 4px; font-size: 0.9em; }
-
-        /* ADMIN BUTTON (Unten Rechts Fixed) */
+        /* ADMIN BUTTON */
         .admin-link {
             position: fixed; bottom: 20px; right: 20px;
             background: rgba(0, 0, 0, 0.6); padding: 10px 15px; border-radius: 30px;
@@ -98,30 +92,33 @@
         /* MODAL */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(5px);
             display: none; justify-content: center; align-items: center; z-index: 1000;
         }
         .stats-card {
-            background: var(--modal-bg); width: 95%; max-width: 500px; max-height: 90vh;
-            padding: 30px; border-radius: 16px; position: relative;
+            background: var(--modal-bg); width: 95%; max-width: 600px; max-height: 90vh;
+            padding: 25px; border-radius: 16px; position: relative;
             box-shadow: 0 0 50px rgba(0,0,0,0.8); overflow-y: auto;
         }
         .stats-header { border-bottom: 1px solid #444; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .stats-name { font-size: 2em; margin: 0; color: white; }
+        .stats-name { font-size: 1.8em; margin: 0; color: white; }
         .close-btn { background: none; color: #666; font-size: 2em; padding: 0; width: auto; margin: 0; }
         .close-btn:hover { color: white; }
 
-        .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
-        .kpi-box { background: #333; padding: 15px; border-radius: 10px; text-align: center; }
-        .kpi-label { font-size: 0.75em; color: #aaa; text-transform: uppercase; margin-bottom: 5px; }
-        .kpi-value { font-size: 1.4em; font-weight: 800; color: white; }
+        .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 25px; }
+        .kpi-box { background: #333; padding: 10px; border-radius: 8px; text-align: center; }
+        .kpi-label { font-size: 0.7em; color: #aaa; text-transform: uppercase; margin-bottom: 5px; }
+        .kpi-value { font-size: 1.2em; font-weight: 800; color: white; }
         
-        .number-stats-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .num-stat-item { background: #2a2a2a; padding: 10px; border-radius: 8px; text-align: center; font-size: 0.85em; }
-        .num-stat-val { display: block; font-weight: bold; color: var(--accent-green); font-size: 1.1em; margin-top: 3px; }
-        .num-label { color: #666; font-size: 0.9em; font-weight: bold; }
+        /* Chart Container */
+        .chart-container { position: relative; height: 250px; width: 100%; margin-top: 10px; }
 
-        /* Checkbox & Input */
+        /* Rules Style */
+        .rules-content h3 { color: var(--accent-green); border-bottom: 1px solid #333; padding-bottom: 10px; margin-top: 0; }
+        .rules-content h4 { color: var(--accent-blue); margin-bottom: 5px; margin-top: 20px; }
+        .rules-content p, .rules-content li { line-height: 1.6; color: #ccc; font-size: 0.95em; }
+        .example-box { background: rgba(255,255,255,0.1); padding: 10px; border-left: 3px solid var(--accent-purple); margin: 10px 0; border-radius: 4px; font-size: 0.9em; }
+        
         .checkbox-wrapper { display:flex; justify-content:center; align-items:center; margin: 20px 0; color:#aaa; cursor: pointer; }
         input[type="checkbox"] { transform: scale(1.3); margin-right: 10px; cursor: pointer; }
         input[type="text"] { flex:1; padding:15px; border-radius:8px; border:none; background:#333; color:white; font-size:1em; }
@@ -140,21 +137,16 @@
     <div class="container">
         <div id="setup-screen">
             <h3 style="text-align:center; color:#888;">Setup</h3>
-            
             <div style="display:flex; gap:10px;">
                 <input type="text" id="player-input" list="player-suggestions" placeholder="Name wählen oder tippen...">
                 <datalist id="player-suggestions"></datalist>
-                
                 <button onclick="addPlayer()" style="width:auto; margin:0; background:#444;">+</button>
             </div>
-
             <div id="player-list-setup" style="margin: 20px 0; text-align:center;"></div>
-            
             <label class="checkbox-wrapper">
                 <input type="checkbox" id="chk-training">
                 <span>Trainings-Modus (Separat speichern)</span>
             </label>
-
             <button class="primary" onclick="startGame()">START</button>
         </div>
 
@@ -163,16 +155,12 @@
                 <span id="current-player-name">Spieler 1</span>
                 <span>Score: <span id="current-player-score" style="color:white;">0</span></span>
             </div>
-
             <div class="target-wrapper">
                 <div class="target-label">ZIEL</div>
                 <div id="current-target" class="target-display">1</div>
             </div>
-
-            <div class="section-header">
-                <span>Punkte werfen</span>
-                <span id="score-darts-count">0/3</span>
-            </div>
+            
+            <div class="section-header"><span>Punkte werfen</span><span id="score-darts-count">0/3</span></div>
             <div style="text-align:center; font-size:2em; font-weight:bold; margin-bottom:10px;" id="raw-score">0</div>
             <div class="controls" id="controls-score">
                 <button class="miss" onclick="addRawScore(0)">0</button>
@@ -181,10 +169,7 @@
                 <button class="hit" onclick="addRawScore(3)">T</button>
             </div>
 
-            <div class="section-header">
-                <span>Sichern (Bull)</span>
-                <span id="secure-darts-count">0/3</span>
-            </div>
+            <div class="section-header"><span>Sichern (Bull)</span><span id="secure-darts-count">0/3</span></div>
             <div style="text-align:center; margin-bottom:10px; color:#aaa;" id="secure-status">Offen</div>
             <div class="controls secure" id="controls-secure">
                 <button class="miss" onclick="addSecure(0)">0</button>
@@ -195,7 +180,6 @@
             <div style="text-align: center; margin-top: 25px; background:#111; padding:15px; border-radius:8px;">
                 Runden-Ergebnis: <strong id="round-result" style="color: var(--accent-green); font-size:1.4em;">0</strong>
             </div>
-
             <div style="display:grid; grid-template-columns: 1fr 2fr; gap:10px;">
                 <button class="reset" onclick="resetTurnInputs()">Reset</button>
                 <button class="primary" style="margin-top:15px;" onclick="nextTurn()">Bestätigen ✅</button>
@@ -244,6 +228,7 @@
             <p>Setze den Haken im Setup. Deine Statistiken werden separat gespeichert und zählen nicht zu deinen offiziellen Siegen.</p>
         </div>
     </div>
+    </div>
 
     <a href="admin.html" class="admin-link">⚙️ Admin</a>
 
@@ -258,21 +243,23 @@
                 <div class="kpi-box"><div class="kpi-label">Siege</div><div class="kpi-value" id="kpi-wins" style="color:var(--accent-green)">-</div></div>
                 <div class="kpi-box"><div class="kpi-label">Highscore</div><div class="kpi-value" id="kpi-high" style="color:var(--accent-purple)">-</div></div>
                 <div class="kpi-box"><div class="kpi-label">Winrate</div><div class="kpi-value" id="kpi-winrate">-</div></div>
-                <div class="kpi-box"><div class="kpi-label">Ø Score / Spiel</div><div class="kpi-value" id="kpi-avg">-</div></div>
-                
+                <div class="kpi-box"><div class="kpi-label">Ø Score</div><div class="kpi-value" id="kpi-avg">-</div></div>
                 <div class="kpi-box"><div class="kpi-label">Secure Rate</div><div class="kpi-value" id="kpi-secure-rate" style="color:var(--accent-blue)">-</div></div>
                 <div class="kpi-box"><div class="kpi-label">Double Rate</div><div class="kpi-value" id="kpi-double-rate" style="color:var(--accent-red)">-</div></div>
             </div>
 
-            <h4 style="border-bottom:1px solid #444; padding-bottom:10px; margin-bottom:15px; color:#aaa;">Ø PUNKTE PRO ZAHL (Aufnahmen)</h4>
-            <div id="number-stats-grid" class="number-stats-list">
-                </div>
+            <h4 style="border-bottom:1px solid #444; padding-bottom:10px; margin-bottom:15px; color:#aaa;">📊 DURCHSCHNITT PRO ZAHL</h4>
+            
+            <div class="chart-container">
+                <canvas id="statsChart"></canvas>
+            </div>
+            
         </div>
     </div>
 
     <script>
         // ---------------------------------------------------------
-        // KONFIGURATION (DEINE DATEN)
+        // KONFIGURATION
         const SUPABASE_URL = 'https://etzkulwnjhkoiklrohbt.supabase.co'; 
         const SUPABASE_KEY = 'sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy';
         // ---------------------------------------------------------
@@ -286,47 +273,33 @@
         let currentPlayerIndex = 0;
         let globalTargetIndex = 0;
         let isTrainingMode = false;
+        let statsChart = null; // Variable für das Diagramm
 
         // Spielstatus
         let currentRawScore = 0;
-        let secureMultiplier = 0; 
-        let isSecured = false;
-        let isDoubleHit = false; 
-        let thrownScore = 0;
-        let thrownSecure = 0;
-        const MAX_DARTS = 3;
+        let secureMultiplier = 0; isSecured = false; isDoubleHit = false; 
+        let thrownScore = 0; thrownSecure = 0; const MAX_DARTS = 3;
 
-        // --- NAMENS VORSCHLÄGE LADEN ---
+        // --- NAMENS VORSCHLÄGE ---
         async function loadPlayerSuggestions() {
             let { data: playersDB, error } = await _supabase.from('highscores').select('name');
             if(error || !playersDB) return;
-
             const uniqueNames = new Set();
-            playersDB.forEach(p => {
-                let cleanName = p.name.replace(" (Training)", "").trim();
-                uniqueNames.add(cleanName);
-            });
-
+            playersDB.forEach(p => { uniqueNames.add(p.name.replace(" (Training)", "").trim()); });
             const datalist = document.getElementById('player-suggestions');
             datalist.innerHTML = ''; 
             uniqueNames.forEach(name => {
-                const option = document.createElement('option');
-                option.value = name;
-                datalist.appendChild(option);
+                const option = document.createElement('option'); option.value = name; datalist.appendChild(option);
             });
         }
-        // Sofort laden
         window.onload = function() { loadPlayerSuggestions(); };
 
-        // --- UI NAVIGATION ---
+        // --- NAVIGATION ---
         function showScreen(screen) {
-            // Alle verstecken
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'none';
             document.getElementById('highscore-screen').style.display = 'none';
             document.getElementById('rules-screen').style.display = 'none';
-            
-            // Buttons reset
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
 
             if(screen === 'game') {
@@ -343,17 +316,12 @@
             }
         }
 
-        // --- SETUP ---
+        // --- GAME LOGIC ---
         function addPlayer() {
             const input = document.getElementById('player-input');
             const name = input.value.trim();
             if (name) {
-                // Initialisiere detaillierte Stats für diese Session
-                players.push({ 
-                    name: name, 
-                    score: 0,
-                    stats: { rounds: 0, secures: 0, doubles: 0, numberData: {} }
-                });
+                players.push({ name: name, score: 0, stats: { rounds: 0, secures: 0, doubles: 0, numberData: {} } });
                 document.getElementById('player-list-setup').innerHTML += `<div style="background:#333; padding:5px; margin:5px; display:inline-block; border-radius:5px;">${name}</div>`;
                 input.value = '';
             }
@@ -362,7 +330,6 @@
         function startGame() {
             if (players.length === 0) return alert("Keine Spieler!");
             isTrainingMode = document.getElementById('chk-training').checked;
-            
             if(isTrainingMode) {
                 document.body.classList.add('training-active');
                 document.getElementById('app-title').innerText = "🧪 TRAINING";
@@ -375,15 +342,12 @@
             resetTurnInputs();
         }
 
-        // --- GAMEPLAY ---
         function updateUI() {
             const player = players[currentPlayerIndex];
             document.getElementById('current-player-name').innerText = player.name;
             document.getElementById('current-player-score').innerText = player.score;
-            
             let t = targets[globalTargetIndex];
-            let disp = (t === 25) ? "BULL" : (t === 50 ? "BULLSEYE" : t);
-            document.getElementById('current-target').innerText = disp;
+            document.getElementById('current-target').innerText = (t === 25) ? "BULL" : (t === 50 ? "BULLSEYE" : t);
         }
 
         function resetTurnInputs() {
@@ -391,85 +355,47 @@
             thrownScore = 0; thrownSecure = 0;
             updateTurnDisplay();
         }
-
-        function addRawScore(multiplier) {
-            if (thrownScore >= MAX_DARTS) return;
-            const targetVal = targets[globalTargetIndex];
-            currentRawScore += (targetVal * multiplier);
-            thrownScore++;
-            updateTurnDisplay();
-        }
-
-        function addSecure(type) {
-            if (thrownSecure >= MAX_DARTS) return;
-            // type: 1 = Single Bull, 2 = Bullseye
-            if (type === 1) {
-                if (!isSecured) { isSecured = true; if (secureMultiplier === 0) secureMultiplier = 1; }
-            } else if (type === 2) {
-                isSecured = true;
-                isDoubleHit = true; 
-                if (secureMultiplier === 0) secureMultiplier = 1;
-                secureMultiplier *= 2;
+        function addRawScore(m) { if (thrownScore < MAX_DARTS) { currentRawScore += (targets[globalTargetIndex] * m); thrownScore++; updateTurnDisplay(); } }
+        function addSecure(t) { 
+            if (thrownSecure < MAX_DARTS) {
+                if (t === 1) { if (!isSecured) { isSecured = true; if (secureMultiplier === 0) secureMultiplier = 1; } }
+                else if (t === 2) { isSecured = true; isDoubleHit = true; if (secureMultiplier === 0) secureMultiplier = 1; secureMultiplier *= 2; }
+                thrownSecure++; updateTurnDisplay();
             }
-            thrownSecure++;
-            updateTurnDisplay();
         }
-
         function updateTurnDisplay() {
             document.getElementById('raw-score').innerText = currentRawScore;
             document.getElementById('score-darts-count').innerText = `${thrownScore}/${MAX_DARTS}`;
             document.getElementById('secure-darts-count').innerText = `${thrownSecure}/${MAX_DARTS}`;
-            
             [...document.getElementById('controls-score').children].forEach(b => b.disabled = thrownScore >= MAX_DARTS);
             [...document.getElementById('controls-secure').children].forEach(b => b.disabled = thrownSecure >= MAX_DARTS);
-
-            let txt = "Offen";
-            if(isSecured) txt = `Gesichert (x${secureMultiplier})`;
+            let txt = isSecured ? `Gesichert (x${secureMultiplier})` : "Offen";
             document.getElementById('secure-status').innerText = txt;
             document.getElementById('secure-status').style.color = isSecured ? "var(--accent-green)" : "#aaa";
-
-            let final = isSecured ? currentRawScore * secureMultiplier : 0;
-            document.getElementById('round-result').innerText = final;
+            document.getElementById('round-result').innerText = isSecured ? currentRawScore * secureMultiplier : 0;
         }
 
         async function nextTurn() {
             const p = players[currentPlayerIndex];
-            const currentTargetVal = targets[globalTargetIndex];
-
-            // 1. STATS TRACKING
-            p.stats.rounds++;
-            if(isSecured) p.stats.secures++;
-            if(isDoubleHit) p.stats.doubles++;
-            
-            let key = currentTargetVal.toString();
+            p.stats.rounds++; if(isSecured) p.stats.secures++; if(isDoubleHit) p.stats.doubles++;
+            let key = targets[globalTargetIndex].toString();
             if(!p.stats.numberData[key]) p.stats.numberData[key] = { points: 0, count: 0 };
-            p.stats.numberData[key].points += currentRawScore; 
-            p.stats.numberData[key].count += 1;
+            p.stats.numberData[key].points += currentRawScore; p.stats.numberData[key].count += 1;
 
-            // 2. SPIELLOGIK
-            let finalPoints = 0;
+            let final = isSecured ? currentRawScore * secureMultiplier : 0;
             if (isSecured) {
-                finalPoints = currentRawScore * secureMultiplier;
-                if (globalTargetIndex < targets.length - 1) {
-                    globalTargetIndex++;
-                } else {
-                    p.score += finalPoints; 
-                    await handleGameEnd();
-                    return;
-                }
+                if (globalTargetIndex < targets.length - 1) globalTargetIndex++;
+                else { p.score += final; await handleGameEnd(); return; }
             }
-            
-            p.score += finalPoints;
+            p.score += final;
             currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
             resetTurnInputs();
             updateUI();
         }
 
-        // --- DATABASE SAVE (PRO STATS) ---
         async function handleGameEnd() {
             const winner = players[currentPlayerIndex];
-            alert(`🏆 ${winner.name} hat gewonnen! Speichere Pro-Stats...`);
-
+            alert(`🏆 ${winner.name} hat gewonnen!`);
             for (let p of players) {
                 let dbName = isTrainingMode ? `${p.name} (Training)` : p.name;
                 let isWin = (!isTrainingMode && p.name === winner.name);
@@ -478,82 +404,40 @@
             location.reload();
         }
 
-        async function saveProStats(name, playerObj, isWin) {
-            let { data: existing, error } = await _supabase.from('highscores').select('*').eq('name', name).single();
-
-            if (!existing) {
+        async function saveProStats(name, pObj, isWin) {
+            let { data: ex } = await _supabase.from('highscores').select('*').eq('name', name).single();
+            if (!ex) {
                 await _supabase.from('highscores').insert([{
-                    name: name,
-                    wins: isWin ? 1 : 0,
-                    highscore: playerObj.score,
-                    games_played: 1,
-                    total_points: playerObj.score,
-                    rounds_played: playerObj.stats.rounds,
-                    secure_count: playerObj.stats.secures,
-                    double_count: playerObj.stats.doubles,
-                    number_stats: playerObj.stats.numberData
+                    name: name, wins: isWin?1:0, highscore: pObj.score, games_played: 1, total_points: pObj.score,
+                    rounds_played: pObj.stats.rounds, secure_count: pObj.stats.secures, double_count: pObj.stats.doubles, number_stats: pObj.stats.numberData
                 }]);
             } else {
-                let newHigh = Math.max(existing.highscore, playerObj.score);
-                let newWins = existing.wins + (isWin ? 1 : 0);
-                let newGames = (existing.games_played || 0) + 1;
-                let newTotal = (existing.total_points || 0) + playerObj.score;
-                let newRounds = (existing.rounds_played || 0) + playerObj.stats.rounds;
-                let newSecures = (existing.secure_count || 0) + playerObj.stats.secures;
-                let newDoubles = (existing.double_count || 0) + playerObj.stats.doubles;
-
-                // Merge JSON Number Stats
-                let mergedStats = existing.number_stats || {};
-                let currentStats = playerObj.stats.numberData;
-                for(let key in currentStats) {
-                    if(!mergedStats[key]) mergedStats[key] = { points: 0, count: 0 };
-                    mergedStats[key].points += currentStats[key].points;
-                    mergedStats[key].count += currentStats[key].count;
+                let mStats = ex.number_stats || {};
+                let cStats = pObj.stats.numberData;
+                for(let k in cStats) {
+                    if(!mStats[k]) mStats[k] = { points: 0, count: 0 };
+                    mStats[k].points += cStats[k].points; mStats[k].count += cStats[k].count;
                 }
-
                 await _supabase.from('highscores').update({
-                    wins: newWins,
-                    highscore: newHigh,
-                    games_played: newGames,
-                    total_points: newTotal,
-                    rounds_played: newRounds,
-                    secure_count: newSecures,
-                    double_count: newDoubles,
-                    number_stats: mergedStats
+                    wins: ex.wins + (isWin?1:0), highscore: Math.max(ex.highscore, pObj.score),
+                    games_played: (ex.games_played||0)+1, total_points: (ex.total_points||0)+pObj.score,
+                    rounds_played: (ex.rounds_played||0)+pObj.stats.rounds, secure_count: (ex.secure_count||0)+pObj.stats.secures,
+                    double_count: (ex.double_count||0)+pObj.stats.doubles, number_stats: mStats
                 }).eq('name', name);
             }
         }
 
-        // --- HIGHSCORE & PRO STATS ANZEIGE ---
         async function loadHighscores() {
             const tbody = document.querySelector('#lifetime-table tbody');
             tbody.innerHTML = '<tr><td colspan="4">Lade Daten...</td></tr>';
-
-            let { data: highscores, error } = await _supabase
-                .from('highscores')
-                .select('*')
-                .order('wins', { ascending: false })
-                .order('highscore', { ascending: false });
-
-            if(error) return console.log(error);
-
+            let { data: highscores, error } = await _supabase.from('highscores').select('*').order('wins', { ascending: false }).order('highscore', { ascending: false });
+            if(error) return;
             tbody.innerHTML = '';
             highscores.forEach((entry, idx) => {
                 const tr = document.createElement('tr');
                 const safeData = encodeURIComponent(JSON.stringify(entry));
-                
-                // (Training) lila färben
-                let displayName = entry.name.replace(
-                    ' (Training)', 
-                    ' <span style="color:#d500f9; font-size:0.8em; text-transform:uppercase;">(Training)</span>'
-                );
-
-                tr.innerHTML = `
-                    <td style="color:#666">${idx + 1}</td>
-                    <td><a href="#" class="clickable-name" onclick="openProStats('${safeData}')">${displayName}</a></td>
-                    <td>${entry.wins}</td>
-                    <td>${entry.highscore}</td>
-                `;
+                let dName = entry.name.replace(' (Training)', ' <span style="color:#d500f9; font-size:0.8em;">(Training)</span>');
+                tr.innerHTML = `<td style="color:#666">${idx + 1}</td><td><a href="#" class="clickable-name" onclick="openProStats('${safeData}')">${dName}</a></td><td>${entry.wins}</td><td>${entry.highscore}</td>`;
                 tbody.appendChild(tr);
             });
         }
@@ -561,45 +445,85 @@
         function openProStats(encodedData) {
             const data = JSON.parse(decodeURIComponent(encodedData));
             const m = document.getElementById('stats-modal');
-            
             document.getElementById('modal-name').innerText = data.name.replace(" (Training)", "");
-
+            
+            // KPIs
             document.getElementById('kpi-wins').innerText = data.wins;
             document.getElementById('kpi-high').innerText = data.highscore;
+            let gp = data.games_played || 0; let rp = data.rounds_played || 0;
+            document.getElementById('kpi-winrate').innerText = gp > 0 ? Math.round((data.wins/gp)*100)+"%" : "0%";
+            document.getElementById('kpi-avg').innerText = gp > 0 ? Math.round(data.total_points/gp) : "0";
+            document.getElementById('kpi-secure-rate').innerText = rp > 0 ? Math.round((data.secure_count/rp)*100)+"%" : "0%";
+            document.getElementById('kpi-double-rate').innerText = rp > 0 ? Math.round((data.double_count/rp)*100)+"%" : "0%";
+
+            // --- CHART ERSTELLEN ---
+            // 1. Daten vorbereiten (X-Achse: 1-20, Bull, Bullseye)
+            const allTargets = [];
+            for(let i=1; i<=20; i++) allTargets.push(i.toString());
+            allTargets.push("25"); // Single Bull
+            allTargets.push("50"); // Bullseye
             
-            let wr = data.games_played > 0 ? Math.round((data.wins / data.games_played)*100) : 0;
-            document.getElementById('kpi-winrate').innerText = wr + "%";
-            
-            let avg = data.games_played > 0 ? Math.round(data.total_points / data.games_played) : 0;
-            document.getElementById('kpi-avg').innerText = avg;
-
-            let secRate = data.rounds_played > 0 ? Math.round((data.secure_count / data.rounds_played)*100) : 0;
-            document.getElementById('kpi-secure-rate').innerText = secRate + "%";
-
-            let dblRate = data.rounds_played > 0 ? Math.round((data.double_count / data.rounds_played)*100) : 0;
-            document.getElementById('kpi-double-rate').innerText = dblRate + "%";
-
-            const grid = document.getElementById('number-stats-grid');
-            grid.innerHTML = '';
-            const numStats = data.number_stats || {};
-            const sortedKeys = Object.keys(numStats).sort((a,b) => parseInt(a) - parseInt(b));
-
-            if(sortedKeys.length === 0) grid.innerHTML = '<div style="grid-column:span 3; color:#666; padding:10px;">Noch keine Detail-Daten.</div>';
-
-            sortedKeys.forEach(key => {
-                const s = numStats[key];
-                let avgNum = 0;
-                if(s.count > 0) avgNum = (s.points / s.count).toFixed(1);
-                
-                let label = key;
-                if(key === "25") label = "BULL";
-                if(key === "50") label = "BULLSEYE";
-
-                const div = document.createElement('div');
-                div.className = 'num-stat-item';
-                div.innerHTML = `<span class="num-label">${label}</span><span class="num-stat-val">Ø ${avgNum}</span>`;
-                grid.appendChild(div);
+            const chartLabels = allTargets.map(t => {
+                if(t==="25") return "BULL";
+                if(t==="50") return "B-EYE";
+                return t;
             });
+
+            // 2. Werte aus JSON holen
+            const numStats = data.number_stats || {};
+            const chartData = allTargets.map(key => {
+                const s = numStats[key];
+                if(s && s.count > 0) return (s.points / s.count).toFixed(1);
+                return 0;
+            });
+
+            // 3. Altes Chart zerstören falls vorhanden
+            if(statsChart) {
+                statsChart.destroy();
+            }
+
+            // 4. Neues Chart zeichnen
+            const ctx = document.getElementById('statsChart').getContext('2d');
+            statsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Ø Punkte pro Aufnahme',
+                        data: chartData,
+                        backgroundColor: 'rgba(41, 121, 255, 0.6)',
+                        borderColor: 'rgba(41, 121, 255, 1)',
+                        borderWidth: 1,
+                        borderRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#333' },
+                            ticks: { color: '#aaa' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#aaa', font: {size: 10} }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#222',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#555',
+                            borderWidth: 1
+                        }
+                    }
+                }
+            });
+
             m.style.display = 'flex';
         }
 
