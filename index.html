@@ -418,9 +418,33 @@
             let botMultiplier = 0;
             for(let i=0; i<3; i++) {
                 let rnd = Math.random(); let hit = 0;
-                if(diff === 1) { if(rnd > 0.4) hit = 1; if(rnd > 0.9) hit = 2; if(rnd > 0.98) hit = 3; } 
-                else if(diff === 2) { if(rnd > 0.1) hit = 1; if(rnd > 0.7) hit = 2; if(rnd > 0.85) hit = 3; } 
-                else { if(rnd > 0.01) hit = 1; if(rnd > 0.2) hit = 2; if(rnd > 0.4) hit = 3; }
+                if (targetVal >= 25) {
+                    if(diff === 1) { // Amateur
+                        if(rnd > 0.6) hit = 1; // 40% Chance auf Single
+                        if(rnd > 0.95) hit = 2; // 5% Chance auf Double (Bullseye)
+                    } else if(diff === 2) { // Liga
+                        if(rnd > 0.2) hit = 1; 
+                        if(rnd > 0.8) hit = 2;
+                    } else { // Littler
+                        if(rnd > 0.05) hit = 1;
+                        if(rnd > 0.5) hit = 2;
+                    }
+                } else {
+                    // Normales Ziel (1-20) -> Triple erlaubt
+                    if(diff === 1) { 
+                        if(rnd > 0.4) hit = 1;
+                        if(rnd > 0.9) hit = 2;
+                        if(rnd > 0.98) hit = 3; 
+                    } else if(diff === 2) { 
+                        if(rnd > 0.1) hit = 1;
+                        if(rnd > 0.7) hit = 2;
+                        if(rnd > 0.85) hit = 3;
+                    } else { 
+                        if(rnd > 0.01) hit = 1;
+                        if(rnd > 0.2) hit = 2;
+                        if(rnd > 0.4) hit = 3;
+                    }
+                }
                 botMultiplier += hit;
             }
             currentRawScore = targetVal * botMultiplier; thrownScore = 3;
@@ -431,16 +455,49 @@
 
         function playBotSecure(bot) {
             const diff = bot.difficulty;
-            let rnd = Math.random(); let secureType = 0; 
-            if(diff === 1) { if(rnd < 0.20) secureType = 1; if(rnd < 0.05) secureType = 2; } 
-            else if(diff === 2) { if(rnd < 0.60) secureType = 1; if(rnd < 0.20) secureType = 2; } 
-            else { if(rnd < 0.80) secureType = 1; if(rnd < 0.50) secureType = 2; }
-
-            if(secureType === 1) { isSecured=true; secureMultiplier=1; }
-            if(secureType === 2) { isSecured=true; isDoubleHit=true; secureMultiplier=2; }
             
-            thrownSecure = 3; updateTurnDisplay();
-            let txt = "verfehlt Bull..."; if(isSecured) txt = "SICHERT!"; if(secureMultiplier > 1) txt = "BULLSEYE!! 🔥";
+            // 2. PHASE: SICHERN (3 Darts werfen)
+            let tempMultiplier = 0;
+            let tempSecured = false;
+
+            for(let i=0; i<3; i++) {
+                let rnd = Math.random();
+                let secureType = 0; // 0=Miss, 1=SingleBull, 2=Bullseye
+
+                if(diff === 1) { // Amateur
+                    if(rnd < 0.20) secureType = 1;
+                    if(rnd < 0.05) secureType = 2;
+                } else if(diff === 2) { // Liga
+                    if(rnd < 0.60) secureType = 1;
+                    if(rnd < 0.20) secureType = 2;
+                } else { // Littler
+                    if(rnd < 0.80) secureType = 1;
+                    if(rnd < 0.50) secureType = 2;
+                }
+
+                if(secureType === 1) { 
+                    tempSecured = true; 
+                    if(tempMultiplier === 0) tempMultiplier = 1; 
+                }
+                if(secureType === 2) { 
+                    tempSecured = true; 
+                    isDoubleHit = true; 
+                    if(tempMultiplier === 0) tempMultiplier = 1;
+                    tempMultiplier *= 2; 
+                }
+            }
+
+            // Globale Variablen updaten
+            isSecured = tempSecured;
+            secureMultiplier = tempMultiplier;
+            
+            thrownSecure = 3;
+            updateTurnDisplay();
+
+            let txt = "verfehlt Bull...";
+            if(isSecured) txt = "SICHERT!";
+            if(secureMultiplier > 1) txt = `BULLSEYE!! (x${secureMultiplier})`;
+            
             document.getElementById('bot-status-text').innerText = `${pName(bot)} ${txt}`;
             setTimeout(() => nextTurn(), 1500);
         }
