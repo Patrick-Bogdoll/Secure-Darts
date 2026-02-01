@@ -405,7 +405,7 @@
             const p = players[currentPlayerIndex];
             if(p.isBot) {
                 document.getElementById('bot-overlay').style.display = 'flex';
-                document.getElementById('bot-status-text').innerText = `${p.name} zielt...`;
+                document.getElementById('bot-status-text').innerText = `${pName(p)} zielt...`;
                 setTimeout(() => playBot(p), 1000);
             } else {
                 document.getElementById('bot-overlay').style.display = 'none';
@@ -418,7 +418,7 @@
             let botMultiplier = 0;
             for(let i=0; i<3; i++) {
                 let rnd = Math.random(); let hit = 0;
-                if (targetVal >= 25) {
+                if (targetVal == 25) {
                     if(diff === 1) { // Amateur
                         if(rnd > 0.6) hit = 1; // 40% Chance auf Single
                         if(rnd > 0.95) hit = 2; // 5% Chance auf Double (Bullseye)
@@ -428,6 +428,14 @@
                     } else { // Littler
                         if(rnd > 0.05) hit = 1;
                         if(rnd > 0.5) hit = 2;
+                    }
+                } else if (targetVal == 50){
+                    if(diff === 1) { // Amateur
+                        if(rnd > 0.95) hit = 1; // 5% Chance auf Single
+                    } else if(diff === 2) { // Liga
+                        if(rnd > 0.8) hit = 1; 
+                    } else { // Littler
+                        if(rnd > 0.3) hit = 1;
                     }
                 } else {
                     // Normales Ziel (1-20) -> Triple erlaubt
@@ -502,7 +510,7 @@
             setTimeout(() => nextTurn(), 1500);
         }
 
-        function pName(p) { return p.name.split(" ")[1] || p.name; } 
+        function pName(p) { return p.name.split(" ").slice(1).join(" ") || p.name; } 
 
         // --- GAMEPLAY CORE ---
         async function nextTurn() {
