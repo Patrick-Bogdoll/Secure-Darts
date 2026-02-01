@@ -86,6 +86,23 @@
             backdrop-filter: blur(2px);
         }
 
+        /* NEU: LIVE LEADERBOARD STYLES */
+        .live-leaderboard {
+            margin-top: 30px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .live-title { font-size: 0.8em; text-transform: uppercase; color: #888; margin-bottom: 10px; letter-spacing: 1px; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        .live-row { 
+            display: flex; justify-content: space-between; padding: 12px; 
+            border-bottom: 1px solid #333; align-items: center; 
+        }
+        .live-row:last-child { border-bottom: none; }
+        .live-row.active { background: rgba(0, 230, 118, 0.15); border-left: 3px solid var(--accent-green); border-radius: 4px; }
+        .live-score { font-weight: bold; font-size: 1.2em; color: var(--accent-blue); }
+        .live-name { display: flex; align-items: center; gap: 8px; }
+
         /* Tables & Links */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { text-align: left; color: #666; font-size: 0.8em; text-transform: uppercase; padding: 10px; border-bottom: 1px solid #333; }
@@ -208,6 +225,11 @@
                 <button class="reset" onclick="resetTurnInputs()">Reset</button>
                 <button class="primary" style="margin-top:15px;" onclick="nextTurn()">Bestätigen ✅</button>
             </div>
+
+            <div class="live-leaderboard">
+                <div class="live-title">Aktueller Spielstand</div>
+                <div id="live-leaderboard-list"></div>
+            </div>
         </div>
 
         <div id="highscore-screen" style="display:none;">
@@ -219,43 +241,81 @@
             <button class="primary" style="background:#333; margin-top:20px" onclick="loadHighscores()">Refresh</button>
         </div>
 
-        <div id="rules-screen" style="display:none;" class="rules-content">
-            <h3>📜 Spielregeln</h3>
-            
-            <p>Ziel ist es, die meisten Punkte zu sammeln, während man die Zahlen von <b>1 bis 20</b>, dann <b>25</b> (Single Bull) und <b>50</b> (Bullseye) durchläuft.</p>
-            
-            <h4>1. Punkte Sammeln</h4>
-            <p>In der ersten Phase (3 Darts) wirft man auf die aktuelle Zielzahl. Man sammelt so viele Punkte wie möglich.</p>
-            <ul>
-                <li>Single = Einfache Punktzahl</li>
-                <li>Double = Doppelte Punktzahl</li>
-                <li>Triple = Dreifache Punktzahl</li>
-            </ul>
 
-            <h4>2. Das Sichern</h4>
-            <p>In der zweiten Phase (3 Darts) muss man die Punkte über das Bullseye "sichern".</p>
-            <ul>
-                <li><b>Single Bull (25):</b> Die Punkte sind gesichert (x1).</li>
-                <li><b>Bullseye (50):</b> Die Punkte werden gesichert und <b>verdoppelt</b> (x2).</li>
-                <li><b>Nichts getroffen:</b> 0 Punkte für diese Runde.</li>
-            </ul>
-            <div class="example-box">
-                Beispiel: Du triffst 3x die 20 (60 Punkte).<br>
-                Dann triffst du 1x Bullseye.<br>
-                Ergebnis: 60 x 2 = <b>120 Punkte</b>.
-            </div>
 
-            <h4>3. Globaler Fortschritt</h4>
-            <p>Alle Spieler werfen auf die gleiche Zahl. Die Zahl erhöht sich erst für alle, wenn <b>mindestens ein Spieler</b> in der Runde erfolgreich gesichert hat.</p>
+    <div id="rules-screen" style="display:none;" class="rules-content">
 
-            <h4>4. Trainings-Modus</h4>
-            <p>Setze den Haken im Setup. Deine Statistiken werden separat gespeichert und zählen nicht zu deinen offiziellen Siegen.</p>
-            
-            <h4>5. Bot-Gegner</h4>
-            <p>Wähle im Setup einen Bot aus. Bots werden <b>nicht</b> in der Statistik gespeichert.</p>
+        <h3>📜 Spielregeln</h3>
+
+       
+
+        <p>Ziel ist es, die meisten Punkte zu sammeln, während man die Zahlen von <b>1 bis 20</b>, dann <b>25</b> (Single Bull) und <b>50</b> (Bullseye) durchläuft.</p>
+
+       
+
+        <h4>1. Punkte Sammeln</h4>
+
+        <p>In der ersten Phase (3 Darts) wirft man auf die aktuelle Zielzahl. Man sammelt so viele Punkte wie möglich.</p>
+
+        <ul>
+
+            <li>Single = Einfache Punktzahl</li>
+
+            <li>Double = Doppelte Punktzahl</li>
+
+            <li>Triple = Dreifache Punktzahl</li>
+
+        </ul>
+
+
+
+        <h4>2. Das Sichern</h4>
+
+        <p>In der zweiten Phase (3 Darts) muss man die Punkte über das Bullseye "sichern".</p>
+
+        <ul>
+
+            <li><b>Single Bull (25):</b> Die Punkte sind gesichert (x1).</li>
+
+            <li><b>Bullseye (50):</b> Die Punkte werden gesichert und <b>verdoppelt</b> (x2).</li>
+
+            <li><b>Nichts getroffen:</b> 0 Punkte für diese Runde.</li>
+
+        </ul>
+
+        <div class="example-box">
+
+            Beispiel: Du triffst 3x die 20 (60 Punkte).<br>
+
+            Dann triffst du 1x Bullseye.<br>
+
+            Ergebnis: 60 x 2 = <b>120 Punkte</b>.
+
         </div>
+
+
+
+        <h4>3. Globaler Fortschritt</h4>
+
+        <p>Alle Spieler werfen auf die gleiche Zahl. Die Zahl erhöht sich erst für alle, wenn <b>mindestens ein Spieler</b> in der Runde erfolgreich gesichert hat.</p>
+
+
+
+        <h4>4. Trainings-Modus</h4>
+
+        <p>Setze den Haken im Setup. Deine Statistiken werden separat gespeichert und zählen nicht zu deinen offiziellen Siegen.</p>
+
+       
+
+        <h4>5. Bot-Gegner</h4>
+
+        <p>Wähle im Setup einen Bot aus. Bots werden <b>nicht</b> in der Statistik gespeichert.</p>
+
     </div>
-    </div>
+
+</div>
+
+</div>
 
     <a href="admin.html" class="admin-link">⚙️ Admin</a>
 
@@ -313,23 +373,14 @@
         }
 
         function addBot() {
-            // Einfache Schwierigkeits-Abfrage per Prompt (Quick & Dirty)
             let choice = prompt("Wähle Bot-Stärke:\n1 = Kneipen-Held (Leicht)\n2 = Liga-Spieler (Mittel)\n3 = THE LITTLER (Profi)");
             let name = "Bot";
             let diff = 1;
-
             if(choice === "1") { name = "🤖 Kneipen-Held"; diff = 1; }
             else if(choice === "2") { name = "🤖 Liga-Spieler"; diff = 2; }
             else if(choice === "3") { name = "🔥 THE LITTLER"; diff = 3; }
-            else return; // Abgebrochen
-
-            players.push({ 
-                isBot: true, 
-                difficulty: diff, 
-                name: name, 
-                score: 0, 
-                stats: { rounds: 0, secures: 0, doubles: 0, numberData: {} } 
-            });
+            else return; 
+            players.push({ isBot: true, difficulty: diff, name: name, score: 0, stats: { rounds: 0, secures: 0, doubles: 0, numberData: {} } });
             document.getElementById('player-list-setup').innerHTML += `<div style="background:#673ab7; padding:5px; margin:5px; display:inline-block; border-radius:5px;">${name}</div>`;
         }
 
@@ -346,21 +397,17 @@
             showScreen('game');
             updateUI();
             resetTurnInputs();
-            checkBotTurn(); // Prüfen ob der erste Spieler ein Bot ist
+            checkBotTurn(); 
         }
 
         // --- BOT LOGIC ---
         function checkBotTurn() {
             const p = players[currentPlayerIndex];
             if(p.isBot) {
-                // UI blockieren
                 document.getElementById('bot-overlay').style.display = 'flex';
                 document.getElementById('bot-status-text').innerText = `${p.name} zielt...`;
-                
-                // Bot Simulation starten
                 setTimeout(() => playBot(p), 1000);
             } else {
-                // UI freigeben
                 document.getElementById('bot-overlay').style.display = 'none';
             }
         }
@@ -368,83 +415,41 @@
         function playBot(bot) {
             const diff = bot.difficulty;
             const targetVal = targets[globalTargetIndex];
-
-            // 1. PHASE: PUNKTE (Simulation der 3 Darts)
             let botMultiplier = 0;
-            
-            // Wahrscheinlichkeiten pro Wurf (Single, Double, Triple, Miss)
-            // Amateur (1) / Pro (2) / Littler (3)
             for(let i=0; i<3; i++) {
-                let rnd = Math.random();
-                let hit = 0; // 0=Miss, 1=Single, 2=Double, 3=Triple
-
-                if(diff === 1) { // Amateur: 40% Miss, 50% Single, 10% Glück
-                    if(rnd > 0.4) hit = 1;
-                    if(rnd > 0.9) hit = 2;
-                    if(rnd > 0.98) hit = 3; 
-                } else if(diff === 2) { // Liga: 10% Miss, 60% Single, 15% D, 15% T
-                    if(rnd > 0.1) hit = 1;
-                    if(rnd > 0.7) hit = 2;
-                    if(rnd > 0.85) hit = 3;
-                } else { // Littler: 1% Miss, 20% Single, 20% Double, 59% Triple
-                    if(rnd > 0.01) hit = 1;
-                    if(rnd > 0.2) hit = 2;
-                    if(rnd > 0.4) hit = 3;
-                }
+                let rnd = Math.random(); let hit = 0;
+                if(diff === 1) { if(rnd > 0.4) hit = 1; if(rnd > 0.9) hit = 2; if(rnd > 0.98) hit = 3; } 
+                else if(diff === 2) { if(rnd > 0.1) hit = 1; if(rnd > 0.7) hit = 2; if(rnd > 0.85) hit = 3; } 
+                else { if(rnd > 0.01) hit = 1; if(rnd > 0.2) hit = 2; if(rnd > 0.4) hit = 3; }
                 botMultiplier += hit;
             }
-            
-            // UI Update: Zeige Punkte
-            currentRawScore = targetVal * botMultiplier;
-            thrownScore = 3;
+            currentRawScore = targetVal * botMultiplier; thrownScore = 3;
             updateTurnDisplay();
             document.getElementById('bot-status-text').innerText = `${pName(bot)} trifft ${currentRawScore} Punkte!`;
-
-            // Kurze Pause, dann Sichern
             setTimeout(() => playBotSecure(bot), 1500);
         }
 
         function playBotSecure(bot) {
             const diff = bot.difficulty;
-            
-            // 2. PHASE: SICHERN
-            let rnd = Math.random();
-            let secureType = 0; // 0=Miss, 1=SingleBull, 2=Bullseye
-
-            if(diff === 1) { // Amateur: 15% S-Bull, 5% Eye
-                if(rnd < 0.20) secureType = 1;
-                if(rnd < 0.05) secureType = 2;
-            } else if(diff === 2) { // Liga: 40% S-Bull, 20% Eye
-                if(rnd < 0.60) secureType = 1;
-                if(rnd < 0.20) secureType = 2;
-            } else { // Littler: 30% S-Bull, 50% Eye (80% Hit Rate)
-                if(rnd < 0.80) secureType = 1;
-                if(rnd < 0.50) secureType = 2;
-            }
+            let rnd = Math.random(); let secureType = 0; 
+            if(diff === 1) { if(rnd < 0.20) secureType = 1; if(rnd < 0.05) secureType = 2; } 
+            else if(diff === 2) { if(rnd < 0.60) secureType = 1; if(rnd < 0.20) secureType = 2; } 
+            else { if(rnd < 0.80) secureType = 1; if(rnd < 0.50) secureType = 2; }
 
             if(secureType === 1) { isSecured=true; secureMultiplier=1; }
             if(secureType === 2) { isSecured=true; isDoubleHit=true; secureMultiplier=2; }
             
-            thrownSecure = 3;
-            updateTurnDisplay();
-
-            let txt = "verfehlt Bull...";
-            if(isSecured) txt = "SICHERT!";
-            if(secureMultiplier > 1) txt = "BULLSEYE!! 🔥";
-            
+            thrownSecure = 3; updateTurnDisplay();
+            let txt = "verfehlt Bull..."; if(isSecured) txt = "SICHERT!"; if(secureMultiplier > 1) txt = "BULLSEYE!! 🔥";
             document.getElementById('bot-status-text').innerText = `${pName(bot)} ${txt}`;
-
-            // Pause, dann Nächster
             setTimeout(() => nextTurn(), 1500);
         }
 
-        function pName(p) { return p.name.split(" ")[1] || p.name; } // Kurzer Name für Status
+        function pName(p) { return p.name.split(" ")[1] || p.name; } 
 
         // --- GAMEPLAY CORE ---
         async function nextTurn() {
             const p = players[currentPlayerIndex];
-            
-            // Stats Tracking (auch für Bots, für die Runden-Logik)
             p.stats.rounds++; if(isSecured) p.stats.secures++; if(isDoubleHit) p.stats.doubles++;
             let key = targets[globalTargetIndex].toString();
             if(!p.stats.numberData[key]) p.stats.numberData[key] = { points: 0, count: 0 };
@@ -460,19 +465,15 @@
             
             resetTurnInputs();
             updateUI();
-            checkBotTurn(); // Prüfen ob nächster ein Bot ist
+            checkBotTurn(); 
         }
 
         async function handleGameEnd() {
             const winner = players[currentPlayerIndex];
-            document.getElementById('bot-overlay').style.display = 'none'; // Overlay weg falls Bot gewinnt
-            
+            document.getElementById('bot-overlay').style.display = 'none'; 
             alert(`🏆 ${winner.name} hat gewonnen!`);
-            
             for (let p of players) {
-                // BOTS NICHT SPEICHERN!
                 if(p.isBot) continue;
-
                 let dbName = isTrainingMode ? `${p.name} (Training)` : p.name;
                 let isWin = (!isTrainingMode && p.name === winner.name);
                 await saveProStats(dbName, p, isWin);
@@ -487,7 +488,38 @@
             document.getElementById('current-player-score').innerText = player.score;
             let t = targets[globalTargetIndex];
             document.getElementById('current-target').innerText = (t === 25) ? "BULL" : (t === 50 ? "BULLSEYE" : t);
+            
+            // NEU: LIVE LEADERBOARD UPDATE
+            updateLiveLeaderboard();
         }
+
+        // --- NEU: FUNKTION FÜR DAS LIVE SCOREBOARD ---
+        function updateLiveLeaderboard() {
+            const list = document.getElementById('live-leaderboard-list');
+            list.innerHTML = '';
+            
+            // Sortiere eine Kopie der Spieler nach Score (höchste zuerst)
+            const sortedPlayers = [...players].sort((a,b) => b.score - a.score);
+
+            sortedPlayers.forEach((p, index) => {
+                const isLeader = (index === 0 && p.score > 0);
+                const isActive = (p === players[currentPlayerIndex]);
+                
+                const row = document.createElement('div');
+                row.className = `live-row ${isActive ? 'active' : ''}`;
+                
+                let nameDisplay = p.name;
+                // Kleine Krone für den Leader
+                if(isLeader) nameDisplay = `👑 ${nameDisplay}`;
+                
+                row.innerHTML = `
+                    <span class="live-name">${nameDisplay}</span>
+                    <span class="live-score">${p.score}</span>
+                `;
+                list.appendChild(row);
+            });
+        }
+
         function resetTurnInputs() {
             currentRawScore = 0; secureMultiplier = 0; isSecured = false; isDoubleHit = false;
             thrownScore = 0; thrownSecure = 0; updateTurnDisplay();
@@ -506,7 +538,7 @@
             document.getElementById('round-result').innerText = isSecured ? currentRawScore * secureMultiplier : 0;
         }
 
-        // --- DATABASE & CHARTS (GLEICH WIE VORHER) ---
+        // --- DATABASE & CHARTS ---
         async function loadPlayerSuggestions() {
             let { data: playersDB, error } = await _supabase.from('highscores').select('name');
             if(error || !playersDB) return;
