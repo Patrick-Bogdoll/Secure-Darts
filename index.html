@@ -458,8 +458,14 @@
             }
             currentRawScore = targetVal * botMultiplier; thrownScore = 3;
             updateTurnDisplay();
+
+            if (currentRawScore === 0) {
+                document.getElementById('bot-status-text').innerText = `${pName(bot)} wird 0 Punkte.`;
+                setTimeout(() => nextTurn(), 1500);
+            } else {
             document.getElementById('bot-status-text').innerText = `${pName(bot)} trifft ${currentRawScore} Punkte!`;
             setTimeout(() => playBotSecure(bot), 1500);
+            }
         }
 
         function playBotSecure(bot) {
@@ -474,14 +480,14 @@
                 let secureType = 0; // 0=Miss, 1=SingleBull, 2=Bullseye
 
                 if(diff === 1) { // Amateur
-                    if(rnd < 0.20) secureType = 1;
-                    if(rnd < 0.05) secureType = 2;
+                    if(rnd < 0.12) secureType = 1;
+                    if(rnd < 0.15) secureType = 2;
                 } else if(diff === 2) { // Liga
-                    if(rnd < 0.60) secureType = 1;
-                    if(rnd < 0.20) secureType = 2;
+                    if(rnd < 0.35) secureType = 1;
+                    if(rnd < 0.45) secureType = 2;
                 } else { // Littler
-                    if(rnd < 0.80) secureType = 1;
-                    if(rnd < 0.50) secureType = 2;
+                    if(rnd < 0.30) secureType = 1;
+                    if(rnd < 0.65) secureType = 2;
                 }
 
                 if(secureType === 1) { 
