@@ -34,7 +34,6 @@
         padding-bottom: 60px;
       }
 
-      /* Training Styles */
       body.training-active {
         background-color: #1a0029;
       }
@@ -63,7 +62,6 @@
         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
       }
 
-      /* Navigation */
       .nav-tabs {
         display: flex;
         justify-content: center;
@@ -89,7 +87,6 @@
         box-shadow: 0 4px 15px rgba(41, 121, 255, 0.4);
       }
 
-      /* Game UI */
       .info-panel {
         display: flex;
         justify-content: space-between;
@@ -130,7 +127,6 @@
         letter-spacing: 1px;
       }
 
-      /* Controls */
       .controls {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -193,26 +189,63 @@
         padding: 15px;
       }
 
-      /* Overlays & Leaderboard */
+      .undo-btn {
+        background-color: #444;
+        color: #aaa;
+        width: 100%;
+        margin-top: 10px;
+        font-size: 0.8em;
+        padding: 10px;
+      }
+      .undo-btn:hover {
+        background-color: #555;
+        color: white;
+      }
+
+      /* UPDATED BOT OVERLAY */
       .bot-overlay {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.6);
+        background: rgba(0, 0, 0, 0.85);
         display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
         font-size: 1.5em;
         font-weight: bold;
         color: var(--accent-green);
-        z-index: 10;
+        z-index: 50;
         border-radius: 12px;
-        backdrop-filter: blur(2px);
+        backdrop-filter: blur(4px);
         text-align: center;
         padding: 20px;
       }
+
+      /* Panic Button im Overlay */
+      .panic-btn {
+        background-color: var(--accent-red);
+        color: white;
+        font-size: 0.6em;
+        padding: 12px 20px;
+        margin-top: 20px;
+        border: 2px solid white;
+        animation: pulse 1.5s infinite;
+      }
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
       .live-leaderboard {
         margin-top: 30px;
         background: rgba(0, 0, 0, 0.2);
@@ -254,7 +287,6 @@
         gap: 8px;
       }
 
-      /* Tables */
       table {
         width: 100%;
         border-collapse: collapse;
@@ -307,7 +339,6 @@
         transform: scale(1.05);
       }
 
-      /* MODAL STYLES (UPDATED FOR HISTORY) */
       .modal-overlay {
         position: fixed;
         top: 0;
@@ -358,8 +389,6 @@
       .close-btn:hover {
         color: white;
       }
-
-      /* Modal Tabs */
       .modal-tabs {
         display: flex;
         gap: 10px;
@@ -385,7 +414,6 @@
         overflow-y: auto;
         flex: 1;
       }
-
       .kpi-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -415,8 +443,6 @@
         width: 100%;
         margin-top: 10px;
       }
-
-      /* History List Styles */
       .history-item {
         background: #2a2a2a;
         border-radius: 8px;
@@ -468,7 +494,6 @@
         color: var(--accent-red);
       }
 
-      /* Others */
       .rules-content h3 {
         color: var(--accent-green);
         border-bottom: 1px solid #333;
@@ -566,8 +591,16 @@
 
       <div id="game-screen" style="display: none">
         <div id="bot-overlay" style="display: none" class="bot-overlay">
-          <span id="bot-status-text">Bot spielt...</span>
+          <div id="bot-status-text">Bot spielt...</div>
+          <button
+            id="bot-panic-btn"
+            class="panic-btn"
+            onclick="cancelBotAndUndo()"
+          >
+            ✋ STOP / KORREKTUR
+          </button>
         </div>
+
         <div class="info-panel">
           <span id="current-player-name">Spieler 1</span>
           <span
@@ -647,6 +680,16 @@
             Bestätigen ✅
           </button>
         </div>
+
+        <button
+          class="undo-btn"
+          id="btn-undo"
+          onclick="undoLastTurn()"
+          style="display: none"
+        >
+          ↩️ Letzten Zug rückgängig
+        </button>
+
         <div class="live-leaderboard">
           <div class="live-title">Aktueller Spielstand</div>
           <div id="live-leaderboard-list"></div>
@@ -655,19 +698,18 @@
 
       <div id="highscore-screen" style="display: none">
         <div style="text-align: right; margin-bottom: 10px">
-          <label style="color: #888; font-size: 0.9em; cursor: pointer">
-            <input
+          <label style="color: #888; font-size: 0.9em; cursor: pointer"
+            ><input
               type="checkbox"
               id="chk-show-bots"
               onchange="loadHighscores()"
             />
-            🤖 Bots anzeigen
-          </label>
+            🤖 Bots anzeigen</label
+          >
         </div>
         <div id="loading-spinner" style="text-align: center; padding: 20px">
           Lade Daten...
         </div>
-
         <table id="lifetime-table">
           <thead>
             <tr>
@@ -691,7 +733,7 @@
       <div id="rules-screen" style="display: none" class="rules-content">
         <h3>📜 Spielregeln</h3>
 
-        <p>
+        <p></p>
           Ziel ist es, die meisten Punkte zu sammeln, während man die Zahlen von
           <b>1 bis 20</b>, dann <b>25</b> (Single Bull) und <b>50</b> (Bullseye)
           durchläuft.
@@ -770,7 +812,6 @@
           <h2 id="modal-name" class="stats-name">Name</h2>
           <button class="close-btn" onclick="closeStats(event)">×</button>
         </div>
-
         <div class="modal-tabs">
           <button class="modal-tab active" onclick="switchModalTab('overview')">
             Gesamt
@@ -779,7 +820,6 @@
             Verlauf
           </button>
         </div>
-
         <div id="tab-overview" class="modal-content-area">
           <div class="kpi-grid">
             <div class="kpi-box">
@@ -843,7 +883,6 @@
           </h4>
           <div class="chart-container"><canvas id="statsChart"></canvas></div>
         </div>
-
         <div id="tab-history" class="modal-content-area" style="display: none">
           <div id="history-list" style="text-align: center; color: #888">
             Lade Verlauf...
@@ -867,7 +906,11 @@
       let globalTargetIndex = 0;
       let isTrainingMode = false;
       let statsChart = null;
-      let currentModalPlayer = ""; // For History Loading
+      let currentModalPlayer = "";
+      let gameHistoryStack = [];
+
+      // BOT TIMER VARIABLE
+      let botTimer = null;
 
       // Turn Vars
       let currentRawScore = 0;
@@ -877,6 +920,15 @@
       let thrownScore = 0;
       thrownSecure = 0;
       const MAX_DARTS = 3;
+
+      async function requestWakeLock() {
+        try {
+          if ("wakeLock" in navigator)
+            await navigator.wakeLock.request("screen");
+        } catch (err) {
+          console.log(err);
+        }
+      }
 
       // --- SETUP ---
       function addPlayer() {
@@ -888,7 +940,7 @@
             name: name,
             score: 0,
             stats: { rounds: 0, secures: 0, doubles: 0, numberData: {} },
-            matchLog: [], // Log for current game
+            matchLog: [],
           });
           document.getElementById(
             "player-list-setup"
@@ -896,7 +948,6 @@
           input.value = "";
         }
       }
-
       function addBot() {
         let choice = prompt(
           "Wähle Bot-Stärke:\n1 = Kneipen-Held (Leicht)\n2 = Liga-Spieler (Mittel)\n3 = THE LITTLER (Profi)"
@@ -925,7 +976,6 @@
           "player-list-setup"
         ).innerHTML += `<div style="background:#673ab7; padding:5px; margin:5px; display:inline-block; border-radius:5px;">${name}</div>`;
       }
-
       function startGame() {
         if (players.length === 0) return alert("Keine Spieler!");
         isTrainingMode = document.getElementById("chk-training").checked;
@@ -937,24 +987,42 @@
           document.getElementById("app-title").innerText =
             "🎯 Schlag den Littler";
         }
+        requestWakeLock();
         showScreen("game");
         updateUI();
         resetTurnInputs();
         checkBotTurn();
       }
 
-      // --- GAME LOGIC ---
+      // --- BOT LOGIC (MODIFIED WITH DELAY) ---
       function checkBotTurn() {
         const p = players[currentPlayerIndex];
         if (p.isBot) {
+          // Overlay zeigen + Panic Button
           document.getElementById("bot-overlay").style.display = "flex";
+          document.getElementById("bot-panic-btn").style.display = "block"; // Knopf zeigen
           document.getElementById("bot-status-text").innerText = `${pName(
             p
           )} zielt...`;
-          setTimeout(() => playBot(p), 1000);
+          document.getElementById("btn-undo").style.display = "none";
+
+          // Timer setzen (2.5 Sekunden Zeit zum Abbruch)
+          if (botTimer) clearTimeout(botTimer);
+          botTimer = setTimeout(() => {
+            document.getElementById("bot-panic-btn").style.display = "none"; // Knopf weg
+            playBot(p);
+          }, 2500);
         } else {
           document.getElementById("bot-overlay").style.display = "none";
+          updateUndoButtonVisibility();
         }
+      }
+
+      function cancelBotAndUndo() {
+        // Wenn der User den Panic Button drückt
+        if (botTimer) clearTimeout(botTimer); // Bot stoppen
+        document.getElementById("bot-overlay").style.display = "none"; // Overlay weg
+        undoLastTurn(); // Zug rückgängig machen
       }
 
       function playBot(bot) {
@@ -965,7 +1033,6 @@
           let rnd = Math.random();
           let hit = 0;
           if (targetVal >= 25) {
-            // Bull/Eye
             if (diff === 1) {
               if (rnd > 0.6) hit = 1;
               if (rnd > 0.95) hit = 2;
@@ -977,7 +1044,6 @@
               if (rnd > 0.5) hit = 2;
             }
           } else {
-            // Standard
             if (diff === 1) {
               if (rnd > 0.4) hit = 1;
               if (rnd > 0.9) hit = 2;
@@ -997,16 +1063,19 @@
         currentRawScore = targetVal * botMultiplier;
         thrownScore = 3;
         updateTurnDisplay();
+
         if (currentRawScore === 0) {
           document.getElementById("bot-status-text").innerText = `${pName(
             bot
           )} wirft 0 Punkte!`;
-          setTimeout(() => nextTurn(), 2000);
+          // Nächster Zug
+          botTimer = setTimeout(() => nextTurn(), 2000);
         } else {
           document.getElementById("bot-status-text").innerText = `${pName(
             bot
           )} trifft ${currentRawScore} Punkte!`;
-          setTimeout(() => playBotSecure(bot), 1500);
+          // Weiter zum Sichern
+          botTimer = setTimeout(() => playBotSecure(bot), 1500);
         }
       }
 
@@ -1048,14 +1117,49 @@
         document.getElementById("bot-status-text").innerText = `${pName(
           bot
         )} ${txt}`;
-        setTimeout(() => nextTurn(), 1500);
+        botTimer = setTimeout(() => nextTurn(), 1500);
       }
 
       function pName(p) {
         return p.name.split(" ").slice(1).join(" ") || p.name;
       }
 
+      // --- UNDO SYSTEM ---
+      function saveState() {
+        const state = {
+          players: JSON.parse(JSON.stringify(players)),
+          currentPlayerIndex: currentPlayerIndex,
+          globalTargetIndex: globalTargetIndex,
+        };
+        gameHistoryStack.push(state);
+        if (gameHistoryStack.length > 10) gameHistoryStack.shift();
+      }
+
+      function undoLastTurn() {
+        if (gameHistoryStack.length === 0) return;
+        const lastState = gameHistoryStack.pop();
+        players = lastState.players;
+        currentPlayerIndex = lastState.currentPlayerIndex;
+        globalTargetIndex = lastState.globalTargetIndex;
+        resetTurnInputs();
+        updateUI();
+        updateUndoButtonVisibility();
+        // Falls der Rücksprung auf einen Bot trifft (sollte nicht passieren durch Button Logic, aber sicherheitshalber)
+        // checkBotTurn NICHT aufrufen, damit der User Zeit hat
+      }
+
+      function updateUndoButtonVisibility() {
+        const btn = document.getElementById("btn-undo");
+        if (gameHistoryStack.length > 0 && !players[currentPlayerIndex].isBot) {
+          btn.style.display = "block";
+        } else {
+          btn.style.display = "none";
+        }
+      }
+
+      // --- GAMEPLAY CORE ---
       async function nextTurn() {
+        saveState(); // Backup erstellen
         const p = players[currentPlayerIndex];
         p.stats.rounds++;
         if (isSecured) p.stats.secures++;
@@ -1068,8 +1172,6 @@
         p.stats.numberData[key].count += 1;
 
         let final = isSecured ? currentRawScore * secureMultiplier : 0;
-
-        // --- LOGGING ---
         p.matchLog.push({
           target: tVal,
           raw_score: currentRawScore,
@@ -1096,28 +1198,18 @@
       async function handleGameEnd() {
         const winner = players[currentPlayerIndex];
         document.getElementById("bot-overlay").style.display = "none";
-
         alert(`🏆 ${winner.name} hat gewonnen!`);
-
         for (let p of players) {
           let dbName = p.name;
-          if (!p.isBot && isTrainingMode) {
-            dbName = `${p.name} (Training)`;
-          }
-
+          if (!p.isBot && isTrainingMode) dbName = `${p.name} (Training)`;
           let isWin = !isTrainingMode && p.name === winner.name;
-
-          // Bot Siege zählen wir in der DB, aber wir filtern sie später in der Anzeige raus
-          // Wenn es ein Bot ist, setzen wir isWin für die DB Logik ggf. anpassen,
-          // aber hier ist es okay, wenn der Bot in seiner eigenen Statistik gewinnt.
-
           await saveProStats(dbName, p, isWin);
           await saveMatchHistory(dbName, p, isWin);
         }
         location.reload();
       }
 
-      // --- DATABASE FUNCTIONS ---
+      // --- DATABASE & STATS ---
       async function saveProStats(name, pObj, isWin) {
         let { data: ex } = await _supabase
           .from("highscores")
@@ -1161,7 +1253,6 @@
             .eq("name", name);
         }
       }
-
       async function saveMatchHistory(name, pObj, isWin) {
         await _supabase.from("match_history").insert([
           {
@@ -1169,79 +1260,48 @@
             is_training: isTrainingMode,
             is_win: isWin,
             final_score: pObj.score,
-            match_details: pObj.matchLog, // Speichert das Array mit den Zügen
+            match_details: pObj.matchLog,
           },
         ]);
       }
-
       async function loadHighscores() {
         const showBots = document.getElementById("chk-show-bots").checked;
         const tbody = document.querySelector("#lifetime-table tbody");
         tbody.innerHTML = '<tr><td colspan="4">Lade Daten...</td></tr>';
-
         let { data: highscores, error } = await _supabase
           .from("highscores")
           .select("*")
           .order("wins", { ascending: false })
           .order("highscore", { ascending: false });
-
         if (error) return;
         tbody.innerHTML = "";
-
-        let rank = 1; // Eigener Rang-Zähler, damit Bots die Nummerierung nicht kaputt machen
-
+        let rank = 1;
         highscores.forEach((entry) => {
-          // FILTER LOGIK:
-          // Ist es ein Bot? (Erkennbar an den Emojis, die wir im Code vergeben haben)
           const isBotEntry =
             entry.name.includes("🤖") || entry.name.includes("🔥");
-
-          // Wenn es ein Bot ist UND wir wollen keine Bots sehen -> Überspringen
-          if (isBotEntry && !showBots) {
-            return;
-          }
-
+          if (isBotEntry && !showBots) return;
           const tr = document.createElement("tr");
           const safeData = encodeURIComponent(JSON.stringify(entry));
-
-          // Name formatieren
           let dName = entry.name.replace(
             " (Training)",
             ' <span style="color:#d500f9; font-size:0.8em;">(Training)</span>'
           );
-
-          tr.innerHTML = `
-                    <td style="color:#666">${rank}.</td>
-                    <td>
-                        <a href="#" class="clickable-name" onclick="openProStats('${safeData}')">
-                            ${dName}
-                        </a>
-                    </td>
-                    <td>${entry.wins}</td>
-                    <td>${entry.highscore}</td>
-                `;
+          tr.innerHTML = `<td style="color:#666">${rank}.</td><td><a href="#" class="clickable-name" onclick="openProStats('${safeData}')">${dName}</a></td><td>${entry.wins}</td><td>${entry.highscore}</td>`;
           tbody.appendChild(tr);
           rank++;
         });
-
-        if (rank === 1) {
+        if (rank === 1)
           tbody.innerHTML =
             '<tr><td colspan="4" style="text-align:center; color:#666;">Keine Daten vorhanden.</td></tr>';
-        }
       }
-
-      // --- STATS MODAL & HISTORY LOGIC ---
       function openProStats(encodedData) {
         const data = JSON.parse(decodeURIComponent(encodedData));
-        currentModalPlayer = data.name; // Store for history loading
-
+        currentModalPlayer = data.name;
         const m = document.getElementById("stats-modal");
         document.getElementById("modal-name").innerText = data.name.replace(
           " (Training)",
           ""
         );
-
-        // Standard KPIs
         document.getElementById("kpi-wins").innerText = data.wins;
         document.getElementById("kpi-high").innerText = data.highscore;
         let gp = data.games_played || 0;
@@ -1254,8 +1314,6 @@
           rp > 0 ? Math.round((data.secure_count / rp) * 100) + "%" : "0%";
         document.getElementById("kpi-double-rate").innerText =
           rp > 0 ? Math.round((data.double_count / rp) * 100) + "%" : "0%";
-
-        // Chart Logic
         const allTargets = [];
         for (let i = 1; i <= 20; i++) allTargets.push(i.toString());
         allTargets.push("25");
@@ -1271,7 +1329,6 @@
           if (s && s.count > 0) return (s.points / s.count).toFixed(1);
           return 0;
         });
-
         if (statsChart) {
           statsChart.destroy();
         }
@@ -1308,28 +1365,22 @@
             plugins: { legend: { display: false } },
           },
         });
-
-        // Reset Tabs
         switchModalTab("overview");
         m.style.display = "flex";
       }
-
       async function loadMatchHistory() {
         const container = document.getElementById("history-list");
         container.innerHTML = "Lade Daten...";
-
         let { data: matches, error } = await _supabase
           .from("match_history")
           .select("*")
           .eq("player_name", currentModalPlayer)
           .order("created_at", { ascending: false })
           .limit(20);
-
         if (error || !matches || matches.length === 0) {
           container.innerHTML = "Noch keine Spiele aufgezeichnet.";
           return;
         }
-
         container.innerHTML = "";
         matches.forEach((m) => {
           const date = new Date(m.created_at).toLocaleDateString("de-DE", {
@@ -1340,8 +1391,6 @@
           });
           const div = document.createElement("div");
           div.className = `history-item ${m.is_win ? "win" : ""}`;
-
-          // Details bauen
           let detailsHTML = "";
           if (m.match_details && Array.isArray(m.match_details)) {
             m.match_details.forEach((d) => {
@@ -1350,36 +1399,19 @@
               let resClass = d.secured ? "detail-secured" : "detail-missed";
               let resText = d.secured ? `✅ (${d.multiplier}x)` : "❌";
               if (d.raw_score === 0) resText = "❌ (0 Score)";
-
-              detailsHTML += `
-                            <div class="detail-row">
-                                <span style="width:30px; font-weight:bold;">${targetText}</span>
-                                <span class="detail-val">Punkte: ${d.raw_score}</span>
-                                <span class="${resClass}">${resText}</span>
-                                <span style="font-weight:bold; color:white;">+${d.final_points}</span>
-                            </div>
-                        `;
+              detailsHTML += `<div class="detail-row"><span style="width:30px; font-weight:bold;">${targetText}</span><span class="detail-val">Punkte: ${d.raw_score}</span><span class="${resClass}">${resText}</span><span style="font-weight:bold; color:white;">+${d.final_points}</span></div>`;
             });
           }
-
-          div.innerHTML = `
-                    <div class="history-summary" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">
-                        <div>
-                            <div style="font-weight:bold; color:${
-                              m.is_win ? "var(--accent-green)" : "#aaa"
-                            }">${m.is_win ? "SIEG" : "Niederlage"}</div>
-                            <div class="history-date">${date}</div>
-                        </div>
-                        <div class="history-score">${m.final_score} Pkt</div>
-                    </div>
-                    <div class="history-details">
-                        ${detailsHTML}
-                    </div>
-                `;
+          div.innerHTML = `<div class="history-summary" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'"><div><div style="font-weight:bold; color:${
+            m.is_win ? "var(--accent-green)" : "#aaa"
+          }">${
+            m.is_win ? "SIEG" : "Niederlage"
+          }</div><div class="history-date">${date}</div></div><div class="history-score">${
+            m.final_score
+          } Pkt</div></div><div class="history-details">${detailsHTML}</div>`;
           container.appendChild(div);
         });
       }
-
       function switchModalTab(tab) {
         document
           .querySelectorAll(".modal-tab")
@@ -1387,7 +1419,6 @@
         document
           .querySelectorAll(".modal-content-area")
           .forEach((c) => (c.style.display = "none"));
-
         if (tab === "overview") {
           document
             .querySelector(".modal-tab:nth-child(1)")
@@ -1398,16 +1429,13 @@
             .querySelector(".modal-tab:nth-child(2)")
             .classList.add("active");
           document.getElementById("tab-history").style.display = "block";
-          loadMatchHistory(); // Load data on demand
+          loadMatchHistory();
         }
       }
-
       function closeStats(e) {
         if (e.target.id === "stats-modal" || e.target.className === "close-btn")
           document.getElementById("stats-modal").style.display = "none";
       }
-
-      // --- HELPER ---
       async function loadPlayerSuggestions() {
         let { data: playersDB, error } = await _supabase
           .from("highscores")
@@ -1459,6 +1487,7 @@
         document.getElementById("current-target").innerText =
           t === 25 ? "BULL" : t === 50 ? "BULLSEYE" : t;
         updateLiveLeaderboard();
+        updateUndoButtonVisibility();
       }
       function updateLiveLeaderboard() {
         const list = document.getElementById("live-leaderboard-list");
@@ -1538,6 +1567,15 @@
         document.getElementById("round-result").innerText = isSecured
           ? currentRawScore * secureMultiplier
           : 0;
+      }
+      function updateUndoButtonVisibility() {
+        const btn = document.getElementById("btn-undo");
+        // Zeige Undo, wenn Historie existiert und aktueller Spieler kein Bot ist
+        if (gameHistoryStack.length > 0 && !players[currentPlayerIndex].isBot) {
+          btn.style.display = "block";
+        } else {
+          btn.style.display = "none";
+        }
       }
     </script>
   </body>
