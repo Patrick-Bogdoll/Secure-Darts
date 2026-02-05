@@ -1,229 +1,278 @@
 <!DOCTYPE html>
 <html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Darts Admin Panel</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+
     <style>
-        :root {
-            --bg-color: #1a1a1a;
-            --text-color: #f0f0f0;
-            --card-bg: #2d2d2d;
-            --accent-red: #f44336;
-            --accent-blue: #2196F3;
-            --accent-green: #4caf50;
-        }
+      :root {
+        --bg-color: #1a1a1a;
+        --text-color: #f0f0f0;
+        --card-bg: #2d2d2d;
+        --accent-red: #f44336;
+        --accent-blue: #2196f3;
+        --accent-green: #4caf50;
+      }
 
-        body {
-            font-family: sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+      body {
+        font-family: sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
 
-        .container {
-            width: 100%;
-            max-width: 800px;
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
+      .container {
+        width: 100%;
+        max-width: 800px;
+        background: var(--card-bg);
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      }
 
-        /* Navbar Styling */
-        .app-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid var(--accent-red);
-        }
+      /* Navbar Styling */
+      .app-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid var(--accent-red);
+      }
 
+      .header-title {
+        margin: 0;
+        font-size: 1.5em;
+        color: var(--text-color);
+      }
+
+      .nav-btn-back {
+        text-decoration: none;
+        background-color: #444;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 5px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: background 0.2s;
+        font-size: 0.9em;
+      }
+      .nav-btn-back:hover {
+        background-color: #666;
+      }
+
+      /* Tabelle Styling */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th,
+      td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #444;
+      }
+      th {
+        background-color: #333;
+        color: #aaa;
+      }
+
+      /* Buttons allgemein */
+      button {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        color: white;
+        font-weight: bold;
+        margin-right: 5px;
+      }
+
+      .btn-edit {
+        background-color: var(--accent-blue);
+      }
+      .btn-delete {
+        background-color: var(--accent-red);
+      }
+      .btn-refresh {
+        background-color: var(--accent-green);
+        margin-bottom: 15px;
+      }
+
+      input {
+        background: #444;
+        border: 1px solid #555;
+        color: white;
+        padding: 10px;
+        border-radius: 3px;
+        width: 100%; /* Volle Breite im Login */
+        box-sizing: border-box;
+        margin-bottom: 10px;
+      }
+
+      /* Passwort-Schutz Overlay */
+      #login-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #111;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 999;
+      }
+
+      .login-box {
+        background: #2d2d2d;
+        padding: 30px;
+        border-radius: 10px;
+        text-align: center;
+        width: 300px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+      }
+
+      /* Neuer Cancel Button Style */
+      .btn-cancel {
+        background-color: #444; /* Dunkelgrau */
+        width: 100%;
+        margin-top: 10px;
+      }
+      .btn-cancel:hover {
+        background-color: var(--accent-red);
+      }
+
+      @media (max-width: 500px) {
         .header-title {
-            margin: 0;
-            font-size: 1.5em;
-            color: var(--text-color);
+          font-size: 1.2em;
+          text-align: right;
         }
-
         .nav-btn-back {
-            text-decoration: none;
-            background-color: #444;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: background 0.2s;
-            font-size: 0.9em;
+          padding: 8px 10px;
+          font-size: 0.8em;
         }
-        .nav-btn-back:hover { background-color: #666; }
-
-        /* Tabelle Styling */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #444; }
-        th { background-color: #333; color: #aaa; }
-        
-        /* Buttons allgemein */
-        button {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            color: white;
-            font-weight: bold;
-            margin-right: 5px;
-        }
-
-        .btn-edit { background-color: var(--accent-blue); }
-        .btn-delete { background-color: var(--accent-red); }
-        .btn-refresh { background-color: var(--accent-green); margin-bottom: 15px; }
-
-        input {
-            background: #444;
-            border: 1px solid #555;
-            color: white;
-            padding: 10px;
-            border-radius: 3px;
-            width: 100%; /* Volle Breite im Login */
-            box-sizing: border-box; 
-            margin-bottom: 10px;
-        }
-
-        /* Passwort-Schutz Overlay */
-        #login-overlay {
-            position: fixed; top:0; left:0; width:100%; height:100%;
-            background: #111;
-            display: flex; justify-content: center; align-items: center;
-            z-index: 999;
-        }
-        
-        .login-box {
-            background: #2d2d2d;
-            padding: 30px;
-            border-radius: 10px;
-            text-align: center;
-            width: 300px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.7);
-        }
-
-        /* Neuer Cancel Button Style */
-        .btn-cancel {
-            background-color: #444; /* Dunkelgrau */
-            width: 100%;
-            margin-top: 10px;
-        }
-        .btn-cancel:hover { background-color: var(--accent-red); }
-
-        @media (max-width: 500px) {
-            .header-title { font-size: 1.2em; text-align: right; }
-            .nav-btn-back { padding: 8px 10px; font-size: 0.8em; }
-        }
+      }
     </style>
-</head>
-<body>
-
+  </head>
+  <body>
     <div id="login-overlay">
-        <div class="login-box">
-            <h2>Admin Login</h2>
-            <input type="password" id="admin-pass" placeholder="Passwort eingeben">
-            <br>
-            <button onclick="checkPass()" style="background:var(--accent-green); width:100%;">Login</button>
-            
-            <button onclick="window.location.href='index.html'" class="btn-cancel">Abbrechen</button>
-        </div>
+      <div class="login-box">
+        <h2>Admin Login</h2>
+        <input
+          type="password"
+          id="admin-pass"
+          placeholder="Passwort eingeben"
+        />
+        <br />
+        <button
+          onclick="checkPass()"
+          style="background: var(--accent-green); width: 100%"
+        >
+          Login
+        </button>
+
+        <button onclick="window.location.href='index.html'" class="btn-cancel">
+          Abbrechen
+        </button>
+      </div>
     </div>
 
     <div class="container">
-        <div class="app-header">
-            <a href="index.html" class="nav-btn-back">
-                <span>🏠</span> Zum Spiel
-            </a>
-            <h2 class="header-title">Admin Panel</h2>
-        </div>
-        
-        <button class="btn-refresh" onclick="loadData()">🔄 Tabelle neu laden</button>
-        
-        <table id="admin-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Siege</th>
-                    <th>Highscore</th>
-                    <th>Aktionen</th>
-                </tr>
-            </thead>
-            <tbody>
-                </tbody>
-        </table>
+      <div class="app-header">
+        <a href="index.html" class="nav-btn-back">
+          <span>🏠</span> Zum Spiel
+        </a>
+        <h2 class="header-title">Admin Panel</h2>
+      </div>
+
+      <button class="btn-refresh" onclick="loadData()">
+        🔄 Tabelle neu laden
+      </button>
+
+      <table id="admin-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Siege</th>
+            <th>Highscore</th>
+            <th>Aktionen</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
 
     <script>
-        // ---------------------------------------------------------
-        // KONFIGURATION (Deine Daten)
-        const SUPABASE_URL = 'https://etzkulwnjhkoiklrohbt.supabase.co'; 
-        const SUPABASE_KEY = 'sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy';
-        const ADMIN_HASH = 'd9cafea78ff95cf59f6925e0707c266b19cffb85a31bbbffd146f38b1f119ba8'; 
-        // ---------------------------------------------------------
+      // ---------------------------------------------------------
+      // KONFIGURATION (Deine Daten)
+      const SUPABASE_URL = "https://etzkulwnjhkoiklrohbt.supabase.co";
+      const SUPABASE_KEY = "sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy";
+      const ADMIN_HASH =
+        "d9cafea78ff95cf59f6925e0707c266b19cffb85a31bbbffd146f38b1f119ba8";
+      // ---------------------------------------------------------
 
-        const { createClient } = supabase;
-        const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+      const { createClient } = supabase;
+      const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Hashing Funktion
-        async function sha256(message) {
-            const msgBuffer = new TextEncoder().encode(message);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            return hashHex;
+      // Hashing Funktion
+      async function sha256(message) {
+        const msgBuffer = new TextEncoder().encode(message);
+        const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+        return hashHex;
+      }
+
+      async function checkPass() {
+        const input = document.getElementById("admin-pass").value;
+        const inputHash = await sha256(input);
+
+        if (inputHash === ADMIN_HASH) {
+          document.getElementById("login-overlay").style.display = "none";
+          loadData();
+        } else {
+          alert("Falsches Passwort!");
+          document.getElementById("admin-pass").value = "";
         }
+      }
 
-        async function checkPass() {
-            const input = document.getElementById('admin-pass').value;
-            const inputHash = await sha256(input);
+      async function loadData() {
+        const tbody = document.querySelector("#admin-table tbody");
+        tbody.innerHTML = '<tr><td colspan="5">Lade Daten...</td></tr>';
 
-            if(inputHash === ADMIN_HASH) {
-                document.getElementById('login-overlay').style.display = 'none';
-                loadData();
-            } else {
-                alert("Falsches Passwort!");
-                document.getElementById('admin-pass').value = '';
-            }
+        let { data: players, error } = await _supabase
+          .from("highscores")
+          .select("*")
+          .order("id", { ascending: true });
+
+        if (error) {
+          alert("Fehler beim Laden: " + error.message);
+          return;
         }
+        renderTable(players);
+      }
 
-        async function loadData() {
-            const tbody = document.querySelector('#admin-table tbody');
-            tbody.innerHTML = '<tr><td colspan="5">Lade Daten...</td></tr>';
+      function renderTable(players) {
+        const tbody = document.querySelector("#admin-table tbody");
+        tbody.innerHTML = "";
 
-            let { data: players, error } = await _supabase
-                .from('highscores')
-                .select('*')
-                .order('id', { ascending: true });
-
-            if (error) {
-                alert("Fehler beim Laden: " + error.message);
-                return;
-            }
-            renderTable(players);
-        }
-
-        function renderTable(players) {
-            const tbody = document.querySelector('#admin-table tbody');
-            tbody.innerHTML = '';
-
-            players.forEach(player => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
+        players.forEach((player) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
                     <td style="color:#666; font-size:0.8em;">${player.id}</td>
                     <td><b>${player.name}</b></td>
                     <td>${player.wins}</td>
@@ -233,44 +282,45 @@
                         <button class="btn-delete" onclick="deletePlayer(${player.id}, '${player.name}')">🗑️</button>
                     </td>
                 `;
-                tbody.appendChild(tr);
-            });
-        }
+          tbody.appendChild(tr);
+        });
+      }
 
-        async function deletePlayer(id, name) {
-            if(!confirm(`Willst du "${name}" wirklich unwiderruflich LÖSCHEN?`)) return;
+      async function deletePlayer(id, name) {
+        if (!confirm(`Willst du "${name}" wirklich unwiderruflich LÖSCHEN?`))
+          return;
 
-            const { error } = await _supabase
-                .from('highscores')
-                .delete()
-                .eq('id', id);
+        const { error } = await _supabase
+          .from("highscores")
+          .delete()
+          .eq("id", id);
 
-            if(error) alert("Fehler beim Löschen: " + error.message);
-            else loadData(); 
-        }
+        if (error) alert("Fehler beim Löschen: " + error.message);
+        else loadData();
+      }
 
-        async function editPlayer(id, oldName, oldWins, oldHighscore) {
-            const newName = prompt("Name bearbeiten:", oldName);
-            if(newName === null) return; 
+      async function editPlayer(id, oldName, oldWins, oldHighscore) {
+        const newName = prompt("Name bearbeiten:", oldName);
+        if (newName === null) return;
 
-            const newWins = prompt("Anzahl Siege:", oldWins);
-            if(newWins === null) return;
+        const newWins = prompt("Anzahl Siege:", oldWins);
+        if (newWins === null) return;
 
-            const newHigh = prompt("Highscore:", oldHighscore);
-            if(newHigh === null) return;
+        const newHigh = prompt("Highscore:", oldHighscore);
+        if (newHigh === null) return;
 
-            const { error } = await _supabase
-                .from('highscores')
-                .update({ 
-                    name: newName, 
-                    wins: parseInt(newWins), 
-                    highscore: parseInt(newHigh) 
-                })
-                .eq('id', id);
+        const { error } = await _supabase
+          .from("highscores")
+          .update({
+            name: newName,
+            wins: parseInt(newWins),
+            highscore: parseInt(newHigh),
+          })
+          .eq("id", id);
 
-            if(error) alert("Fehler beim Speichern: " + error.message);
-            else loadData();
-        }
+        if (error) alert("Fehler beim Speichern: " + error.message);
+        else loadData();
+      }
     </script>
-</body>
+  </body>
 </html>
