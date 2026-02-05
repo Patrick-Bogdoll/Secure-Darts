@@ -538,6 +538,25 @@
         color: white;
         font-size: 1em;
       }
+      /* Animation für aktives Mikrofon */
+      .mic-active {
+        background-color: var(--accent-red) !important;
+        color: white !important;
+        border-color: red !important;
+        animation: pulse-mic 2s infinite;
+      }
+
+      @keyframes pulse-mic {
+        0% {
+          box-shadow: 0 0 0 0 rgba(255, 23, 68, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(255, 23, 68, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(255, 23, 68, 0);
+        }
+      }
     </style>
   </head>
   <body>
@@ -588,6 +607,18 @@
       </div>
 
       <div id="game-screen" style="display: none">
+        <button
+          id="mic-btn"
+          onclick="toggleVoice()"
+          style="
+            width: 100%;
+            background: #444;
+            margin-bottom: 15px;
+            border: 1px solid #666;
+          "
+        >
+          🎤 Sprachsteuerung: AUS
+        </button>
         <div id="bot-overlay" style="display: none" class="bot-overlay">
           <div id="bot-status-text">Bot spielt...</div>
           <button
@@ -1205,21 +1236,19 @@
           .eq("name", name)
           .single();
         if (!ex) {
-          await _supabase
-            .from("highscores")
-            .insert([
-              {
-                name: name,
-                wins: isWin ? 1 : 0,
-                highscore: pObj.score,
-                games_played: 1,
-                total_points: pObj.score,
-                rounds_played: pObj.stats.rounds,
-                secure_count: pObj.stats.secures,
-                double_count: pObj.stats.doubles,
-                number_stats: pObj.stats.numberData,
-              },
-            ]);
+          await _supabase.from("highscores").insert([
+            {
+              name: name,
+              wins: isWin ? 1 : 0,
+              highscore: pObj.score,
+              games_played: 1,
+              total_points: pObj.score,
+              rounds_played: pObj.stats.rounds,
+              secure_count: pObj.stats.secures,
+              double_count: pObj.stats.doubles,
+              number_stats: pObj.stats.numberData,
+            },
+          ]);
         } else {
           let mStats = ex.number_stats || {};
           let cStats = pObj.stats.numberData;
@@ -1244,17 +1273,15 @@
         }
       }
       async function saveMatchHistory(name, pObj, isWin) {
-        await _supabase
-          .from("match_history")
-          .insert([
-            {
-              player_name: name,
-              is_training: isTrainingMode,
-              is_win: isWin,
-              final_score: pObj.score,
-              match_details: pObj.matchLog,
-            },
-          ]);
+        await _supabase.from("match_history").insert([
+          {
+            player_name: name,
+            is_training: isTrainingMode,
+            is_win: isWin,
+            final_score: pObj.score,
+            match_details: pObj.matchLog,
+          },
+        ]);
       }
       async function loadHighscores() {
         const showBots = document.getElementById("chk-show-bots").checked;
@@ -1582,6 +1609,157 @@
           btn.style.display = "none";
         } else {
           btn.style.display = "block";
+        }
+      }
+
+      // --- SPRACHSTEUERUNG (VOICE CONTROL) ---
+      let recognition;
+      let isVoiceActive = false;
+
+      // Initialisierung
+      if (
+        "webkitSpeechRecognition" in window ||
+        "SpeechRecognition" in window
+      ) {
+        const SpeechRecognition =
+          window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = true; // Hört dauerhaft zu
+        recognition.lang = "de-DE"; // Deutsche Sprache
+        recognition.interimResults = false;
+
+        recognition.onresult = function (event) {
+          const last = event.results.length - 1;
+          const command = event.results[last][0].transcript
+            .trim()
+            .toLowerCase();
+          console.log("Sprachbefehl erkannt:", command);
+          processVoiceCommand(command);
+        };
+
+        recognition.onend = function () {
+          // Falls es von alleine ausgeht, aber noch aktiv sein soll -> Neustarten
+          if (isVoiceActive) recognition.start();
+        };
+
+        recognition.onerror = function (event) {
+          console.log("Sprach-Fehler:", event.error);
+        };
+      } else {
+        document.getElementById("mic-btn").innerText =
+          "❌ Browser unterstützt keine Sprache";
+        document.getElementById("mic-btn").disabled = true;
+      }
+
+      function toggleVoice() {
+        if (!recognition) return;
+        const btn = document.getElementById("mic-btn");
+
+        if (isVoiceActive) {
+          recognition.stop();
+          isVoiceActive = false;
+          btn.innerHTML = "🎤 Sprachsteuerung: AUS";
+          btn.classList.remove("mic-active");
+        } else {
+          recognition.start();
+          isVoiceActive = true;
+          btn.innerHTML = "🔴 Höre zu...";
+          btn.classList.add("mic-active");
+        }
+      }
+
+      function processVoiceCommand(cmd) {
+        // Feedback Sound (optional)
+        // let audio = new Audio('path/to/beep.mp3'); audio.play();
+
+        // 1. BEFEHLE FÜR NAVIGATION
+        if (
+          cmd.includes("weiter") ||
+          cmd.includes("bestätigen") ||
+          cmd.includes("nächster") ||
+          cmd.includes("set") ||
+          cmd.includes("next")
+        ) {
+          nextTurn();
+          return;
+        }
+        if (
+          cmd.includes("reset") ||
+          cmd.includes("zurück") ||
+          cmd.includes("löschen")
+        ) {
+          resetTurnInputs();
+          return;
+        }
+        if (
+          cmd.includes("korrektur") ||
+          cmd.includes("undo") ||
+          cmd.includes("rückgängig")
+        ) {
+          undoLastTurn();
+          return;
+        }
+
+        // 2. SPIELPHASEN ERKENNUNG
+        // Wir schauen, ob wir noch Score-Darts (Phase 1) oder Secure-Darts (Phase 2) haben
+        const isPhase1 = thrownScore < MAX_DARTS;
+        const isPhase2 = !isPhase1 && thrownSecure < MAX_DARTS;
+
+        // --- PHASE 1: PUNKTE WERFEN ---
+        if (isPhase1) {
+          if (
+            cmd.includes("single") ||
+            cmd.includes("einfach") ||
+            cmd.includes("eins")
+          )
+            addRawScore(1);
+          else if (
+            cmd.includes("double") ||
+            cmd.includes("doppel") ||
+            cmd.includes("zwei")
+          )
+            addRawScore(2);
+          else if (
+            cmd.includes("triple") ||
+            cmd.includes("tripple") ||
+            cmd.includes("dreifach") ||
+            cmd.includes("drei")
+          )
+            addRawScore(3);
+          else if (
+            cmd.includes("miss") ||
+            cmd.includes("daneben") ||
+            cmd.includes("null") ||
+            cmd.includes("nichts")
+          )
+            addRawScore(0);
+        }
+        // --- PHASE 2: SICHERN ---
+        else if (isPhase2) {
+          // Sicherheitscheck: Darf man überhaupt sichern? (Score > 0)
+          if (currentRawScore === 0) return;
+
+          if (
+            cmd.includes("single") ||
+            cmd.includes("einfach") ||
+            cmd.includes("25") ||
+            cmd.includes("grün")
+          )
+            addSecure(1);
+          else if (
+            cmd.includes("bullseye") ||
+            cmd.includes("bulls eye") ||
+            cmd.includes("50") ||
+            cmd.includes("rot") ||
+            cmd.includes("doppel")
+          )
+            addSecure(2);
+          else if (
+            cmd.includes("miss") ||
+            cmd.includes("daneben") ||
+            cmd.includes("null")
+          )
+            addSecure(0);
         }
       }
     </script>
