@@ -202,7 +202,6 @@
         color: white;
       }
 
-      /* UPDATED BOT OVERLAY */
       .bot-overlay {
         position: absolute;
         top: 0;
@@ -224,7 +223,6 @@
         padding: 20px;
       }
 
-      /* Panic Button im Overlay */
       .panic-btn {
         background-color: var(--accent-red);
         color: white;
@@ -732,71 +730,51 @@
 
       <div id="rules-screen" style="display: none" class="rules-content">
         <h3>📜 Spielregeln</h3>
-
-        <p></p>
+        <p>
           Ziel ist es, die meisten Punkte zu sammeln, während man die Zahlen von
           <b>1 bis 20</b>, dann <b>25</b> (Single Bull) und <b>50</b> (Bullseye)
           durchläuft.
         </p>
-
         <h4>1. Punkte Sammeln</h4>
-
         <p>
           In der ersten Phase (3 Darts) wirft man auf die aktuelle Zielzahl. Man
           sammelt so viele Punkte wie möglich.
         </p>
-
         <ul>
           <li>Single = Einfache Punktzahl</li>
-
           <li>Double = Doppelte Punktzahl</li>
-
           <li>Triple = Dreifache Punktzahl</li>
         </ul>
-
         <h4>2. Das Sichern</h4>
-
         <p>
           In der zweiten Phase (3 Darts) muss man die Punkte über das Bullseye
           "sichern".
         </p>
-
         <ul>
           <li><b>Single Bull (25):</b> Die Punkte sind gesichert (x1).</li>
-
           <li>
             <b>Bullseye (50):</b> Die Punkte werden gesichert und
             <b>verdoppelt</b> (x2).
           </li>
-
           <li><b>Nichts getroffen:</b> 0 Punkte für diese Runde.</li>
         </ul>
-
         <div class="example-box">
           Beispiel: Du triffst 3x die 20 (60 Punkte).<br />
-
           Dann triffst du 1x Bullseye.<br />
-
           Ergebnis: 60 x 2 = <b>120 Punkte</b>.
         </div>
-
         <h4>3. Globaler Fortschritt</h4>
-
         <p>
           Alle Spieler werfen auf die gleiche Zahl. Die Zahl erhöht sich erst
           für alle, wenn <b>mindestens ein Spieler</b> in der Runde erfolgreich
           gesichert hat.
         </p>
-
         <h4>4. Trainings-Modus</h4>
-
         <p>
           Setze den Haken im Setup. Deine Statistiken werden separat gespeichert
           und zählen nicht zu deinen offiziellen Siegen.
         </p>
-
         <h4>5. Bot-Gegner</h4>
-
         <p>
           Wähle im Setup einen Bot aus. Bots werden <b>nicht</b> in der
           Statistik gespeichert.
@@ -908,11 +886,8 @@
       let statsChart = null;
       let currentModalPlayer = "";
       let gameHistoryStack = [];
-
-      // BOT TIMER VARIABLE
       let botTimer = null;
 
-      // Turn Vars
       let currentRawScore = 0;
       let secureMultiplier = 0;
       isSecured = false;
@@ -930,7 +905,6 @@
         }
       }
 
-      // --- SETUP ---
       function addPlayer() {
         const input = document.getElementById("player-input");
         const name = input.value.trim();
@@ -994,22 +968,20 @@
         checkBotTurn();
       }
 
-      // --- BOT LOGIC (MODIFIED WITH DELAY) ---
+      // --- BOT LOGIC ---
       function checkBotTurn() {
         const p = players[currentPlayerIndex];
         if (p.isBot) {
-          // Overlay zeigen + Panic Button
           document.getElementById("bot-overlay").style.display = "flex";
-          document.getElementById("bot-panic-btn").style.display = "block"; // Knopf zeigen
+          document.getElementById("bot-panic-btn").style.display = "block";
           document.getElementById("bot-status-text").innerText = `${pName(
             p
           )} zielt...`;
           document.getElementById("btn-undo").style.display = "none";
 
-          // Timer setzen (2.5 Sekunden Zeit zum Abbruch)
           if (botTimer) clearTimeout(botTimer);
           botTimer = setTimeout(() => {
-            document.getElementById("bot-panic-btn").style.display = "none"; // Knopf weg
+            document.getElementById("bot-panic-btn").style.display = "none";
             playBot(p);
           }, 2500);
         } else {
@@ -1019,10 +991,9 @@
       }
 
       function cancelBotAndUndo() {
-        // Wenn der User den Panic Button drückt
-        if (botTimer) clearTimeout(botTimer); // Bot stoppen
-        document.getElementById("bot-overlay").style.display = "none"; // Overlay weg
-        undoLastTurn(); // Zug rückgängig machen
+        if (botTimer) clearTimeout(botTimer);
+        document.getElementById("bot-overlay").style.display = "none";
+        undoLastTurn();
       }
 
       function playBot(bot) {
@@ -1068,13 +1039,11 @@
           document.getElementById("bot-status-text").innerText = `${pName(
             bot
           )} wirft 0 Punkte!`;
-          // Nächster Zug
           botTimer = setTimeout(() => nextTurn(), 2000);
         } else {
           document.getElementById("bot-status-text").innerText = `${pName(
             bot
           )} trifft ${currentRawScore} Punkte!`;
-          // Weiter zum Sichern
           botTimer = setTimeout(() => playBotSecure(bot), 1500);
         }
       }
@@ -1144,16 +1113,35 @@
         resetTurnInputs();
         updateUI();
         updateUndoButtonVisibility();
-        // Falls der Rücksprung auf einen Bot trifft (sollte nicht passieren durch Button Logic, aber sicherheitshalber)
-        // checkBotTurn NICHT aufrufen, damit der User Zeit hat
+
+        // SOFTLOCK FIX: Wenn wir auf einem Bot landen (z.B. durch Panic Button), Bot neu starten!
+        if (players[currentPlayerIndex].isBot) {
+          checkBotTurn();
+        }
       }
 
       function updateUndoButtonVisibility() {
         const btn = document.getElementById("btn-undo");
-        if (gameHistoryStack.length > 0 && !players[currentPlayerIndex].isBot) {
-          btn.style.display = "block";
-        } else {
+        // 1. Kein Undo, wenn kein Verlauf da ist
+        if (gameHistoryStack.length === 0) {
           btn.style.display = "none";
+          return;
+        }
+
+        // 2. Kein Undo, wenn der AKTUELLE Spieler ein Bot ist (dafür ist der Panic Button)
+        if (players[currentPlayerIndex].isBot) {
+          btn.style.display = "none";
+          return;
+        }
+
+        // 3. WICHTIG: Kein Undo, wenn der VORHERIGE Spieler (den wir zurücksetzen würden) ein Bot war!
+        const lastState = gameHistoryStack[gameHistoryStack.length - 1];
+        const previousPlayer = lastState.players[lastState.currentPlayerIndex];
+
+        if (previousPlayer.isBot) {
+          btn.style.display = "none";
+        } else {
+          btn.style.display = "block";
         }
       }
 
@@ -1217,19 +1205,21 @@
           .eq("name", name)
           .single();
         if (!ex) {
-          await _supabase.from("highscores").insert([
-            {
-              name: name,
-              wins: isWin ? 1 : 0,
-              highscore: pObj.score,
-              games_played: 1,
-              total_points: pObj.score,
-              rounds_played: pObj.stats.rounds,
-              secure_count: pObj.stats.secures,
-              double_count: pObj.stats.doubles,
-              number_stats: pObj.stats.numberData,
-            },
-          ]);
+          await _supabase
+            .from("highscores")
+            .insert([
+              {
+                name: name,
+                wins: isWin ? 1 : 0,
+                highscore: pObj.score,
+                games_played: 1,
+                total_points: pObj.score,
+                rounds_played: pObj.stats.rounds,
+                secure_count: pObj.stats.secures,
+                double_count: pObj.stats.doubles,
+                number_stats: pObj.stats.numberData,
+              },
+            ]);
         } else {
           let mStats = ex.number_stats || {};
           let cStats = pObj.stats.numberData;
@@ -1254,15 +1244,17 @@
         }
       }
       async function saveMatchHistory(name, pObj, isWin) {
-        await _supabase.from("match_history").insert([
-          {
-            player_name: name,
-            is_training: isTrainingMode,
-            is_win: isWin,
-            final_score: pObj.score,
-            match_details: pObj.matchLog,
-          },
-        ]);
+        await _supabase
+          .from("match_history")
+          .insert([
+            {
+              player_name: name,
+              is_training: isTrainingMode,
+              is_win: isWin,
+              final_score: pObj.score,
+              match_details: pObj.matchLog,
+            },
+          ]);
       }
       async function loadHighscores() {
         const showBots = document.getElementById("chk-show-bots").checked;
@@ -1570,11 +1562,26 @@
       }
       function updateUndoButtonVisibility() {
         const btn = document.getElementById("btn-undo");
-        // Zeige Undo, wenn Historie existiert und aktueller Spieler kein Bot ist
-        if (gameHistoryStack.length > 0 && !players[currentPlayerIndex].isBot) {
-          btn.style.display = "block";
-        } else {
+        // 1. Kein Undo wenn Historie leer
+        if (gameHistoryStack.length === 0) {
           btn.style.display = "none";
+          return;
+        }
+
+        // 2. Kein Undo wenn aktueller Spieler Bot ist
+        if (players[currentPlayerIndex].isBot) {
+          btn.style.display = "none";
+          return;
+        }
+
+        // 3. Kein Undo, wenn der VORHERIGE Spieler ein Bot war (Verhindert das Löschen von Bot-Zügen)
+        const lastState = gameHistoryStack[gameHistoryStack.length - 1];
+        const previousPlayer = lastState.players[lastState.currentPlayerIndex];
+
+        if (previousPlayer.isBot) {
+          btn.style.display = "none";
+        } else {
+          btn.style.display = "block";
         }
       }
     </script>
