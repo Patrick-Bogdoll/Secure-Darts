@@ -981,9 +981,25 @@
           "player-list-setup"
         ).innerHTML += `<div style="background:#673ab7; padding:5px; margin:5px; display:inline-block; border-radius:5px;">${name}</div>`;
       }
+
       function startGame() {
-        if (players.length === 0) return alert("Keine Spieler!");
+        // 1. Erst prüfen, ob Training oder Ranked gewünscht ist
         isTrainingMode = document.getElementById("chk-training").checked;
+
+        // 2. Generelle Prüfung: Gibt es überhaupt Spieler?
+        if (players.length === 0) {
+          return alert("Bitte füge mindestens einen Spieler hinzu!");
+        }
+
+        // 3. NEUE REGEL: Ranked Games brauchen Gegner!
+        // Wenn KEIN Training aktiv ist UND wir weniger als 2 Teilnehmer haben -> Blockieren
+        if (!isTrainingMode && players.length < 2) {
+          return alert(
+            "⚠️ Ein gewertetes Spiel benötigt mindestens 2 Teilnehmer!\n\nFüge einen Freund oder einen Bot hinzu.\nFür Solo-Sessions: Aktiviere den 'Trainings-Modus'."
+          );
+        }
+
+        // --- Ab hier läuft der Start wie gewohnt ---
         if (isTrainingMode) {
           document.body.classList.add("training-active");
           document.getElementById("app-title").innerText = "🧪 TRAINING";
@@ -992,6 +1008,7 @@
           document.getElementById("app-title").innerText =
             "🎯 Schlag den Littler";
         }
+
         requestWakeLock();
         showScreen("game");
         updateUI();
