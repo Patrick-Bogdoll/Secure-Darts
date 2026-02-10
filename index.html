@@ -1576,6 +1576,7 @@
         }
       }
       function updateTurnDisplay() {
+        // 1. Grundlegende Werte aktualisieren
         document.getElementById("raw-score").innerText = currentRawScore;
         document.getElementById(
           "score-darts-count"
@@ -1583,19 +1584,54 @@
         document.getElementById(
           "secure-darts-count"
         ).innerText = `${thrownSecure}/${MAX_DARTS}`;
-        [...document.getElementById("controls-score").children].forEach(
-          (b) => (b.disabled = thrownScore >= MAX_DARTS)
-        );
+
+        // 2. Aktuelles Ziel ermitteln
+        const currentTarget = targets[globalTargetIndex]; // z.B. 25 oder 50
+        const scoreButtons = document.getElementById("controls-score").children;
+
+        // 3. Logik für Phase 1 (Punkte werfen)
+        // Erstmal schauen: Habe ich überhaupt noch Darts?
+        const noDartsLeft = thrownScore >= MAX_DARTS;
+
+        // Standard: Alle Buttons aktivieren oder deaktivieren (je nach Darts übrig)
+        for (let btn of scoreButtons) {
+          btn.disabled = noDartsLeft;
+        }
+
+        // SPEZIAL-REGELN (Nur wenn man noch Darts hat)
+        if (!noDartsLeft) {
+          // Button Indizes: 0=Miss, 1=Single, 2=Double, 3=Triple
+
+          if (currentTarget === 25) {
+            // Bei 25 (Single Bull): Kein Triple möglich
+            scoreButtons[3].disabled = true;
+          } else if (currentTarget === 50) {
+            // Bei 50 (Bullseye): Kein Double und Kein Triple möglich
+            // (Da man direkt auf 50 wirft, ist das hier "Single 50")
+            scoreButtons[2].disabled = true; // Double aus
+            scoreButtons[3].disabled = true; // Triple aus
+          }
+        }
+
+        // 4. Logik für Phase 2 (Sichern)
+        // Nur aktiv, wenn Phase 1 vorbei ist (3 Darts geworfen) UND Score > 0 UND noch Secure-Darts übrig
         let allowSecure =
           thrownScore >= MAX_DARTS &&
           currentRawScore > 0 &&
           thrownSecure < MAX_DARTS;
+
         [...document.getElementById("controls-secure").children].forEach(
           (b) => (b.disabled = !allowSecure)
         );
+
+        // 5. Status Text
         let txt = isSecured ? `Gesichert (x${secureMultiplier})` : "Offen";
-        if (thrownScore >= MAX_DARTS && currentRawScore === 0)
+
+        // Sonderfall: 0 Punkte geworfen
+        if (thrownScore >= MAX_DARTS && currentRawScore === 0) {
           txt = "0 Punkte (Kein Sichern möglich)";
+        }
+
         document.getElementById("secure-status").innerText = txt;
         document.getElementById("secure-status").style.color = isSecured
           ? "var(--accent-green)"
