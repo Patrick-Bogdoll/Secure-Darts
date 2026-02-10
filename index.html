@@ -1234,12 +1234,25 @@
       async function handleGameEnd() {
         const winner = players[currentPlayerIndex];
         document.getElementById("bot-overlay").style.display = "none";
+
         alert(`🏆 ${winner.name} hat gewonnen!`);
+
         for (let p of players) {
+          // Datenbank-Namen bestimmen
           let dbName = p.name;
-          if (!p.isBot && isTrainingMode) dbName = `${p.name} (Training)`;
-          let isWin = !isTrainingMode && p.name === winner.name;
+          if (!p.isBot && isTrainingMode) {
+            dbName = `${p.name} (Training)`;
+          }
+
+          // FEHLERBEHEBUNG HIER:
+          // Ein Sieg ist ein Sieg, egal ob Training oder Ranked.
+          // Die Trennung passiert ja schon durch den dbName oben.
+          let isWin = p.name === winner.name;
+
+          // 1. Stats speichern
           await saveProStats(dbName, p, isWin);
+
+          // 2. Verlauf speichern
           await saveMatchHistory(dbName, p, isWin);
         }
         location.reload();
