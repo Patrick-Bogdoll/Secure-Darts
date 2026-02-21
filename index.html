@@ -1297,6 +1297,7 @@
           <h2 id="modal-name" class="stats-name">Name</h2>
           <button class="close-btn" onclick="closeStats(event)">×</button>
         </div>
+
         <div class="modal-tabs">
           <button class="modal-tab active" onclick="switchModalTab('overview')">
             Gesamt
@@ -1305,57 +1306,59 @@
             Verlauf
           </button>
         </div>
+
         <div id="tab-overview" class="modal-content-area">
           <div class="kpi-grid">
             <div class="kpi-box">
-              <div class="kpi-label">Siege</div>
+              <div class="kpi-label" id="lbl-kpi-1">Siege</div>
               <div
                 class="kpi-value"
-                id="kpi-wins"
+                id="kpi-1"
                 style="color: var(--accent-green)"
               >
                 -
               </div>
             </div>
             <div class="kpi-box">
-              <div class="kpi-label">Highscore</div>
+              <div class="kpi-label" id="lbl-kpi-2">Highscore</div>
               <div
                 class="kpi-value"
-                id="kpi-high"
+                id="kpi-2"
                 style="color: var(--accent-purple)"
               >
                 -
               </div>
             </div>
             <div class="kpi-box">
-              <div class="kpi-label">Winrate</div>
-              <div class="kpi-value" id="kpi-winrate">-</div>
+              <div class="kpi-label" id="lbl-kpi-3">Winrate</div>
+              <div class="kpi-value" id="kpi-3">-</div>
             </div>
             <div class="kpi-box">
-              <div class="kpi-label">Ø Score</div>
-              <div class="kpi-value" id="kpi-avg">-</div>
+              <div class="kpi-label" id="lbl-kpi-4">Ø Score</div>
+              <div class="kpi-value" id="kpi-4">-</div>
             </div>
             <div class="kpi-box">
-              <div class="kpi-label">Secure Rate</div>
+              <div class="kpi-label" id="lbl-kpi-5">Secure Rate</div>
               <div
                 class="kpi-value"
-                id="kpi-secure-rate"
+                id="kpi-5"
                 style="color: var(--accent-blue)"
               >
                 -
               </div>
             </div>
             <div class="kpi-box">
-              <div class="kpi-label">Double Rate</div>
+              <div class="kpi-label" id="lbl-kpi-6">Double Rate</div>
               <div
                 class="kpi-value"
-                id="kpi-double-rate"
+                id="kpi-6"
                 style="color: var(--accent-red)"
               >
                 -
               </div>
             </div>
           </div>
+
           <h4
             style="
               border-bottom: 1px solid #444;
@@ -1368,6 +1371,7 @@
           </h4>
           <div class="chart-container"><canvas id="statsChart"></canvas></div>
         </div>
+
         <div id="tab-history" class="modal-content-area" style="display: none">
           <div id="history-list" style="text-align: center; color: #888">
             Lade Verlauf...
@@ -1448,6 +1452,7 @@
 
       function showScreen(screenType) {
         const screens = [
+          "home-screen",
           "setup-screen",
           "game-screen",
           "online-lobby-screen",
@@ -1862,10 +1867,7 @@
         matchScore,
         finalFinish
       ) {
-        // Bots ignorieren wir in den Leaderboards
         if (playerName.includes("🤖") || playerName.includes("🔥")) return;
-
-        // Prüfen, ob der Spieler schon existiert
         let { data: ex } = await _supabase
           .from("stats_501")
           .select("*")
@@ -1873,7 +1875,6 @@
           .single();
 
         if (!ex) {
-          // Neuer Spieler
           await _supabase.from("stats_501").insert([
             {
               name: playerName,
@@ -1885,7 +1886,6 @@
             },
           ]);
         } else {
-          // Bestehender Spieler: Werte addieren
           let newHighFinish = isWin
             ? Math.max(ex.highest_finish || 0, finalFinish)
             : ex.highest_finish || 0;
@@ -1900,6 +1900,27 @@
             })
             .eq("name", playerName);
         }
+      }
+
+      async function save501MatchHistory(
+        playerName,
+        opponentName,
+        isWin,
+        matchAvg,
+        darts,
+        finish
+      ) {
+        if (playerName.includes("🤖") || playerName.includes("🔥")) return;
+        await _supabase.from("match_history_501").insert([
+          {
+            player_name: playerName,
+            opponent_name: opponentName,
+            is_win: isWin,
+            match_average: matchAvg,
+            darts_thrown: darts,
+            highest_finish: finish,
+          },
+        ]);
       }
 
       // STATS SWITCHING & LOADING
@@ -1979,9 +2000,10 @@
             avg = (entry.total_score_thrown / entry.total_darts_thrown) * 3;
           }
           const tr = document.createElement("tr");
-          tr.innerHTML = `<td style="color:#666">${rank}.</td><td style="font-weight:bold; color:white;">${
+          const safeData = encodeURIComponent(JSON.stringify(entry));
+          tr.innerHTML = `<td style="color:#666">${rank}.</td><td style="font-weight:bold;"><a href="#" class="clickable-name" style="color:white;" onclick="open501Stats('${safeData}')">${
             entry.name
-          }</td><td>${
+          }</a></td><td>${
             entry.wins
           }</td><td style="color:var(--accent-green)">${avg.toFixed(2)}</td>`;
           tbody.appendChild(tr);
@@ -1993,6 +2015,14 @@
       }
 
       function openProStats(encodedData) {
+        document.getElementById("lbl-kpi-1").innerText = "Siege";
+        document.getElementById("lbl-kpi-2").innerText = "Highscore";
+        document.getElementById("lbl-kpi-3").innerText = "Winrate";
+        document.getElementById("lbl-kpi-4").innerText = "Ø Score";
+        document.getElementById("lbl-kpi-5").innerText = "Secure Rate";
+        document.getElementById("lbl-kpi-6").innerText = "Double Rate";
+        document.querySelector(".modal-tab:nth-child(2)").style.display =
+          "block";
         const data = JSON.parse(decodeURIComponent(encodedData));
         currentModalPlayer = data.name;
         const m = document.getElementById("stats-modal");
@@ -2061,6 +2091,101 @@
             plugins: { legend: { display: false } },
           },
         });
+        switchModalTab("overview");
+        m.style.display = "flex";
+      }
+
+      async function open501Stats(encodedData) {
+        const data = JSON.parse(decodeURIComponent(encodedData));
+        currentModalPlayer = data.name;
+        const m = document.getElementById("stats-modal");
+        document.getElementById("modal-name").innerText = data.name + " (501)";
+
+        document.getElementById("lbl-kpi-1").innerText = "Siege";
+        document.getElementById("lbl-kpi-2").innerText = "Spiele";
+        document.getElementById("lbl-kpi-3").innerText = "Winrate";
+        document.getElementById("lbl-kpi-4").innerText = "Lifetime Avg";
+        document.getElementById("lbl-kpi-5").innerText = "High Finish";
+        document.getElementById("lbl-kpi-6").innerText = "Total Darts";
+
+        let gp = data.games_played || 0;
+        let lifetimeAvg =
+          data.total_darts_thrown > 0
+            ? ((data.total_score_thrown / data.total_darts_thrown) * 3).toFixed(
+                2
+              )
+            : "0.00";
+
+        document.getElementById("kpi-1").innerText = data.wins;
+        document.getElementById("kpi-2").innerText = gp;
+        document.getElementById("kpi-2").style.color = "white";
+        document.getElementById("kpi-3").innerText =
+          gp > 0 ? Math.round((data.wins / gp) * 100) + "%" : "0%";
+        document.getElementById("kpi-4").innerText = lifetimeAvg;
+        document.getElementById("kpi-5").innerText = data.highest_finish || 0;
+        document.getElementById("kpi-6").innerText =
+          data.total_darts_thrown || 0;
+        document.getElementById("kpi-6").style.color = "#aaa";
+
+        let { data: matchData } = await _supabase
+          .from("match_history_501")
+          .select("match_average, created_at")
+          .eq("player_name", data.name)
+          .order("created_at", { ascending: true })
+          .limit(10);
+
+        let chartLabels = [];
+        let chartAverages = [];
+
+        if (matchData && matchData.length > 0) {
+          matchData.forEach((m, index) => {
+            chartLabels.push(`Match ${index + 1}`);
+            chartAverages.push(m.match_average);
+          });
+        } else {
+          chartLabels = ["Keine Daten"];
+          chartAverages = [0];
+        }
+
+        if (statsChart) statsChart.destroy();
+        const ctx = document.getElementById("statsChart").getContext("2d");
+
+        statsChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: chartLabels,
+            datasets: [
+              {
+                label: "Match Average",
+                data: chartAverages,
+                borderColor: "rgba(41, 121, 255, 1)",
+                backgroundColor: "rgba(41, 121, 255, 0.2)",
+                borderWidth: 3,
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: "white",
+                pointRadius: 4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: { color: "#333" },
+                ticks: { color: "#aaa" },
+              },
+              x: { grid: { display: false }, ticks: { color: "#aaa" } },
+            },
+            plugins: { legend: { display: false } },
+          },
+        });
+
+        document.querySelector(".modal-tab:nth-child(2)").style.display =
+          "none";
+
         switchModalTab("overview");
         m.style.display = "flex";
       }
@@ -2748,7 +2873,6 @@
 
         let score = parseInt(current501Input);
 
-        // 1. Check: Generell unmögliche Würfe (z.B. 163)
         const impossibleScores = [163, 166, 169, 172, 173, 175, 176, 178, 179];
         if (impossibleScores.includes(score)) {
           alert(`Ein Score von ${score} ist nicht möglich!`);
@@ -2757,7 +2881,6 @@
           return;
         }
 
-        // Aktuelle Punkte ermitteln (bevor wir abziehen)
         let currentPoints = 0;
         if (isLocal501) {
           currentPoints = localCurrentTurn === 1 ? localP1Score : localP2Score;
@@ -2767,7 +2890,6 @@
             : parseInt(document.getElementById("p2-score").innerText);
         }
 
-        // 2. Check: Bogey-Finishes (Unmögliche Checkouts)
         const bogeyFinishes = [169, 168, 166, 165, 163, 162, 159];
         if (score === currentPoints && bogeyFinishes.includes(score)) {
           alert(
@@ -2797,7 +2919,6 @@
           if (localCurrentTurn === 1) localP1Score = newScore;
           else localP2Score = newScore;
 
-          // NEU: Darts hochzählen BEVOR das Spiel endet (Wir zählen pauschal 3 Darts pro Wurf)
           if (localCurrentTurn === 1) p1Darts501 += 3;
           else p2Darts501 += 3;
 
@@ -2808,7 +2929,6 @@
           if (newScore === 0) {
             let winner = localCurrentTurn === 1 ? localP1Name : localP2Name;
 
-            // --- NEU: STATS FÜR BEIDE LOKALEN SPIELER SPEICHERN ---
             save501Stats(
               localP1Name,
               localCurrentTurn === 1,
@@ -2824,6 +2944,24 @@
               localCurrentTurn === 2 ? score : 0
             );
 
+            let p1Avg = (((501 - localP1Score) / p1Darts501) * 3).toFixed(2);
+            let p2Avg = (((501 - localP2Score) / p2Darts501) * 3).toFixed(2);
+            save501MatchHistory(
+              localP1Name,
+              localP2Name,
+              localCurrentTurn === 1,
+              parseFloat(p1Avg),
+              p1Darts501,
+              localCurrentTurn === 1 ? score : 0
+            );
+            save501MatchHistory(
+              localP2Name,
+              localP1Name,
+              localCurrentTurn === 2,
+              parseFloat(p2Avg),
+              p2Darts501,
+              localCurrentTurn === 2 ? score : 0
+            );
             alert(`🎉 GAME SHOT!\n\n${winner} hat gewonnen!`);
             cancel501Game(true);
             return;
@@ -2844,7 +2982,6 @@
           }
           let isFinished = newScore === 0;
 
-          // NEU: Unsere eigenen Darts fürs Online-Spiel mitzählen
           if (amIPlayer1) p1Darts501 += 3;
           else p2Darts501 += 3;
           update501QoL(
@@ -2906,7 +3043,6 @@
                       ? dbData.player1_name
                       : dbData.player2_name;
 
-                  // --- NEU: EIGENE ONLINE STATS SPEICHERN ---
                   let amIWinner =
                     (dbData.player1_score === 0 && amIPlayer1) ||
                     (dbData.player2_score === 0 && !amIPlayer1);
@@ -2915,7 +3051,6 @@
                     : 501 - dbData.player2_score;
                   let myDarts = amIPlayer1 ? p1Darts501 : p2Darts501;
 
-                  // Checkout aus der "last_action" ziehen (z.B. "Score: 120")
                   let myFinish = 0;
                   if (amIWinner && dbData.last_action.includes("Score: ")) {
                     myFinish = parseInt(
@@ -2930,7 +3065,19 @@
                     myScoreThrown,
                     myFinish
                   );
-                  // ------------------------------------------
+
+                  let myAvg = ((myScoreThrown / myDarts) * 3).toFixed(2);
+                  let oppName = amIPlayer1
+                    ? dbData.player2_name
+                    : dbData.player1_name;
+                  await save501MatchHistory(
+                    myOnlineName,
+                    oppName,
+                    amIWinner,
+                    parseFloat(myAvg),
+                    myDarts,
+                    myFinish
+                  );
 
                   alert(`🎉 GAME SHOT!\n\n${winner} hat gewonnen!`);
                   cancel501Game(true, false);
@@ -2959,16 +3106,13 @@
           .subscribe();
       }
 
-      // Die Parameter sagen uns: Erzwingen wir den Abbruch? Und sollen wir es dem Gegner mitteilen?
       async function cancel501Game(force = false, broadcastToOpponent = true) {
         if (force || confirm("Spiel wirklich verlassen?")) {
-          // NEU: Dem Gegner das Abbruch-Signal senden (nur wenn online und wir aktiv abbrechen)
           if (!isLocal501 && currentRoomCode && broadcastToOpponent) {
             await _supabase
               .from("live_matches")
               .update({ status: "cancelled" })
               .eq("room_code", currentRoomCode);
-            // Raum danach aus der Datenbank löschen, damit es keinen Datenmüll gibt
             await _supabase
               .from("live_matches")
               .delete()
@@ -2987,7 +3131,6 @@
           document.getElementById("lobby-waiting").style.display = "none";
           document.getElementById("lobby-setup").style.display = "block";
 
-          // NEU: Fällt direkt ins Hauptmenü zurück
           goHome();
         }
       }
