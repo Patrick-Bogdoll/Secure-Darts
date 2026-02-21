@@ -2822,26 +2822,29 @@
       }
 
       function sync501UI(dbData) {
+        // 1. Namen und Scores direkt setzen
         document.getElementById("p1-name").innerText = dbData.player1_name;
         document.getElementById("p2-name").innerText = dbData.player2_name;
         document.getElementById("p1-score").innerText = dbData.player1_score;
         document.getElementById("p2-score").innerText = dbData.player2_score;
 
-        // Gegner-Stats synchronisieren
+        // 2. WICHTIG: Lokale Darts-Zähler mit DB-Werten synchronisieren
+        // Sonst rechnet dein lokaler AVG-Rechner mit veralteten Werten
+        p1Darts501 = dbData.player1_darts || 0;
+        p2Darts501 = dbData.player2_darts || 0;
+
+        // 3. AVG und Darts Anzeige aktualisieren
+        // Wir nutzen nun direkt die Werte aus der DB für die Anzeige
         document.getElementById("p1-avg").innerText = `Avg: ${
           dbData.player1_avg ? dbData.player1_avg.toFixed(2) : "0.00"
         }`;
         document.getElementById("p2-avg").innerText = `Avg: ${
           dbData.player2_avg ? dbData.player2_avg.toFixed(2) : "0.00"
         }`;
-        document.getElementById("p1-darts").innerText = `${
-          dbData.player1_darts || 0
-        } Darts`;
-        document.getElementById("p2-darts").innerText = `${
-          dbData.player2_darts || 0
-        } Darts`;
+        document.getElementById("p1-darts").innerText = `${p1Darts501} Darts`;
+        document.getElementById("p2-darts").innerText = `${p2Darts501} Darts`;
 
-        // Lokale Checkouts updaten
+        // 4. Checkout-Wege aktualisieren
         document.getElementById("p1-checkout").innerText = getCheckoutPath(
           dbData.player1_score
         );
@@ -2849,13 +2852,7 @@
           dbData.player2_score
         );
 
-        // Darts im Hintergrund abgleichen
-        if (amIPlayer1) {
-          p2Darts501 = dbData.player2_darts || 0;
-        } else {
-          p1Darts501 = dbData.player1_darts || 0;
-        }
-
+        // 5. Wer ist dran? Highlighting setzen
         if (dbData.current_turn === 1) {
           document.getElementById("p1-box").classList.remove("inactive");
           document.getElementById("p2-box").classList.add("inactive");
@@ -2868,7 +2865,7 @@
         current501Input = "";
         update501Display();
 
-        // Undo-Button für Online Matches (nur der, der geworfen hat, darf anfragen)
+        // 6. Undo-Button Logik
         const undoBtn = document.getElementById("btn-undo-501");
         if (!isLocal501) {
           undoBtn.style.display = !isMyTurn ? "block" : "none";
@@ -3088,7 +3085,7 @@
             .update(updatePayload)
             .eq("room_code", currentRoomCode);
         }
-      } // <--- DIESE KLAMMER HAT GEFEHLT! SIE SCHLIESST DIE submit501Score() FUNKTION AB.
+      }
 
       // ==========================================
       // --- ECHTZEIT-VERBINDUNG ---
