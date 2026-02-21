@@ -1803,21 +1803,19 @@
           .eq("name", name)
           .single();
         if (!ex) {
-          await _supabase
-            .from("highscores")
-            .insert([
-              {
-                name: name,
-                wins: isWin ? 1 : 0,
-                highscore: pObj.score,
-                games_played: 1,
-                total_points: pObj.score,
-                rounds_played: pObj.stats.rounds,
-                secure_count: pObj.stats.secures,
-                double_count: pObj.stats.doubles,
-                number_stats: pObj.stats.numberData,
-              },
-            ]);
+          await _supabase.from("highscores").insert([
+            {
+              name: name,
+              wins: isWin ? 1 : 0,
+              highscore: pObj.score,
+              games_played: 1,
+              total_points: pObj.score,
+              rounds_played: pObj.stats.rounds,
+              secure_count: pObj.stats.secures,
+              double_count: pObj.stats.doubles,
+              number_stats: pObj.stats.numberData,
+            },
+          ]);
         } else {
           let mStats = ex.number_stats || {};
           let cStats = pObj.stats.numberData;
@@ -1843,17 +1841,15 @@
       }
 
       async function saveMatchHistory(name, pObj, isWin) {
-        await _supabase
-          .from("match_history")
-          .insert([
-            {
-              player_name: name,
-              is_training: isTrainingMode,
-              is_win: isWin,
-              final_score: pObj.score,
-              match_details: pObj.matchLog,
-            },
-          ]);
+        await _supabase.from("match_history").insert([
+          {
+            player_name: name,
+            is_training: isTrainingMode,
+            is_win: isWin,
+            final_score: pObj.score,
+            match_details: pObj.matchLog,
+          },
+        ]);
       }
 
       // STATS SWITCHING & LOADING
@@ -2572,15 +2568,13 @@
           .substring(2, 6)
           .toUpperCase();
         amIPlayer1 = true;
-        const { error } = await _supabase
-          .from("live_matches")
-          .insert([
-            {
-              room_code: currentRoomCode,
-              player1_name: myOnlineName,
-              status: "waiting",
-            },
-          ]);
+        const { error } = await _supabase.from("live_matches").insert([
+          {
+            room_code: currentRoomCode,
+            player1_name: myOnlineName,
+            status: "waiting",
+          },
+        ]);
         if (error) return alert("Fehler:\n" + error.message);
         document.getElementById("lobby-setup").style.display = "none";
         document.getElementById("lobby-waiting").style.display = "block";
@@ -2635,47 +2629,8 @@
         document.getElementById("lobby-setup").style.display = "block";
         document.getElementById("lobby-waiting").style.display = "none";
         currentRoomCode = "";
-      }
 
-      function listenForOpponent(roomCode) {
-        if (realtimeSubscription) _supabase.removeChannel(realtimeSubscription);
-        realtimeSubscription = _supabase
-          .channel("online-match-channel")
-          .on(
-            "postgres_changes",
-            {
-              event: "UPDATE",
-              schema: "public",
-              table: "live_matches",
-              filter: `room_code=eq.${roomCode}`,
-            },
-            (payload) => {
-              const dbData = payload.new;
-              if (
-                dbData.status === "playing" &&
-                document.getElementById("game-501-screen").style.display ===
-                  "none"
-              ) {
-                document.getElementById("online-lobby-screen").style.display =
-                  "none";
-                document.getElementById("game-501-screen").style.display =
-                  "block";
-              }
-              if (dbData.status === "playing") sync501UI(dbData);
-              if (dbData.status === "finished") {
-                sync501UI(dbData);
-                setTimeout(() => {
-                  let winner =
-                    dbData.player1_score === 0
-                      ? dbData.player1_name
-                      : dbData.player2_name;
-                  alert(`🎉 GAME SHOT!\n\n${winner} hat gewonnen!`);
-                  cancel501Game(true);
-                }, 500);
-              }
-            }
-          )
-          .subscribe();
+        goHome();
       }
 
       function sync501UI(dbData) {
@@ -2809,14 +2764,100 @@
         }
       }
 
-      function cancel501Game(force = false) {
-        if (force || confirm("Spiel verlassen?")) {
+      function listenForOpponent(roomCode) {
+        if (realtimeSubscription) _supabase.removeChannel(realtimeSubscription);
+        realtimeSubscription = _supabase
+          .channel("online-match-channel")
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "live_matches",
+              filter: `room_code=eq.${roomCode}`,
+            },
+            (payload) => {
+              const dbData = payload.new;
+
+              if (
+                dbData.status === "playing" &&
+                document.getElementById("game-501-screen").style.display ===
+                  "none"
+              ) {
+                document.getElementById("online-lobby-screen").style.display =
+                  "none";
+                document.getElementById("game-501-screen").style.display =
+                  "block";
+              }
+
+              if (dbData.status === "playing") sync501UI(dbData);
+
+              if (dbData.status === "finished") {
+                sync501UI(dbData);
+                setTimeout(() => {
+                  let winner =
+                    dbData.player1_score === 0
+                      ? dbData.player1_name
+                      : dbData.player2_name;
+                  alert(`🎉 GAME SHOT!\n\n${winner} hat gewonnen!`);
+                  cancel501Game(true, false); // false = Kein Abbruch-Signal senden, da regulär beendet
+                }, 500);
+              }
+
+              // NEU: Wenn der Gegner auf "Spiel abbrechen" gedrückt hat
+              if (dbData.status === "cancelled") {
+                alert("⚠️ Dein Gegner hat das Spiel abgebrochen!");
+                cancel501Game(true, false); // Wirft dich raus, ohne nochmal an die DB zu senden
+              }
+            }
+          )
+          // NEU: Sicherheitsnetz, falls der Raum komplett gelöscht wird
+          .on(
+            "postgres_changes",
+            {
+              event: "DELETE",
+              schema: "public",
+              table: "live_matches",
+              filter: `room_code=eq.${roomCode}`,
+            },
+            (payload) => {
+              alert("⚠️ Der Raum wurde geschlossen!");
+              cancel501Game(true, false);
+            }
+          )
+          .subscribe();
+      }
+
+      // Die Parameter sagen uns: Erzwingen wir den Abbruch? Und sollen wir es dem Gegner mitteilen?
+      async function cancel501Game(force = false, broadcastToOpponent = true) {
+        if (force || confirm("Spiel wirklich verlassen?")) {
+          // NEU: Dem Gegner das Abbruch-Signal senden (nur wenn online und wir aktiv abbrechen)
+          if (!isLocal501 && currentRoomCode && broadcastToOpponent) {
+            await _supabase
+              .from("live_matches")
+              .update({ status: "cancelled" })
+              .eq("room_code", currentRoomCode);
+            // Raum danach aus der Datenbank löschen, damit es keinen Datenmüll gibt
+            await _supabase
+              .from("live_matches")
+              .delete()
+              .eq("room_code", currentRoomCode);
+          }
+
           isLocal501 = false;
-          if (realtimeSubscription)
+          currentRoomCode = "";
+
+          if (realtimeSubscription) {
             _supabase.removeChannel(realtimeSubscription);
+            realtimeSubscription = null;
+          }
+
           document.getElementById("game-501-screen").style.display = "none";
+          document.getElementById("lobby-waiting").style.display = "none";
           document.getElementById("lobby-setup").style.display = "block";
-          showScreen("online-lobby");
+
+          // NEU: Fällt direkt ins Hauptmenü zurück
+          goHome();
         }
       }
     </script>
