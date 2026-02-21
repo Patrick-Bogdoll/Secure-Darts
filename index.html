@@ -1852,6 +1852,56 @@
         ]);
       }
 
+      // ==========================================
+      // --- 501 STATS SPEICHERN ---
+      // ==========================================
+      async function save501Stats(
+        playerName,
+        isWin,
+        matchDarts,
+        matchScore,
+        finalFinish
+      ) {
+        // Bots ignorieren wir in den Leaderboards
+        if (playerName.includes("🤖") || playerName.includes("🔥")) return;
+
+        // Prüfen, ob der Spieler schon existiert
+        let { data: ex } = await _supabase
+          .from("stats_501")
+          .select("*")
+          .eq("name", playerName)
+          .single();
+
+        if (!ex) {
+          // Neuer Spieler
+          await _supabase.from("stats_501").insert([
+            {
+              name: playerName,
+              wins: isWin ? 1 : 0,
+              games_played: 1,
+              total_darts_thrown: matchDarts,
+              total_score_thrown: matchScore,
+              highest_finish: isWin ? finalFinish : 0,
+            },
+          ]);
+        } else {
+          // Bestehender Spieler: Werte addieren
+          let newHighFinish = isWin
+            ? Math.max(ex.highest_finish || 0, finalFinish)
+            : ex.highest_finish || 0;
+          await _supabase
+            .from("stats_501")
+            .update({
+              wins: (ex.wins || 0) + (isWin ? 1 : 0),
+              games_played: (ex.games_played || 0) + 1,
+              total_darts_thrown: (ex.total_darts_thrown || 0) + matchDarts,
+              total_score_thrown: (ex.total_score_thrown || 0) + matchScore,
+              highest_finish: newHighFinish,
+            })
+            .eq("name", playerName);
+        }
+      }
+
       // STATS SWITCHING & LOADING
       function switchStatsMode(mode) {
         currentStatsMode = mode;
@@ -2695,10 +2745,34 @@
         if (!isLocal501 && !isMyTurn)
           return alert("Warte, dein Gegner ist gerade am Zug!");
         if (current501Input === "") return;
+
         let score = parseInt(current501Input);
+
+        // 1. Check: Generell unmögliche Würfe (z.B. 163)
         const impossibleScores = [163, 166, 169, 172, 173, 175, 176, 178, 179];
         if (impossibleScores.includes(score)) {
           alert(`Ein Score von ${score} ist nicht möglich!`);
+          current501Input = "";
+          update501Display();
+          return;
+        }
+
+        // Aktuelle Punkte ermitteln (bevor wir abziehen)
+        let currentPoints = 0;
+        if (isLocal501) {
+          currentPoints = localCurrentTurn === 1 ? localP1Score : localP2Score;
+        } else {
+          currentPoints = amIPlayer1
+            ? parseInt(document.getElementById("p1-score").innerText)
+            : parseInt(document.getElementById("p2-score").innerText);
+        }
+
+        // 2. Check: Bogey-Finishes (Unmögliche Checkouts)
+        const bogeyFinishes = [169, 168, 166, 165, 163, 162, 159];
+        if (score === currentPoints && bogeyFinishes.includes(score)) {
+          alert(
+            `Nice try! Aber ${score} ist eine Bogey-Zahl. Die kannst du unmöglich mit einem Doppel checken!`
+          );
           current501Input = "";
           update501Display();
           return;
@@ -2715,17 +2789,41 @@
           let currentPoints =
             localCurrentTurn === 1 ? localP1Score : localP2Score;
           let newScore = currentPoints - score;
+
           if (newScore < 0 || newScore === 1) {
             alert("💥 ÜBERWORFEN! (Bust)");
             newScore = currentPoints;
           }
           if (localCurrentTurn === 1) localP1Score = newScore;
           else localP2Score = newScore;
+
+          // NEU: Darts hochzählen BEVOR das Spiel endet (Wir zählen pauschal 3 Darts pro Wurf)
+          if (localCurrentTurn === 1) p1Darts501 += 3;
+          else p2Darts501 += 3;
+
           document.getElementById("p1-score").innerText = localP1Score;
           document.getElementById("p2-score").innerText = localP2Score;
+          update501QoL(localP1Score, localP2Score);
 
           if (newScore === 0) {
             let winner = localCurrentTurn === 1 ? localP1Name : localP2Name;
+
+            // --- NEU: STATS FÜR BEIDE LOKALEN SPIELER SPEICHERN ---
+            save501Stats(
+              localP1Name,
+              localCurrentTurn === 1,
+              p1Darts501,
+              501 - localP1Score,
+              localCurrentTurn === 1 ? score : 0
+            );
+            save501Stats(
+              localP2Name,
+              localCurrentTurn === 2,
+              p2Darts501,
+              501 - localP2Score,
+              localCurrentTurn === 2 ? score : 0
+            );
+
             alert(`🎉 GAME SHOT!\n\n${winner} hat gewonnen!`);
             cancel501Game(true);
             return;
@@ -2733,9 +2831,6 @@
 
           localCurrentTurn = localCurrentTurn === 1 ? 2 : 1;
           updateLocalTurnHighlight();
-          if (localCurrentTurn === 2) p1Darts501 += 3;
-          else p2Darts501 += 3;
-          update501QoL(localP1Score, localP2Score);
         } else {
           let currentPoints = amIPlayer1
             ? parseInt(document.getElementById("p1-score").innerText)
@@ -2748,6 +2843,19 @@
             isBust = true;
           }
           let isFinished = newScore === 0;
+
+          // NEU: Unsere eigenen Darts fürs Online-Spiel mitzählen
+          if (amIPlayer1) p1Darts501 += 3;
+          else p2Darts501 += 3;
+          update501QoL(
+            amIPlayer1
+              ? newScore
+              : parseInt(document.getElementById("p1-score").innerText),
+            amIPlayer1
+              ? parseInt(document.getElementById("p2-score").innerText)
+              : newScore
+          );
+
           isMyTurn = false;
           document.getElementById("input-display-501").innerText = "Sende...";
           let updatePayload = {
@@ -2778,7 +2886,6 @@
             },
             (payload) => {
               const dbData = payload.new;
-
               if (
                 dbData.status === "playing" &&
                 document.getElementById("game-501-screen").style.display ===
@@ -2789,29 +2896,53 @@
                 document.getElementById("game-501-screen").style.display =
                   "block";
               }
-
               if (dbData.status === "playing") sync501UI(dbData);
 
               if (dbData.status === "finished") {
                 sync501UI(dbData);
-                setTimeout(() => {
+                setTimeout(async () => {
                   let winner =
                     dbData.player1_score === 0
                       ? dbData.player1_name
                       : dbData.player2_name;
+
+                  // --- NEU: EIGENE ONLINE STATS SPEICHERN ---
+                  let amIWinner =
+                    (dbData.player1_score === 0 && amIPlayer1) ||
+                    (dbData.player2_score === 0 && !amIPlayer1);
+                  let myScoreThrown = amIPlayer1
+                    ? 501 - dbData.player1_score
+                    : 501 - dbData.player2_score;
+                  let myDarts = amIPlayer1 ? p1Darts501 : p2Darts501;
+
+                  // Checkout aus der "last_action" ziehen (z.B. "Score: 120")
+                  let myFinish = 0;
+                  if (amIWinner && dbData.last_action.includes("Score: ")) {
+                    myFinish = parseInt(
+                      dbData.last_action.replace("Score: ", "")
+                    );
+                  }
+
+                  await save501Stats(
+                    myOnlineName,
+                    amIWinner,
+                    myDarts,
+                    myScoreThrown,
+                    myFinish
+                  );
+                  // ------------------------------------------
+
                   alert(`🎉 GAME SHOT!\n\n${winner} hat gewonnen!`);
-                  cancel501Game(true, false); // false = Kein Abbruch-Signal senden, da regulär beendet
+                  cancel501Game(true, false);
                 }, 500);
               }
 
-              // NEU: Wenn der Gegner auf "Spiel abbrechen" gedrückt hat
               if (dbData.status === "cancelled") {
                 alert("⚠️ Dein Gegner hat das Spiel abgebrochen!");
-                cancel501Game(true, false); // Wirft dich raus, ohne nochmal an die DB zu senden
+                cancel501Game(true, false);
               }
             }
           )
-          // NEU: Sicherheitsnetz, falls der Raum komplett gelöscht wird
           .on(
             "postgres_changes",
             {
