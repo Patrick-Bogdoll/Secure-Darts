@@ -557,13 +557,126 @@
           box-shadow: 0 0 0 0 rgba(255, 23, 68, 0);
         }
       }
+      /* --- 501 UI STYLES --- */
+      .scoreboard-501 {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #222;
+        padding: 15px 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        border: 2px solid var(--accent-blue);
+      }
+      .score-box {
+        text-align: left;
+        transition: all 0.3s ease;
+      }
+      .score-box.inactive {
+        opacity: 0.4;
+        transform: scale(0.9);
+      }
+      .score-box.inactive .score-val {
+        color: #888;
+      }
+      .score-name {
+        color: #aaa;
+        font-size: 0.8em;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      .score-val {
+        font-size: 3.5em;
+        font-weight: 900;
+        color: white;
+        line-height: 1;
+      }
+      .score-avg {
+        color: var(--accent-green);
+        font-size: 0.8em;
+        margin-top: 5px;
+        font-weight: bold;
+      }
+
+      #input-display-501 {
+        font-size: 3em;
+        font-weight: bold;
+        color: var(--accent-green);
+        height: 60px;
+        background: #111;
+        border-radius: 8px;
+        border: 1px inset #333;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 15px;
+        letter-spacing: 2px;
+      }
+
+      /* Preset Buttons */
+      .preset-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+      .preset-btn {
+        background: #2a2a2a;
+        border: 1px solid #444;
+        color: #ccc;
+        font-size: 1.2em;
+        padding: 12px;
+        border-radius: 8px;
+        font-weight: bold;
+      }
+      .preset-btn:hover {
+        background: #333;
+        border-color: var(--accent-blue);
+        color: white;
+      }
+
+      /* Numpad */
+      .numpad-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      .num-btn {
+        background: #383838;
+        color: white;
+        font-size: 1.5em;
+        padding: 15px;
+        border-radius: 8px;
+        font-weight: bold;
+        border: none;
+      }
+      .num-btn:active {
+        background: #555;
+        transform: scale(0.95);
+      }
+      .action-del {
+        background: var(--accent-red);
+        color: white;
+      }
+      .action-ok {
+        background: var(--accent-green);
+        color: black;
+        font-weight: 900;
+      }
     </style>
   </head>
   <body>
     <h1 id="app-title">Schlag Den Littler</h1>
 
     <div class="nav-tabs">
-      <button class="nav-btn active" onclick="showScreen('game')">Game</button>
+      <button class="nav-btn active" onclick="showScreen('littler')">
+        Littler
+      </button>
+      <button class="nav-btn" onclick="showScreen('online-lobby')">
+        501 Online 🌍
+      </button>
       <button class="nav-btn" onclick="showScreen('highscores')">
         Pro Stats 📊
       </button>
@@ -604,6 +717,254 @@
           <span>Trainings-Modus (Separat speichern)</span>
         </label>
         <button class="primary" onclick="startGame()">START</button>
+      </div>
+
+      <div
+        id="online-lobby-screen"
+        style="display: none; text-align: center; width: 100%"
+      >
+        <h3 style="color: var(--accent-blue); margin-bottom: 25px">
+          🎯 501 Darts
+        </h3>
+
+        <div id="lobby-setup">
+          <div
+            style="
+              background: #222;
+              padding: 20px;
+              border-radius: 8px;
+              margin-bottom: 20px;
+              border: 1px solid #333;
+            "
+          >
+            <h4
+              style="
+                margin-top: 0;
+                color: var(--accent-green);
+                text-transform: uppercase;
+                letter-spacing: 1px;
+              "
+            >
+              Lokal (1 Gerät)
+            </h4>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px">
+              <input
+                type="text"
+                id="local-p1-name"
+                placeholder="Spieler 1"
+                style="
+                  flex: 1;
+                  padding: 12px;
+                  border-radius: 8px;
+                  border: none;
+                  background: #111;
+                  color: white;
+                  text-align: center;
+                "
+              />
+              <input
+                type="text"
+                id="local-p2-name"
+                placeholder="Spieler 2"
+                style="
+                  flex: 1;
+                  padding: 12px;
+                  border-radius: 8px;
+                  border: none;
+                  background: #111;
+                  color: white;
+                  text-align: center;
+                "
+              />
+            </div>
+            <button
+              class="primary"
+              style="margin-top: 0; width: 100%"
+              onclick="startLocal501Game()"
+            >
+              Lokales Spiel Starten
+            </button>
+          </div>
+
+          <div style="color: #666; font-weight: bold; margin-bottom: 20px">
+            --- ODER ONLINE ---
+          </div>
+
+          <input
+            type="text"
+            id="online-player-name"
+            placeholder="Dein Online-Name..."
+            style="
+              width: 100%;
+              box-sizing: border-box;
+              margin-bottom: 15px;
+              text-align: center;
+              padding: 15px;
+              border-radius: 8px;
+              border: none;
+              background: #333;
+              color: white;
+              font-size: 1.1em;
+            "
+          />
+
+          <div style="display: flex; gap: 10px">
+            <div
+              style="
+                background: #222;
+                padding: 15px;
+                border-radius: 8px;
+                flex: 1;
+                border: 1px solid #333;
+              "
+            >
+              <h4 style="margin-top: 0; color: #aaa; font-size: 0.9em">
+                Raum Hosten
+              </h4>
+              <button
+                class="primary"
+                style="
+                  background: var(--accent-blue);
+                  width: 100%;
+                  padding: 10px;
+                  margin-top: 5px;
+                "
+                onclick="hostOnlineGame()"
+              >
+                Erstellen
+              </button>
+            </div>
+
+            <div
+              style="
+                background: #222;
+                padding: 15px;
+                border-radius: 8px;
+                flex: 1;
+                border: 1px solid #333;
+              "
+            >
+              <h4 style="margin-top: 0; color: #aaa; font-size: 0.9em">
+                Beitreten
+              </h4>
+              <input
+                type="text"
+                id="join-room-code"
+                placeholder="Code (X7B9)"
+                style="
+                  width: 100%;
+                  box-sizing: border-box;
+                  margin-bottom: 10px;
+                  text-align: center;
+                  text-transform: uppercase;
+                  padding: 10px;
+                  border-radius: 8px;
+                  border: none;
+                  background: #111;
+                  color: var(--accent-green);
+                  font-weight: bold;
+                "
+              />
+              <button
+                class="primary"
+                style="width: 100%; padding: 10px; margin-top: 0"
+                onclick="joinOnlineGame()"
+              >
+                Join
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          id="lobby-waiting"
+          style="
+            display: none;
+            padding: 30px 20px;
+            background: #222;
+            border-radius: 8px;
+            border: 2px dashed var(--accent-blue);
+          "
+        >
+          <h3 style="margin-top: 0; color: white">Warte auf Gegner... ⏳</h3>
+          <p style="color: #aaa">Dein Raumcode lautet:</p>
+          <div
+            style="
+              font-size: 4em;
+              letter-spacing: 8px;
+              color: var(--accent-green);
+              font-weight: 900;
+              margin: 20px 0;
+              text-shadow: 0 0 15px rgba(0, 230, 118, 0.3);
+            "
+            id="display-room-code"
+          >
+            ----
+          </div>
+          <p style="color: #888; font-size: 0.9em">
+            Teile diesen Code mit deinem Mitspieler.
+          </p>
+          <button
+            class="reset"
+            style="margin-top: 25px"
+            onclick="cancelLobby()"
+          >
+            Abbrechen
+          </button>
+        </div>
+      </div>
+
+      <div id="game-501-screen" style="display: none; width: 100%">
+        <div class="scoreboard-501">
+          <div id="p1-box" class="score-box">
+            <div id="p1-name" class="score-name">Spieler 1</div>
+            <div id="p1-score" class="score-val">501</div>
+            <div id="p1-avg" class="score-avg">Avg: 0.00</div>
+          </div>
+          <div id="p2-box" class="score-box inactive" style="text-align: right">
+            <div id="p2-name" class="score-name">Spieler 2</div>
+            <div id="p2-score" class="score-val">501</div>
+            <div id="p2-avg" class="score-avg">Avg: 0.00</div>
+          </div>
+        </div>
+
+        <div id="input-display-501"></div>
+
+        <div class="preset-grid">
+          <button class="preset-btn" onclick="set501Input('26')">26</button>
+          <button class="preset-btn" onclick="set501Input('41')">41</button>
+          <button class="preset-btn" onclick="set501Input('45')">45</button>
+          <button class="preset-btn" onclick="set501Input('60')">60</button>
+          <button class="preset-btn" onclick="set501Input('81')">81</button>
+          <button class="preset-btn" onclick="set501Input('100')">100</button>
+        </div>
+
+        <div class="numpad-grid">
+          <button class="num-btn" onclick="append501Input('1')">1</button>
+          <button class="num-btn" onclick="append501Input('2')">2</button>
+          <button class="num-btn" onclick="append501Input('3')">3</button>
+          <button class="num-btn" onclick="append501Input('4')">4</button>
+          <button class="num-btn" onclick="append501Input('5')">5</button>
+          <button class="num-btn" onclick="append501Input('6')">6</button>
+          <button class="num-btn" onclick="append501Input('7')">7</button>
+          <button class="num-btn" onclick="append501Input('8')">8</button>
+          <button class="num-btn" onclick="append501Input('9')">9</button>
+          <button class="num-btn action-del" onclick="delete501Input()">
+            ⌫
+          </button>
+          <button class="num-btn" onclick="append501Input('0')">0</button>
+          <button class="num-btn action-ok" onclick="submit501Score()">
+            OK
+          </button>
+        </div>
+
+        <button
+          class="undo-btn"
+          style="margin-top: 20px"
+          onclick="cancel501Game()"
+        >
+          🚪 Spiel abbrechen
+        </button>
       </div>
 
       <div id="game-screen" style="display: none">
@@ -726,22 +1087,50 @@
       </div>
 
       <div id="highscore-screen" style="display: none">
+        <div
+          style="
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+          "
+        >
+          <button
+            class="nav-btn active"
+            id="btn-stats-littler"
+            onclick="switchStatsMode('littler')"
+            style="background: var(--accent-blue); color: white"
+          >
+            🎯 Littler Stats
+          </button>
+          <button
+            class="nav-btn"
+            id="btn-stats-501"
+            onclick="switchStatsMode('501')"
+            style="background: #333; color: #aaa"
+          >
+            🌍 501 Stats
+          </button>
+        </div>
+
         <div style="text-align: right; margin-bottom: 10px">
           <label style="color: #888; font-size: 0.9em; cursor: pointer"
             ><input
               type="checkbox"
               id="chk-show-bots"
-              onchange="loadHighscores()"
+              onchange="loadCurrentStats()"
             />
             🤖 Bots anzeigen</label
           >
         </div>
+
         <div id="loading-spinner" style="text-align: center; padding: 20px">
           Lade Daten...
         </div>
+
         <table id="lifetime-table">
           <thead>
-            <tr>
+            <tr id="stats-table-header">
               <th>#</th>
               <th>Name</th>
               <th>Siege</th>
@@ -753,7 +1142,7 @@
         <button
           class="primary"
           style="background: #333; margin-top: 20px"
-          onclick="loadHighscores()"
+          onclick="loadCurrentStats()"
         >
           Refresh
         </button>
@@ -918,6 +1307,7 @@
       let currentModalPlayer = "";
       let gameHistoryStack = [];
       let botTimer = null;
+      let currentStatsMode = "littler";
 
       let currentRawScore = 0;
       let secureMultiplier = 0;
@@ -1510,21 +1900,30 @@
         document.getElementById("game-screen").style.display = "none";
         document.getElementById("highscore-screen").style.display = "none";
         document.getElementById("rules-screen").style.display = "none";
+        document.getElementById("online-lobby-screen").style.display = "none"; // NEU
+        document.getElementById("game-501-screen").style.display = "none";
         document
           .querySelectorAll(".nav-btn")
           .forEach((b) => b.classList.remove("active"));
-        if (screen === "game") {
+
+        if (screen === "littler") {
           document.querySelectorAll(".nav-btn")[0].classList.add("active");
           if (players.length > 0)
             document.getElementById("game-screen").style.display = "block";
           else document.getElementById("setup-screen").style.display = "block";
-        } else if (screen === "highscores") {
+        } else if (screen === "online-lobby") {
           document.querySelectorAll(".nav-btn")[1].classList.add("active");
-          document.getElementById("highscore-screen").style.display = "block";
-          loadHighscores();
-        } else if (screen === "rules") {
+          document.getElementById("online-lobby-screen").style.display =
+            "block";
+        } else if (screen === "highscores") {
           document.querySelectorAll(".nav-btn")[2].classList.add("active");
+          document.getElementById("highscore-screen").style.display = "block";
+          loadCurrentStats();
+        } else if (screen === "rules") {
+          document.querySelectorAll(".nav-btn")[3].classList.add("active");
           document.getElementById("rules-screen").style.display = "block";
+        } else if (screen === "game-501") {
+          document.getElementById("game-501-screen").style.display = "block";
         }
       }
       function updateUI() {
@@ -1826,6 +2225,328 @@
             cmd.includes("null")
           )
             addSecure(0);
+        }
+      }
+      // ==========================================
+      // --- 501 LOGIC (LOKAL & ONLINE) ---
+      // ==========================================
+
+      let myOnlineName = "";
+      let currentRoomCode = "";
+      let realtimeSubscription = null;
+      let amIPlayer1 = false;
+      let isMyTurn = false;
+      let current501Input = "";
+
+      // Lokale State Variablen
+      let isLocal501 = false;
+      let localP1Name = "Spieler 1";
+      let localP2Name = "Spieler 2";
+      let localP1Score = 501;
+      let localP2Score = 501;
+      let localCurrentTurn = 1;
+
+      // --- LOKALES SPIEL STARTEN ---
+      function startLocal501Game() {
+        localP1Name =
+          document.getElementById("local-p1-name").value.trim() || "Spieler 1";
+        localP2Name =
+          document.getElementById("local-p2-name").value.trim() || "Spieler 2";
+
+        isLocal501 = true;
+        localP1Score = 501;
+        localP2Score = 501;
+        localCurrentTurn = 1;
+        isMyTurn = true; // Lokal ist das eigene Gerät immer "am Zug"
+
+        document.getElementById("p1-name").innerText = localP1Name;
+        document.getElementById("p2-name").innerText = localP2Name;
+        document.getElementById("p1-score").innerText = localP1Score;
+        document.getElementById("p2-score").innerText = localP2Score;
+
+        updateLocalTurnHighlight();
+
+        document.getElementById("online-lobby-screen").style.display = "none";
+        document.getElementById("game-501-screen").style.display = "block";
+      }
+
+      function updateLocalTurnHighlight() {
+        if (localCurrentTurn === 1) {
+          document.getElementById("p1-box").classList.remove("inactive");
+          document.getElementById("p2-box").classList.add("inactive");
+        } else {
+          document.getElementById("p2-box").classList.remove("inactive");
+          document.getElementById("p1-box").classList.add("inactive");
+        }
+        current501Input = "";
+        update501Display();
+      }
+
+      // --- ONLINE LOBBY LOGIK (Bleibt gleich) ---
+      async function hostOnlineGame() {
+        isLocal501 = false;
+        myOnlineName = document
+          .getElementById("online-player-name")
+          .value.trim();
+        if (!myOnlineName) return alert("Bitte gib deinen Namen ein!");
+        currentRoomCode = Math.random()
+          .toString(36)
+          .substring(2, 6)
+          .toUpperCase();
+        amIPlayer1 = true;
+
+        const { error } = await _supabase
+          .from("live_matches")
+          .insert([
+            {
+              room_code: currentRoomCode,
+              player1_name: myOnlineName,
+              status: "waiting",
+            },
+          ]);
+        if (error) return alert("Fehler:\n" + error.message);
+
+        document.getElementById("lobby-setup").style.display = "none";
+        document.getElementById("lobby-waiting").style.display = "block";
+        document.getElementById("display-room-code").innerText =
+          currentRoomCode;
+        listenForOpponent(currentRoomCode);
+      }
+
+      async function joinOnlineGame() {
+        isLocal501 = false;
+        myOnlineName = document
+          .getElementById("online-player-name")
+          .value.trim();
+        const codeInput = document
+          .getElementById("join-room-code")
+          .value.trim()
+          .toUpperCase();
+        if (!myOnlineName) return alert("Bitte gib deinen Namen ein!");
+        if (!codeInput) return alert("Bitte gib einen Raumcode ein!");
+
+        let { data: room, error } = await _supabase
+          .from("live_matches")
+          .select("*")
+          .eq("room_code", codeInput)
+          .single();
+        if (error || !room) return alert("Raum nicht gefunden!");
+        if (room.status !== "waiting") return alert("Das Spiel läuft bereits.");
+
+        amIPlayer1 = false;
+        currentRoomCode = codeInput;
+        await _supabase
+          .from("live_matches")
+          .update({
+            player2_name: myOnlineName,
+            status: "playing",
+            last_action: "Spiel gestartet!",
+          })
+          .eq("room_code", codeInput);
+        listenForOpponent(currentRoomCode);
+      }
+
+      async function cancelLobby() {
+        if (currentRoomCode)
+          await _supabase
+            .from("live_matches")
+            .delete()
+            .eq("room_code", currentRoomCode);
+        if (realtimeSubscription) _supabase.removeChannel(realtimeSubscription);
+        document.getElementById("lobby-setup").style.display = "block";
+        document.getElementById("lobby-waiting").style.display = "none";
+        currentRoomCode = "";
+      }
+
+      function listenForOpponent(roomCode) {
+        if (realtimeSubscription) _supabase.removeChannel(realtimeSubscription);
+        realtimeSubscription = _supabase
+          .channel("online-match-channel")
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "live_matches",
+              filter: `room_code=eq.${roomCode}`,
+            },
+            (payload) => {
+              const dbData = payload.new;
+              if (
+                dbData.status === "playing" &&
+                document.getElementById("game-501-screen").style.display ===
+                  "none"
+              ) {
+                document.getElementById("online-lobby-screen").style.display =
+                  "none";
+                document.getElementById("game-501-screen").style.display =
+                  "block";
+              }
+              if (dbData.status === "playing") sync501UI(dbData);
+              if (dbData.status === "finished") {
+                sync501UI(dbData);
+                setTimeout(() => {
+                  let winner =
+                    dbData.player1_score === 0
+                      ? dbData.player1_name
+                      : dbData.player2_name;
+                  alert(`🎉 GAME SHOT!\n\n${winner} hat gewonnen!`);
+                  cancel501Game(true);
+                }, 500);
+              }
+            }
+          )
+          .subscribe();
+      }
+
+      function sync501UI(dbData) {
+        document.getElementById("p1-name").innerText = dbData.player1_name;
+        document.getElementById("p2-name").innerText = dbData.player2_name;
+        document.getElementById("p1-score").innerText = dbData.player1_score;
+        document.getElementById("p2-score").innerText = dbData.player2_score;
+        if (dbData.current_turn === 1) {
+          document.getElementById("p1-box").classList.remove("inactive");
+          document.getElementById("p2-box").classList.add("inactive");
+          isMyTurn = amIPlayer1;
+        } else {
+          document.getElementById("p2-box").classList.remove("inactive");
+          document.getElementById("p1-box").classList.add("inactive");
+          isMyTurn = !amIPlayer1;
+        }
+        current501Input = "";
+        update501Display();
+      }
+
+      // --- NUMPAD INPUT ---
+      function append501Input(num) {
+        if (!isLocal501 && !isMyTurn) return;
+        if (current501Input.length >= 3) return;
+        current501Input += num;
+        if (parseInt(current501Input) > 180) current501Input = "180";
+        update501Display();
+      }
+
+      function set501Input(val) {
+        if (!isLocal501 && !isMyTurn) return;
+        current501Input = val;
+        update501Display();
+      }
+
+      function delete501Input() {
+        if (!isLocal501 && !isMyTurn) return;
+        current501Input = current501Input.slice(0, -1);
+        update501Display();
+      }
+
+      function update501Display() {
+        const display = document.getElementById("input-display-501");
+
+        if (!isLocal501 && !isMyTurn) {
+          display.innerText = "Gegner wirft...";
+          display.style.color = "#888";
+        } else if (current501Input === "") {
+          // Dynamische Anzeige, wer dran ist
+          let activeName = "Dein Wurf...";
+          if (isLocal501) {
+            activeName = localCurrentTurn === 1 ? localP1Name : localP2Name;
+            display.innerText = `${activeName} wirft...`;
+          } else {
+            display.innerText = activeName;
+          }
+          display.style.color = "var(--accent-blue)";
+        } else {
+          display.innerText = current501Input;
+          display.style.color = "white";
+        }
+      }
+
+      // --- SCORE ABSENDEN (Das "Herz") ---
+      async function submit501Score() {
+        if (!isLocal501 && !isMyTurn)
+          return alert("Warte, dein Gegner ist gerade am Zug!");
+        if (current501Input === "") return;
+
+        let score = parseInt(current501Input);
+        const impossibleScores = [163, 166, 169, 172, 173, 175, 176, 178, 179];
+        if (impossibleScores.includes(score)) {
+          alert(`Ein Score von ${score} ist nicht möglich!`);
+          current501Input = "";
+          update501Display();
+          return;
+        }
+
+        // ====== LOKALER MODUS ======
+        if (isLocal501) {
+          let currentPoints =
+            localCurrentTurn === 1 ? localP1Score : localP2Score;
+          let newScore = currentPoints - score;
+
+          if (newScore < 0 || newScore === 1) {
+            alert("💥 ÜBERWORFEN! (Bust)");
+            newScore = currentPoints;
+          }
+
+          if (localCurrentTurn === 1) localP1Score = newScore;
+          else localP2Score = newScore;
+
+          document.getElementById("p1-score").innerText = localP1Score;
+          document.getElementById("p2-score").innerText = localP2Score;
+
+          if (newScore === 0) {
+            let winner = localCurrentTurn === 1 ? localP1Name : localP2Name;
+            alert(`🎉 GAME SHOT!\n\n${winner} hat gewonnen!`);
+            cancel501Game(true);
+            return;
+          }
+
+          // Nächster Spieler ist dran
+          localCurrentTurn = localCurrentTurn === 1 ? 2 : 1;
+          updateLocalTurnHighlight();
+        }
+
+        // ====== ONLINE MODUS ======
+        else {
+          let currentPoints = amIPlayer1
+            ? parseInt(document.getElementById("p1-score").innerText)
+            : parseInt(document.getElementById("p2-score").innerText);
+          let newScore = currentPoints - score;
+          let isBust = false;
+
+          if (newScore < 0 || newScore === 1) {
+            alert("💥 ÜBERWORFEN! (Bust)");
+            newScore = currentPoints;
+            isBust = true;
+          }
+
+          let isFinished = newScore === 0;
+
+          isMyTurn = false;
+          document.getElementById("input-display-501").innerText = "Sende...";
+
+          let updatePayload = {
+            current_turn: amIPlayer1 ? 2 : 1,
+            last_action: isBust ? "Bust" : `Score: ${score}`,
+          };
+
+          if (amIPlayer1) updatePayload.player1_score = newScore;
+          else updatePayload.player2_score = newScore;
+          if (isFinished) updatePayload.status = "finished";
+
+          await _supabase
+            .from("live_matches")
+            .update(updatePayload)
+            .eq("room_code", currentRoomCode);
+        }
+      }
+
+      function cancel501Game(force = false) {
+        if (force || confirm("Spiel verlassen?")) {
+          isLocal501 = false;
+          if (realtimeSubscription)
+            _supabase.removeChannel(realtimeSubscription);
+          document.getElementById("game-501-screen").style.display = "none";
+          document.getElementById("lobby-setup").style.display = "block";
+          showScreen("online-lobby");
         }
       }
     </script>
