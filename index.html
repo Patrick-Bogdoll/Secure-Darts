@@ -1042,7 +1042,7 @@
         <button
           id="btn-undo-501"
           class="btn-undo-501"
-          onclick="undo501Turn()"
+          onclick="requestUndo()"
           style="display: none"
         >
           ↩️ Letzten Zug rückgängig
@@ -2615,7 +2615,7 @@
           128: "T18 T14 D16",
           127: "T20 T17 D8",
           126: "T19 T19 D6",
-          125: "Bull T17 D12",
+          125: "BULL T17 D12",
           124: "T20 T16 D8",
           123: "T19 T16 D9",
           122: "T18 T20 D4",
@@ -2658,7 +2658,7 @@
           85: "T15 D20",
           84: "T20 D12",
           83: "T17 D16",
-          82: "Bull D16",
+          82: "BULL D16",
           81: "T15 D18",
           80: "T20 D10",
           79: "T13 D20",
@@ -2674,19 +2674,32 @@
           69: "T15 D12",
           68: "T20 D4",
           67: "T17 D8",
-          66: "T10 D18",
+          66: "10 16 D20",
           65: "T19 D4",
-          64: "T16 D8",
+          64: "16 16 D16",
           63: "T13 D12",
-          62: "T10 D16",
+          62: "10 12 D20",
           61: "T15 D8",
           60: "20 D20",
+          59: "19 D20",
+          58: "18 D20",
+          57: "17 D20",
+          56: "16 D20",
+          55: "15 D20",
+          54: "14 D20",
+          53: "13 D20",
+          52: "12 D20",
+          51: "11 D20",
           50: "BULLSEYE",
-          40: "D20",
-          32: "D16",
-          24: "D12",
-          16: "D8",
-          8: "D4",
+          49: "9 D20",
+          48: "16 D16",
+          47: "15 D16",
+          46: "14 D16",
+          45: "13 D16",
+          44: "12 D16",
+          43: "3 D20",
+          42: "10 D16",
+          41: "9 D16",
         };
         if (checkouts[score]) return checkouts[score];
         if (score <= 40 && score % 2 === 0) return `D${score / 2}`;
@@ -2813,6 +2826,36 @@
         document.getElementById("p2-name").innerText = dbData.player2_name;
         document.getElementById("p1-score").innerText = dbData.player1_score;
         document.getElementById("p2-score").innerText = dbData.player2_score;
+
+        // Gegner-Stats synchronisieren
+        document.getElementById("p1-avg").innerText = `Avg: ${
+          dbData.player1_avg ? dbData.player1_avg.toFixed(2) : "0.00"
+        }`;
+        document.getElementById("p2-avg").innerText = `Avg: ${
+          dbData.player2_avg ? dbData.player2_avg.toFixed(2) : "0.00"
+        }`;
+        document.getElementById("p1-darts").innerText = `${
+          dbData.player1_darts || 0
+        } Darts`;
+        document.getElementById("p2-darts").innerText = `${
+          dbData.player2_darts || 0
+        } Darts`;
+
+        // Lokale Checkouts updaten
+        document.getElementById("p1-checkout").innerText = getCheckoutPath(
+          dbData.player1_score
+        );
+        document.getElementById("p2-checkout").innerText = getCheckoutPath(
+          dbData.player2_score
+        );
+
+        // Darts im Hintergrund abgleichen
+        if (amIPlayer1) {
+          p2Darts501 = dbData.player2_darts || 0;
+        } else {
+          p1Darts501 = dbData.player1_darts || 0;
+        }
+
         if (dbData.current_turn === 1) {
           document.getElementById("p1-box").classList.remove("inactive");
           document.getElementById("p2-box").classList.add("inactive");
@@ -2824,6 +2867,12 @@
         }
         current501Input = "";
         update501Display();
+
+        // Undo-Button für Online Matches (nur der, der geworfen hat, darf anfragen)
+        const undoBtn = document.getElementById("btn-undo-501");
+        if (!isLocal501) {
+          undoBtn.style.display = !isMyTurn ? "block" : "none";
+        }
       }
 
       function append501Input(num) {
@@ -2970,9 +3019,30 @@
           localCurrentTurn = localCurrentTurn === 1 ? 2 : 1;
           updateLocalTurnHighlight();
         } else {
+          // --- PREV STATE FÜR UNDO SPEICHERN ---
+          let prevState = {
+            player1_score: parseInt(
+              document.getElementById("p1-score").innerText
+            ),
+            player2_score: parseInt(
+              document.getElementById("p2-score").innerText
+            ),
+            player1_darts: p1Darts501,
+            player2_darts: p2Darts501,
+            player1_avg:
+              parseFloat(
+                document.getElementById("p1-avg").innerText.replace("Avg: ", "")
+              ) || 0,
+            player2_avg:
+              parseFloat(
+                document.getElementById("p2-avg").innerText.replace("Avg: ", "")
+              ) || 0,
+            current_turn: amIPlayer1 ? 1 : 2,
+          };
+
           let currentPoints = amIPlayer1
-            ? parseInt(document.getElementById("p1-score").innerText)
-            : parseInt(document.getElementById("p2-score").innerText);
+            ? prevState.player1_score
+            : prevState.player2_score;
           let newScore = currentPoints - score;
           let isBust = false;
           if (newScore < 0 || newScore === 1) {
@@ -2984,31 +3054,45 @@
 
           if (amIPlayer1) p1Darts501 += 3;
           else p2Darts501 += 3;
+          let myDarts = amIPlayer1 ? p1Darts501 : p2Darts501;
+          let myAvg = (((501 - newScore) / myDarts) * 3).toFixed(2);
+
           update501QoL(
-            amIPlayer1
-              ? newScore
-              : parseInt(document.getElementById("p1-score").innerText),
-            amIPlayer1
-              ? parseInt(document.getElementById("p2-score").innerText)
-              : newScore
+            amIPlayer1 ? newScore : prevState.player1_score,
+            amIPlayer1 ? prevState.player2_score : newScore
           );
 
           isMyTurn = false;
           document.getElementById("input-display-501").innerText = "Sende...";
+
           let updatePayload = {
             current_turn: amIPlayer1 ? 2 : 1,
             last_action: isBust ? "Bust" : `Score: ${score}`,
+            undo_requested: false, // Reset falls vorher angefragt
+            prev_state: prevState, // Den alten Zustand anhängen
           };
-          if (amIPlayer1) updatePayload.player1_score = newScore;
-          else updatePayload.player2_score = newScore;
+
+          if (amIPlayer1) {
+            updatePayload.player1_score = newScore;
+            updatePayload.player1_darts = myDarts;
+            updatePayload.player1_avg = parseFloat(myAvg);
+          } else {
+            updatePayload.player2_score = newScore;
+            updatePayload.player2_darts = myDarts;
+            updatePayload.player2_avg = parseFloat(myAvg);
+          }
+
           if (isFinished) updatePayload.status = "finished";
           await _supabase
             .from("live_matches")
             .update(updatePayload)
             .eq("room_code", currentRoomCode);
         }
-      }
+      } // <--- DIESE KLAMMER HAT GEFEHLT! SIE SCHLIESST DIE submit501Score() FUNKTION AB.
 
+      // ==========================================
+      // --- ECHTZEIT-VERBINDUNG ---
+      // ==========================================
       function listenForOpponent(roomCode) {
         if (realtimeSubscription) _supabase.removeChannel(realtimeSubscription);
         realtimeSubscription = _supabase
@@ -3088,6 +3172,32 @@
                 alert("⚠️ Dein Gegner hat das Spiel abgebrochen!");
                 cancel501Game(true, false);
               }
+
+              // NEU: Undo-Anfrage vom Gegner empfangen
+              if (dbData.undo_requested && isMyTurn) {
+                if (
+                  confirm(
+                    "Dein Gegner möchte seinen letzten Wurf rückgängig machen. Zulassen?"
+                  )
+                ) {
+                  if (dbData.prev_state) {
+                    let restore = dbData.prev_state;
+                    restore.undo_requested = false;
+                    restore.prev_state = null; // Verhindert doppeltes Undo
+                    restore.last_action = "Wurf storniert";
+                    _supabase
+                      .from("live_matches")
+                      .update(restore)
+                      .eq("room_code", currentRoomCode);
+                  }
+                } else {
+                  // Abgelehnt
+                  _supabase
+                    .from("live_matches")
+                    .update({ undo_requested: false })
+                    .eq("room_code", currentRoomCode);
+                }
+              }
             }
           )
           .on(
@@ -3134,6 +3244,46 @@
           goHome();
         }
       }
+
+      async function requestUndo() {
+        if (isLocal501) {
+          undo501Turn(); // Lokales Undo (wie bisher)
+        } else {
+          if (
+            confirm(
+              "Möchtest du beim Gegner anfragen, deinen letzten Wurf rückgängig zu machen?"
+            )
+          ) {
+            await _supabase
+              .from("live_matches")
+              .update({ undo_requested: true })
+              .eq("room_code", currentRoomCode);
+            alert("Anfrage gesendet. Warte auf Bestätigung...");
+          }
+        }
+      }
+
+      // --- GLOBALE TASTATUR-STEUERUNG FÜR 501 ---
+      document.addEventListener("keydown", function (event) {
+        // Nur auslösen, wenn wir im 501-Spiel sind
+        if (
+          document.getElementById("game-501-screen").style.display !== "block"
+        )
+          return;
+
+        // Verhindern, dass Tastenanschläge in Namens-Inputs etc. das Spiel triggern
+        if (document.activeElement.tagName === "INPUT") return;
+
+        if (event.key >= "0" && event.key <= "9") {
+          append501Input(event.key);
+        } else if (event.key === "Backspace") {
+          delete501Input();
+        } else if (event.key === "Enter") {
+          submit501Score();
+        } else if (event.key === "Escape") {
+          cancel501Game();
+        }
+      });
     </script>
   </body>
 </html>
