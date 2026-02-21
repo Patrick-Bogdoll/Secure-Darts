@@ -1026,10 +1026,74 @@
         </div>
       </div>
 
-      <div id="game-501-screen" style="display: none; width: 100%">
+      <div
+        id="game-501-screen"
+        style="display: none; width: 100%; position: relative"
+      >
+        <div
+          id="win-overlay-501"
+          class="bot-overlay"
+          style="display: none; z-index: 100; text-align: center"
+        >
+          <h2
+            id="win-title-501"
+            style="
+              font-size: 2.5em;
+              color: var(--accent-green);
+              text-transform: uppercase;
+              margin-bottom: 10px;
+            "
+          >
+            Game Shot!
+          </h2>
+          <div
+            id="win-subtitle-501"
+            style="color: white; font-size: 1.2em; margin-bottom: 30px"
+          >
+            Spieler gewinnt!
+          </div>
+          <button
+            id="btn-next-leg"
+            class="primary"
+            style="margin-bottom: 15px"
+            onclick="startNextLeg()"
+          >
+            Nächstes Leg starten
+          </button>
+          <button
+            id="btn-rematch"
+            class="primary"
+            style="
+              display: none;
+              background: var(--accent-blue);
+              margin-bottom: 15px;
+            "
+            onclick="triggerRematch()"
+          >
+            🔄 Neues Spiel (Rematch)
+          </button>
+          <button
+            class="undo-btn"
+            onclick="cancel501Game(true)"
+            style="width: auto"
+          >
+            🚪 Zum Hauptmenü
+          </button>
+        </div>
+
         <div class="scoreboard-501">
           <div id="p1-box" class="score-box">
             <div id="p1-name" class="score-name">Spieler 1</div>
+            <div
+              style="
+                color: var(--accent-blue);
+                font-size: 0.8em;
+                margin-bottom: 5px;
+                font-weight: bold;
+              "
+            >
+              Legs: <span id="p1-legs-display">0</span>
+            </div>
             <div id="p1-score" class="score-val">501</div>
             <div id="p1-avg" class="score-avg">Avg: 0.00</div>
             <div id="p1-darts" class="darts-count">0 Darts</div>
@@ -1040,6 +1104,16 @@
           </div>
           <div id="p2-box" class="score-box inactive" style="text-align: right">
             <div id="p2-name" class="score-name">Spieler 2</div>
+            <div
+              style="
+                color: var(--accent-blue);
+                font-size: 0.8em;
+                margin-bottom: 5px;
+                font-weight: bold;
+              "
+            >
+              Legs: <span id="p2-legs-display">0</span>
+            </div>
             <div id="p2-score" class="score-val">501</div>
             <div id="p2-avg" class="score-avg">Avg: 0.00</div>
             <div id="p2-darts" class="darts-count">0 Darts</div>
@@ -3065,6 +3139,9 @@
             current_turn: amIPlayer1 ? 1 : 2,
           };
 
+          let currentPoints = amIPlayer1
+            ? prevState.player1_score
+            : prevState.player2_score;
           let newScore = currentPoints - score;
           let isBust = false;
           let throwText = score.toString();
@@ -3107,16 +3184,14 @@
             updatePayload.player1_score = newScore;
             updatePayload.player1_darts = myDarts;
             updatePayload.player1_last_score = throwText;
-            updatePayload.player1_avg = parseFloat(
-              ((p1TotalScore / myDarts) * 3).toFixed(2)
-            );
+            updatePayload.player1_avg =
+              parseFloat(((p1TotalScore / myDarts) * 3).toFixed(2)) || 0.0;
           } else {
             updatePayload.player2_score = newScore;
             updatePayload.player2_darts = myDarts;
             updatePayload.player2_last_score = throwText;
-            updatePayload.player2_avg = parseFloat(
-              ((p2TotalScore / myDarts) * 3).toFixed(2)
-            );
+            updatePayload.player2_avg =
+              parseFloat(((p2TotalScore / myDarts) * 3).toFixed(2)) || 0.0;
           }
 
           if (isFinished) {
@@ -3133,7 +3208,10 @@
             updatePayload.player1_legs = p1LegsDB;
             updatePayload.player2_legs = p2LegsDB;
 
-            let neededLegs = Math.ceil(bestOfLegs / 2);
+            // SICHERHEIT: Garantiert, dass BestOf immer mindestens 1 ist, um NaN zu verhindern!
+            let safeBestOf = parseInt(bestOfLegs) || 3;
+            let neededLegs = Math.max(1, Math.ceil(safeBestOf / 2));
+
             if (p1LegsDB >= neededLegs || p2LegsDB >= neededLegs) {
               updatePayload.status = "match_won";
             } else {
@@ -3141,10 +3219,16 @@
             }
           }
 
-          await _supabase
+          // NEU: Fehler abfangen, falls Supabase das Update blockiert!
+          const { error: dbError } = await _supabase
             .from("live_matches")
             .update(updatePayload)
             .eq("room_code", currentRoomCode);
+          if (dbError) {
+            alert("Datenbank-Fehler beim Senden: " + dbError.message);
+            console.error(dbError);
+            document.getElementById("input-display-501").innerText = "Fehler!";
+          }
         }
       }
 
@@ -3222,6 +3306,7 @@
                       .eq("room_code", currentRoomCode);
                   };
 
+                  // --- EIGENE ONLINE STATS SPEICHERN ---
                   let amIWinner =
                     (dbData.player1_score === 0 && amIPlayer1) ||
                     (dbData.player2_score === 0 && !amIPlayer1);
@@ -3258,7 +3343,7 @@
                   btnNext.style.display = "inline-block";
                   btnRematch.style.display = "none";
                   btnNext.innerText = amIPlayer1
-                    ? "Nächstes Leg starten"
+                    ? "Nächstes Leg (5s...)"
                     : "Warte auf Host...";
                   btnNext.disabled = !amIPlayer1;
 
@@ -3279,6 +3364,18 @@
                       })
                       .eq("room_code", currentRoomCode);
                   };
+
+                  // NEU: Automatischer Start nach 5 Sekunden (Nur der Host darf den Befehl senden!)
+                  if (amIPlayer1) {
+                    setTimeout(() => {
+                      if (
+                        document.getElementById("win-overlay-501").style
+                          .display === "flex"
+                      ) {
+                        btnNext.click(); // Simuliert den Klick auf den Button
+                      }
+                    }, 5000);
+                  }
                 }
               }
 
@@ -3436,12 +3533,26 @@
         document.getElementById("win-subtitle-501").innerText = matchWon
           ? `${winnerName} gewinnt das Match!`
           : `${winnerName} gewinnt das Leg!`;
-        document.getElementById("btn-next-leg").style.display = matchWon
-          ? "none"
-          : "inline-block";
-        document.getElementById("btn-rematch").style.display = matchWon
-          ? "inline-block"
-          : "none";
+
+        const btnNext = document.getElementById("btn-next-leg");
+        const btnRematch = document.getElementById("btn-rematch");
+
+        if (matchWon) {
+          btnNext.style.display = "none";
+          btnRematch.style.display = "inline-block";
+        } else {
+          btnNext.style.display = "inline-block";
+          btnRematch.style.display = "none";
+          btnNext.innerText = "Nächstes Leg startet...";
+
+          setTimeout(() => {
+            // Nur ausführen, wenn das Overlay noch offen ist (falls man nicht schon manuell geklickt hat)
+            if (overlay.style.display === "flex" && isLocal501) {
+              startNextLeg();
+            }
+          }, 1500);
+        }
+
         overlay.style.display = "flex";
       }
 
