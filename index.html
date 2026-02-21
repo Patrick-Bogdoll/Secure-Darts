@@ -829,6 +829,41 @@
             >
               Lokal (1 Gerät)
             </h4>
+            <div
+              style="
+                background: #222;
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 20px;
+                border: 1px solid #333;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <label style="color: white; font-weight: bold"
+                >🎯 Best of (Legs):</label
+              >
+              <select
+                id="best-of-legs"
+                style="
+                  background: #111;
+                  color: var(--accent-green);
+                  border: 1px solid #444;
+                  padding: 8px 15px;
+                  border-radius: 5px;
+                  font-size: 1.1em;
+                  font-weight: bold;
+                "
+              >
+                <option value="1">1 Leg</option>
+                <option value="3" selected>3 Legs</option>
+                <option value="5">5 Legs</option>
+                <option value="7">7 Legs</option>
+                <option value="9">9 Legs</option>
+                <option value="11">11 Legs</option>
+              </select>
+            </div>
             <div style="display: flex; gap: 10px; margin-bottom: 15px">
               <input
                 type="text"
@@ -999,6 +1034,9 @@
             <div id="p1-avg" class="score-avg">Avg: 0.00</div>
             <div id="p1-darts" class="darts-count">0 Darts</div>
             <div id="p1-checkout" class="checkout-path"></div>
+            <div class="darts-count" style="margin-top: 5px; color: #bbb">
+              Letzter Wurf: <strong id="p1-last-throw">-</strong>
+            </div>
           </div>
           <div id="p2-box" class="score-box inactive" style="text-align: right">
             <div id="p2-name" class="score-name">Spieler 2</div>
@@ -1006,6 +1044,9 @@
             <div id="p2-avg" class="score-avg">Avg: 0.00</div>
             <div id="p2-darts" class="darts-count">0 Darts</div>
             <div id="p2-checkout" class="checkout-path"></div>
+            <div class="darts-count" style="margin-top: 5px; color: #bbb">
+              Letzter Wurf: <strong id="p2-last-throw">-</strong>
+            </div>
           </div>
         </div>
 
@@ -1408,10 +1449,7 @@
       let thrownSecure = 0;
       const MAX_DARTS = 3;
 
-      // ==========================================
-      // --- HAUPTMENÜ & NAVIGATION LOGIK ---
-      // ==========================================
-      let currentAppMode = ""; // 'littler' oder '501'
+      let currentAppMode = "";
 
       function goHome() {
         document.getElementById("main-nav").style.display = "none";
@@ -1428,7 +1466,6 @@
           let el = document.getElementById(s);
           if (el) el.style.display = "none";
         });
-
         document.getElementById("home-screen").style.display = "block";
         document.getElementById("app-title").innerText = "🎯 SECURE-DARTS";
         document.body.classList.remove("training-active");
@@ -1438,7 +1475,6 @@
         currentAppMode = mode;
         document.getElementById("home-screen").style.display = "none";
         document.getElementById("main-nav").style.display = "flex";
-
         if (mode === "501") {
           document.getElementById("tab-rules").style.display = "none";
           document.getElementById("app-title").innerText = "🌍 501 DARTS";
@@ -1446,7 +1482,6 @@
           document.getElementById("tab-rules").style.display = "block";
           document.getElementById("app-title").innerText = "🎯 SECURE-DARTS";
         }
-
         showScreen("play");
       }
 
@@ -1486,10 +1521,8 @@
         } else if (screenType === "stats") {
           document.getElementById("tab-stats").classList.add("active");
           document.getElementById("highscore-screen").style.display = "block";
-
           let toggle = document.getElementById("stats-toggle-container");
           if (toggle) toggle.style.display = "none";
-
           switchStatsMode(currentAppMode);
         } else if (screenType === "rules") {
           document.getElementById("tab-rules").classList.add("active");
@@ -1501,19 +1534,13 @@
         loadPlayerSuggestions();
         goHome();
       });
-
       async function requestWakeLock() {
         try {
           if ("wakeLock" in navigator)
             await navigator.wakeLock.request("screen");
-        } catch (err) {
-          console.log(err);
-        }
+        } catch (err) {}
       }
 
-      // ==========================================
-      // --- SETUP / LITTLER LOGIK ---
-      // ==========================================
       function addPlayer() {
         const input = document.getElementById("player-input");
         const name = input.value.trim();
@@ -1533,7 +1560,7 @@
       }
       function addBot() {
         let choice = prompt(
-          "Wähle Bot-Stärke:\n1 = Kneipen-Held (Leicht)\n2 = Liga-Spieler (Mittel)\n3 = THE LITTLER (Profi)"
+          "Wähle Bot-Stärke:\n1 = Kneipen-Held\n2 = Liga-Spieler\n3 = THE LITTLER"
         );
         let name = "Bot";
         let diff = 1;
@@ -1559,16 +1586,14 @@
           "player-list-setup"
         ).innerHTML += `<div style="background:#673ab7; padding:5px; margin:5px; display:inline-block; border-radius:5px;">${name}</div>`;
       }
-
       function startGame() {
         isTrainingMode = document.getElementById("chk-training").checked;
         if (players.length === 0)
-          return alert("Bitte füge mindestens einen Spieler hinzu!");
-        if (!isTrainingMode && players.length < 2) {
+          return alert("Bitte füge einen Spieler hinzu!");
+        if (!isTrainingMode && players.length < 2)
           return alert(
-            "⚠️ Ein gewertetes Spiel benötigt mindestens 2 Teilnehmer!\n\nFüge einen Freund oder einen Bot hinzu.\nFür Solo-Sessions: Aktiviere den 'Trainings-Modus'."
+            "⚠️ Ein gewertetes Spiel benötigt mindestens 2 Teilnehmer!"
           );
-        }
         if (isTrainingMode) {
           document.body.classList.add("training-active");
           document.getElementById("app-title").innerText = "🧪 TRAINING";
@@ -1583,7 +1608,6 @@
         resetTurnInputs();
         checkBotTurn();
       }
-
       function checkBotTurn() {
         const p = players[currentPlayerIndex];
         if (p.isBot) {
@@ -1603,13 +1627,11 @@
           updateUndoButtonVisibility();
         }
       }
-
       function cancelBotAndUndo() {
         if (botTimer) clearTimeout(botTimer);
         document.getElementById("bot-overlay").style.display = "none";
         undoLastTurn();
       }
-
       function playBot(bot) {
         const diff = bot.difficulty;
         const targetVal = targets[globalTargetIndex];
@@ -1660,7 +1682,6 @@
           botTimer = setTimeout(() => playBotSecure(bot), 1500);
         }
       }
-
       function playBotSecure(bot) {
         const diff = bot.difficulty;
         let tempMultiplier = 0;
@@ -1678,7 +1699,6 @@
             if (rnd < 0.3) secureType = 1;
             else if (rnd < 0.65) secureType = 2;
           }
-
           if (secureType === 1) {
             tempSecured = true;
             if (tempMultiplier === 0) tempMultiplier = 1;
@@ -1702,11 +1722,9 @@
         )} ${txt}`;
         botTimer = setTimeout(() => nextTurn(), 1500);
       }
-
       function pName(p) {
         return p.name.split(" ").slice(1).join(" ") || p.name;
       }
-
       function saveState() {
         const state = {
           players: JSON.parse(JSON.stringify(players)),
@@ -1716,7 +1734,6 @@
         gameHistoryStack.push(state);
         if (gameHistoryStack.length > 10) gameHistoryStack.shift();
       }
-
       function undoLastTurn() {
         if (gameHistoryStack.length === 0) return;
         const lastState = gameHistoryStack.pop();
@@ -1728,14 +1745,12 @@
         updateUndoButtonVisibility();
         if (players[currentPlayerIndex].isBot) checkBotTurn();
       }
-
       function updateUndoButtonVisibility() {
         const btn = document.getElementById("btn-undo");
-        if (gameHistoryStack.length === 0) {
-          btn.style.display = "none";
-          return;
-        }
-        if (players[currentPlayerIndex].isBot) {
+        if (
+          gameHistoryStack.length === 0 ||
+          players[currentPlayerIndex].isBot
+        ) {
           btn.style.display = "none";
           return;
         }
@@ -1747,7 +1762,6 @@
           btn.style.display = "block";
         }
       }
-
       async function nextTurn() {
         saveState();
         const p = players[currentPlayerIndex];
@@ -1760,7 +1774,6 @@
           p.stats.numberData[key] = { points: 0, count: 0 };
         p.stats.numberData[key].points += currentRawScore;
         p.stats.numberData[key].count += 1;
-
         let final = isSecured ? currentRawScore * secureMultiplier : 0;
         p.matchLog.push({
           target: tVal,
@@ -1769,7 +1782,6 @@
           multiplier: secureMultiplier,
           final_points: final,
         });
-
         if (isSecured) {
           if (globalTargetIndex < targets.length - 1) globalTargetIndex++;
           else {
@@ -1784,23 +1796,19 @@
         updateUI();
         checkBotTurn();
       }
-
       async function handleGameEnd() {
         const winner = players[currentPlayerIndex];
         document.getElementById("bot-overlay").style.display = "none";
         alert(`🏆 ${winner.name} hat gewonnen!`);
         for (let p of players) {
           let dbName = p.name;
-          if (!p.isBot && isTrainingMode) {
-            dbName = `${p.name} (Training)`;
-          }
+          if (!p.isBot && isTrainingMode) dbName = `${p.name} (Training)`;
           let isWin = p.name === winner.name;
           await saveProStats(dbName, p, isWin);
           await saveMatchHistory(dbName, p, isWin);
         }
         location.reload();
       }
-
       async function saveProStats(name, pObj, isWin) {
         let { data: ex } = await _supabase
           .from("highscores")
@@ -1844,7 +1852,6 @@
             .eq("name", name);
         }
       }
-
       async function saveMatchHistory(name, pObj, isWin) {
         await _supabase.from("match_history").insert([
           {
@@ -1858,7 +1865,7 @@
       }
 
       // ==========================================
-      // --- 501 STATS SPEICHERN ---
+      // --- 501 STATS LOGIK ---
       // ==========================================
       async function save501Stats(
         playerName,
@@ -1873,7 +1880,6 @@
           .select("*")
           .eq("name", playerName)
           .single();
-
         if (!ex) {
           await _supabase.from("stats_501").insert([
             {
@@ -1923,7 +1929,6 @@
         ]);
       }
 
-      // STATS SWITCHING & LOADING
       function switchStatsMode(mode) {
         currentStatsMode = mode;
         document.getElementById("btn-stats-littler").style.background =
@@ -1934,16 +1939,14 @@
           mode === "501" ? "var(--accent-blue)" : "#333";
         document.getElementById("btn-stats-501").style.color =
           mode === "501" ? "white" : "#aaa";
-        if (mode === "littler") {
+        if (mode === "littler")
           document.getElementById("stats-table-header").innerHTML =
             "<th>#</th><th>Name</th><th>Siege</th><th>Highscore</th>";
-        } else {
+        else
           document.getElementById("stats-table-header").innerHTML =
             "<th>#</th><th>Name</th><th>Siege</th><th>3-Dart-Avg</th>";
-        }
         loadCurrentStats();
       }
-
       function loadCurrentStats() {
         if (currentStatsMode === "littler") loadHighscores();
         else load501Stats();
@@ -1979,7 +1982,6 @@
           tbody.innerHTML =
             '<tr><td colspan="4" style="text-align:center; color:#666;">Keine Daten vorhanden.</td></tr>';
       }
-
       async function load501Stats() {
         const showBots = document.getElementById("chk-show-bots").checked;
         const tbody = document.querySelector("#lifetime-table tbody");
@@ -2094,20 +2096,17 @@
         switchModalTab("overview");
         m.style.display = "flex";
       }
-
       async function open501Stats(encodedData) {
         const data = JSON.parse(decodeURIComponent(encodedData));
         currentModalPlayer = data.name;
         const m = document.getElementById("stats-modal");
         document.getElementById("modal-name").innerText = data.name + " (501)";
-
         document.getElementById("lbl-kpi-1").innerText = "Siege";
         document.getElementById("lbl-kpi-2").innerText = "Spiele";
         document.getElementById("lbl-kpi-3").innerText = "Winrate";
         document.getElementById("lbl-kpi-4").innerText = "Lifetime Avg";
         document.getElementById("lbl-kpi-5").innerText = "High Finish";
         document.getElementById("lbl-kpi-6").innerText = "Total Darts";
-
         let gp = data.games_played || 0;
         let lifetimeAvg =
           data.total_darts_thrown > 0
@@ -2115,7 +2114,6 @@
                 2
               )
             : "0.00";
-
         document.getElementById("kpi-1").innerText = data.wins;
         document.getElementById("kpi-2").innerText = gp;
         document.getElementById("kpi-2").style.color = "white";
@@ -2126,17 +2124,14 @@
         document.getElementById("kpi-6").innerText =
           data.total_darts_thrown || 0;
         document.getElementById("kpi-6").style.color = "#aaa";
-
         let { data: matchData } = await _supabase
           .from("match_history_501")
           .select("match_average, created_at")
           .eq("player_name", data.name)
           .order("created_at", { ascending: true })
           .limit(10);
-
         let chartLabels = [];
         let chartAverages = [];
-
         if (matchData && matchData.length > 0) {
           matchData.forEach((m, index) => {
             chartLabels.push(`Match ${index + 1}`);
@@ -2146,10 +2141,8 @@
           chartLabels = ["Keine Daten"];
           chartAverages = [0];
         }
-
         if (statsChart) statsChart.destroy();
         const ctx = document.getElementById("statsChart").getContext("2d");
-
         statsChart = new Chart(ctx, {
           type: "line",
           data: {
@@ -2182,14 +2175,11 @@
             plugins: { legend: { display: false } },
           },
         });
-
         document.querySelector(".modal-tab:nth-child(2)").style.display =
           "none";
-
         switchModalTab("overview");
         m.style.display = "flex";
       }
-
       async function loadMatchHistory() {
         const container = document.getElementById("history-list");
         container.innerHTML = "Lade Daten...";
@@ -2255,12 +2245,10 @@
           loadMatchHistory();
         }
       }
-
       function closeStats(e) {
         if (e.target.id === "stats-modal" || e.target.className === "close-btn")
           document.getElementById("stats-modal").style.display = "none";
       }
-
       async function loadPlayerSuggestions() {
         let { data: playersDB, error } = await _supabase
           .from("highscores")
@@ -2290,7 +2278,6 @@
         updateLiveLeaderboard();
         updateUndoButtonVisibility();
       }
-
       function updateLiveLeaderboard() {
         const list = document.getElementById("live-leaderboard-list");
         list.innerHTML = "";
@@ -2342,7 +2329,6 @@
           updateTurnDisplay();
         }
       }
-
       function updateTurnDisplay() {
         document.getElementById("raw-score").innerText = currentRawScore;
         document.getElementById(
@@ -2416,7 +2402,6 @@
           "❌ Browser unterstützt keine Sprache";
         document.getElementById("mic-btn").disabled = true;
       }
-
       function toggleVoice() {
         if (!recognition) return;
         const btn = document.getElementById("mic-btn");
@@ -2432,7 +2417,6 @@
           btn.classList.add("mic-active");
         }
       }
-
       function processVoiceCommand(cmd) {
         if (
           cmd.includes("weiter") ||
@@ -2530,28 +2514,85 @@
       let localP1Score = 501;
       let localP2Score = 501;
       let localCurrentTurn = 1;
+      let bestOfLegs = 3;
+      let localP1Legs = 0;
+      let localP2Legs = 0;
+      let p1TotalScore = 0;
+      let p2TotalScore = 0;
+      let p1LastThrow = "-";
+      let p2LastThrow = "-";
+      let p1Darts501 = 0;
+      let p2Darts501 = 0;
+      let history501Stack = [];
 
       function startLocal501Game() {
+        bestOfLegs = parseInt(
+          document.getElementById("best-of-legs").value || 3
+        );
         localP1Name =
           document.getElementById("local-p1-name").value.trim() || "Spieler 1";
         localP2Name =
           document.getElementById("local-p2-name").value.trim() || "Spieler 2";
+        localP1Legs = 0;
+        localP2Legs = 0;
+        p1TotalScore = 0;
+        p2TotalScore = 0;
         p1Darts501 = 0;
         p2Darts501 = 0;
-        history501Stack = [];
-        update501QoL(501, 501);
+        p1LastThrow = "-";
+        p2LastThrow = "-";
         isLocal501 = true;
-        localP1Score = 501;
-        localP2Score = 501;
-        localCurrentTurn = 1;
-        isMyTurn = true;
-        document.getElementById("p1-name").innerText = localP1Name;
-        document.getElementById("p2-name").innerText = localP2Name;
-        document.getElementById("p1-score").innerText = localP1Score;
-        document.getElementById("p2-score").innerText = localP2Score;
-        updateLocalTurnHighlight();
         document.getElementById("online-lobby-screen").style.display = "none";
         document.getElementById("game-501-screen").style.display = "block";
+        resetLegLocal();
+      }
+
+      function resetLegLocal() {
+        localP1Score = 501;
+        localP2Score = 501;
+        history501Stack = [];
+        localCurrentTurn = (localP1Legs + localP2Legs) % 2 === 0 ? 1 : 2;
+        isMyTurn = true;
+        document.getElementById("win-overlay-501").style.display = "none";
+        document.getElementById("p1-name").innerText = localP1Name;
+        document.getElementById("p2-name").innerText = localP2Name;
+        updateLocalTurnHighlight();
+        update501QoL(localP1Score, localP2Score);
+      }
+
+      function update501QoL(p1Score, p2Score) {
+        let p1Avg =
+          p1Darts501 > 0
+            ? ((p1TotalScore / p1Darts501) * 3).toFixed(2)
+            : "0.00";
+        let p2Avg =
+          p2Darts501 > 0
+            ? ((p2TotalScore / p2Darts501) * 3).toFixed(2)
+            : "0.00";
+        document.getElementById("p1-avg").innerText = `Avg: ${p1Avg}`;
+        document.getElementById("p2-avg").innerText = `Avg: ${p2Avg}`;
+        document.getElementById("p1-darts").innerText = `${p1Darts501} Darts`;
+        document.getElementById("p2-darts").innerText = `${p2Darts501} Darts`;
+        document.getElementById("p1-checkout").innerText =
+          getCheckoutPath(p1Score);
+        document.getElementById("p2-checkout").innerText =
+          getCheckoutPath(p2Score);
+
+        if (document.getElementById("p1-legs-display"))
+          document.getElementById("p1-legs-display").innerText = localP1Legs;
+        if (document.getElementById("p2-legs-display"))
+          document.getElementById("p2-legs-display").innerText = localP2Legs;
+        if (document.getElementById("p1-last-throw"))
+          document.getElementById("p1-last-throw").innerText = p1LastThrow;
+        if (document.getElementById("p2-last-throw"))
+          document.getElementById("p2-last-throw").innerText = p2LastThrow;
+
+        const undoBtn = document.getElementById("btn-undo-501");
+        if (history501Stack.length > 0 && isLocal501) {
+          undoBtn.style.display = "block";
+        } else {
+          undoBtn.style.display = "none";
+        }
       }
 
       function updateLocalTurnHighlight() {
@@ -2566,9 +2607,6 @@
         update501Display();
       }
 
-      let p1Darts501 = 0;
-      let p2Darts501 = 0;
-      let history501Stack = [];
       function getCheckoutPath(score) {
         if (
           score > 170 ||
@@ -2706,31 +2744,6 @@
         return "";
       }
 
-      function update501QoL(p1Score, p2Score, p1Name, p2Name) {
-        let p1Avg =
-          p1Darts501 > 0
-            ? (((501 - p1Score) / p1Darts501) * 3).toFixed(2)
-            : "0.00";
-        let p2Avg =
-          p2Darts501 > 0
-            ? (((501 - p2Score) / p2Darts501) * 3).toFixed(2)
-            : "0.00";
-        document.getElementById("p1-avg").innerText = `Avg: ${p1Avg}`;
-        document.getElementById("p2-avg").innerText = `Avg: ${p2Avg}`;
-        document.getElementById("p1-darts").innerText = `${p1Darts501} Darts`;
-        document.getElementById("p2-darts").innerText = `${p2Darts501} Darts`;
-        document.getElementById("p1-checkout").innerText =
-          getCheckoutPath(p1Score);
-        document.getElementById("p2-checkout").innerText =
-          getCheckoutPath(p2Score);
-        const undoBtn = document.getElementById("btn-undo-501");
-        if (history501Stack.length > 0 && isLocal501) {
-          undoBtn.style.display = "block";
-        } else {
-          undoBtn.style.display = "none";
-        }
-      }
-
       function undo501Turn() {
         if (history501Stack.length === 0) return;
         const lastState = history501Stack.pop();
@@ -2739,6 +2752,12 @@
         p1Darts501 = lastState.p1Darts;
         p2Darts501 = lastState.p2Darts;
         localCurrentTurn = lastState.turn;
+
+        p1LastThrow = lastState.p1Last || "-";
+        p2LastThrow = lastState.p2Last || "-";
+        p1TotalScore = lastState.p1Total || 0;
+        p2TotalScore = lastState.p2Total || 0;
+
         document.getElementById("p1-score").innerText = localP1Score;
         document.getElementById("p2-score").innerText = localP2Score;
         updateLocalTurnHighlight();
@@ -2756,13 +2775,27 @@
           .substring(2, 6)
           .toUpperCase();
         amIPlayer1 = true;
+        bestOfLegs = parseInt(
+          document.getElementById("best-of-legs").value || 3
+        );
+        p1TotalScore = 0;
+        p2TotalScore = 0;
+        p1Darts501 = 0;
+        p2Darts501 = 0;
+
         const { error } = await _supabase.from("live_matches").insert([
           {
             room_code: currentRoomCode,
             player1_name: myOnlineName,
             status: "waiting",
+            best_of_legs: bestOfLegs,
+            player1_legs: 0,
+            player2_legs: 0,
+            player1_last_score: "-",
+            player2_last_score: "-",
           },
         ]);
+
         if (error) return alert("Fehler:\n" + error.message);
         document.getElementById("lobby-setup").style.display = "none";
         document.getElementById("lobby-waiting").style.display = "block";
@@ -2782,6 +2815,7 @@
           .toUpperCase();
         if (!myOnlineName) return alert("Bitte gib deinen Namen ein!");
         if (!codeInput) return alert("Bitte gib einen Raumcode ein!");
+
         let { data: room, error } = await _supabase
           .from("live_matches")
           .select("*")
@@ -2789,8 +2823,15 @@
           .single();
         if (error || !room) return alert("Raum nicht gefunden!");
         if (room.status !== "waiting") return alert("Das Spiel läuft bereits.");
+
         amIPlayer1 = false;
         currentRoomCode = codeInput;
+        bestOfLegs = room.best_of_legs || 3;
+        p1TotalScore = 0;
+        p2TotalScore = 0;
+        p1Darts501 = 0;
+        p2Darts501 = 0;
+
         await _supabase
           .from("live_matches")
           .update({
@@ -2817,24 +2858,26 @@
         document.getElementById("lobby-setup").style.display = "block";
         document.getElementById("lobby-waiting").style.display = "none";
         currentRoomCode = "";
-
         goHome();
       }
 
       function sync501UI(dbData) {
-        // 1. Namen und Scores direkt setzen
         document.getElementById("p1-name").innerText = dbData.player1_name;
         document.getElementById("p2-name").innerText = dbData.player2_name;
         document.getElementById("p1-score").innerText = dbData.player1_score;
         document.getElementById("p2-score").innerText = dbData.player2_score;
 
-        // 2. WICHTIG: Lokale Darts-Zähler mit DB-Werten synchronisieren
-        // Sonst rechnet dein lokaler AVG-Rechner mit veralteten Werten
         p1Darts501 = dbData.player1_darts || 0;
         p2Darts501 = dbData.player2_darts || 0;
 
-        // 3. AVG und Darts Anzeige aktualisieren
-        // Wir nutzen nun direkt die Werte aus der DB für die Anzeige
+        p1TotalScore = Math.round(((dbData.player1_avg || 0) / 3) * p1Darts501);
+        p2TotalScore = Math.round(((dbData.player2_avg || 0) / 3) * p2Darts501);
+
+        p1LastThrow = dbData.player1_last_score || "-";
+        p2LastThrow = dbData.player2_last_score || "-";
+        localP1Legs = dbData.player1_legs || 0;
+        localP2Legs = dbData.player2_legs || 0;
+
         document.getElementById("p1-avg").innerText = `Avg: ${
           dbData.player1_avg ? dbData.player1_avg.toFixed(2) : "0.00"
         }`;
@@ -2844,7 +2887,6 @@
         document.getElementById("p1-darts").innerText = `${p1Darts501} Darts`;
         document.getElementById("p2-darts").innerText = `${p2Darts501} Darts`;
 
-        // 4. Checkout-Wege aktualisieren
         document.getElementById("p1-checkout").innerText = getCheckoutPath(
           dbData.player1_score
         );
@@ -2852,7 +2894,19 @@
           dbData.player2_score
         );
 
-        // 5. Wer ist dran? Highlighting setzen
+        if (document.getElementById("p1-legs-display"))
+          document.getElementById("p1-legs-display").innerText =
+            dbData.player1_legs || 0;
+        if (document.getElementById("p2-legs-display"))
+          document.getElementById("p2-legs-display").innerText =
+            dbData.player2_legs || 0;
+        if (document.getElementById("p1-last-throw"))
+          document.getElementById("p1-last-throw").innerText =
+            dbData.player1_last_score || "-";
+        if (document.getElementById("p2-last-throw"))
+          document.getElementById("p2-last-throw").innerText =
+            dbData.player2_last_score || "-";
+
         if (dbData.current_turn === 1) {
           document.getElementById("p1-box").classList.remove("inactive");
           document.getElementById("p2-box").classList.add("inactive");
@@ -2865,7 +2919,6 @@
         current501Input = "";
         update501Display();
 
-        // 6. Undo-Button Logik
         const undoBtn = document.getElementById("btn-undo-501");
         if (!isLocal501) {
           undoBtn.style.display = !isMyTurn ? "block" : "none";
@@ -2879,19 +2932,16 @@
         if (parseInt(current501Input) > 180) current501Input = "180";
         update501Display();
       }
-
       function set501Input(val) {
         if (!isLocal501 && !isMyTurn) return;
         current501Input = val;
         update501Display();
       }
-
       function delete501Input() {
         if (!isLocal501 && !isMyTurn) return;
         current501Input = current501Input.slice(0, -1);
         update501Display();
       }
-
       function update501Display() {
         const display = document.getElementById("input-display-501");
         if (!isLocal501 && !isMyTurn) {
@@ -2953,70 +3003,48 @@
             p1Darts: p1Darts501,
             p2Darts: p2Darts501,
             turn: localCurrentTurn,
+            p1Last: p1LastThrow,
+            p2Last: p2LastThrow,
+            p1Total: p1TotalScore,
+            p2Total: p2TotalScore,
           });
-          let currentPoints =
-            localCurrentTurn === 1 ? localP1Score : localP2Score;
+
           let newScore = currentPoints - score;
+          let throwText = score.toString();
 
           if (newScore < 0 || newScore === 1) {
-            alert("💥 ÜBERWORFEN! (Bust)");
             newScore = currentPoints;
+            throwText = "Bust";
           }
-          if (localCurrentTurn === 1) localP1Score = newScore;
-          else localP2Score = newScore;
 
-          if (localCurrentTurn === 1) p1Darts501 += 3;
-          else p2Darts501 += 3;
+          if (localCurrentTurn === 1) {
+            localP1Score = newScore;
+            p1Darts501 += 3;
+            p1TotalScore += currentPoints - newScore;
+            p1LastThrow = throwText;
+          } else {
+            localP2Score = newScore;
+            p2Darts501 += 3;
+            p2TotalScore += currentPoints - newScore;
+            p2LastThrow = throwText;
+          }
 
           document.getElementById("p1-score").innerText = localP1Score;
           document.getElementById("p2-score").innerText = localP2Score;
           update501QoL(localP1Score, localP2Score);
 
           if (newScore === 0) {
-            let winner = localCurrentTurn === 1 ? localP1Name : localP2Name;
-
-            save501Stats(
-              localP1Name,
-              localCurrentTurn === 1,
-              p1Darts501,
-              501 - localP1Score,
-              localCurrentTurn === 1 ? score : 0
+            handleLegWinLocal(
+              localCurrentTurn === 1 ? localP1Name : localP2Name,
+              localCurrentTurn === 1 ? 1 : 2,
+              score
             );
-            save501Stats(
-              localP2Name,
-              localCurrentTurn === 2,
-              p2Darts501,
-              501 - localP2Score,
-              localCurrentTurn === 2 ? score : 0
-            );
-
-            let p1Avg = (((501 - localP1Score) / p1Darts501) * 3).toFixed(2);
-            let p2Avg = (((501 - localP2Score) / p2Darts501) * 3).toFixed(2);
-            save501MatchHistory(
-              localP1Name,
-              localP2Name,
-              localCurrentTurn === 1,
-              parseFloat(p1Avg),
-              p1Darts501,
-              localCurrentTurn === 1 ? score : 0
-            );
-            save501MatchHistory(
-              localP2Name,
-              localP1Name,
-              localCurrentTurn === 2,
-              parseFloat(p2Avg),
-              p2Darts501,
-              localCurrentTurn === 2 ? score : 0
-            );
-            alert(`🎉 GAME SHOT!\n\n${winner} hat gewonnen!`);
-            cancel501Game(true);
             return;
           }
 
           localCurrentTurn = localCurrentTurn === 1 ? 2 : 1;
           updateLocalTurnHighlight();
         } else {
-          // --- PREV STATE FÜR UNDO SPEICHERN ---
           let prevState = {
             player1_score: parseInt(
               document.getElementById("p1-score").innerText
@@ -3037,22 +3065,28 @@
             current_turn: amIPlayer1 ? 1 : 2,
           };
 
-          let currentPoints = amIPlayer1
-            ? prevState.player1_score
-            : prevState.player2_score;
           let newScore = currentPoints - score;
           let isBust = false;
+          let throwText = score.toString();
+
           if (newScore < 0 || newScore === 1) {
-            alert("💥 ÜBERWORFEN! (Bust)");
             newScore = currentPoints;
             isBust = true;
+            throwText = "Bust";
           }
+
           let isFinished = newScore === 0;
 
-          if (amIPlayer1) p1Darts501 += 3;
-          else p2Darts501 += 3;
+          if (amIPlayer1) {
+            p1Darts501 += 3;
+            p1TotalScore += currentPoints - newScore;
+            p1LastThrow = throwText;
+          } else {
+            p2Darts501 += 3;
+            p2TotalScore += currentPoints - newScore;
+            p2LastThrow = throwText;
+          }
           let myDarts = amIPlayer1 ? p1Darts501 : p2Darts501;
-          let myAvg = (((501 - newScore) / myDarts) * 3).toFixed(2);
 
           update501QoL(
             amIPlayer1 ? newScore : prevState.player1_score,
@@ -3065,21 +3099,48 @@
           let updatePayload = {
             current_turn: amIPlayer1 ? 2 : 1,
             last_action: isBust ? "Bust" : `Score: ${score}`,
-            undo_requested: false, // Reset falls vorher angefragt
-            prev_state: prevState, // Den alten Zustand anhängen
+            undo_requested: false,
+            prev_state: prevState,
           };
 
           if (amIPlayer1) {
             updatePayload.player1_score = newScore;
             updatePayload.player1_darts = myDarts;
-            updatePayload.player1_avg = parseFloat(myAvg);
+            updatePayload.player1_last_score = throwText;
+            updatePayload.player1_avg = parseFloat(
+              ((p1TotalScore / myDarts) * 3).toFixed(2)
+            );
           } else {
             updatePayload.player2_score = newScore;
             updatePayload.player2_darts = myDarts;
-            updatePayload.player2_avg = parseFloat(myAvg);
+            updatePayload.player2_last_score = throwText;
+            updatePayload.player2_avg = parseFloat(
+              ((p2TotalScore / myDarts) * 3).toFixed(2)
+            );
           }
 
-          if (isFinished) updatePayload.status = "finished";
+          if (isFinished) {
+            let p1LegsDB =
+              parseInt(document.getElementById("p1-legs-display").innerText) ||
+              0;
+            let p2LegsDB =
+              parseInt(document.getElementById("p2-legs-display").innerText) ||
+              0;
+
+            if (amIPlayer1) p1LegsDB++;
+            else p2LegsDB++;
+
+            updatePayload.player1_legs = p1LegsDB;
+            updatePayload.player2_legs = p2LegsDB;
+
+            let neededLegs = Math.ceil(bestOfLegs / 2);
+            if (p1LegsDB >= neededLegs || p2LegsDB >= neededLegs) {
+              updatePayload.status = "match_won";
+            } else {
+              updatePayload.status = "leg_won";
+            }
+          }
+
           await _supabase
             .from("live_matches")
             .update(updatePayload)
@@ -3087,9 +3148,6 @@
         }
       }
 
-      // ==========================================
-      // --- ECHTZEIT-VERBINDUNG ---
-      // ==========================================
       function listenForOpponent(roomCode) {
         if (realtimeSubscription) _supabase.removeChannel(realtimeSubscription);
         realtimeSubscription = _supabase
@@ -3104,6 +3162,7 @@
             },
             (payload) => {
               const dbData = payload.new;
+
               if (
                 dbData.status === "playing" &&
                 document.getElementById("game-501-screen").style.display ===
@@ -3114,44 +3173,80 @@
                 document.getElementById("game-501-screen").style.display =
                   "block";
               }
+
               if (dbData.status === "playing") sync501UI(dbData);
 
-              if (dbData.status === "finished") {
+              if (
+                dbData.status === "leg_won" ||
+                dbData.status === "match_won"
+              ) {
                 sync501UI(dbData);
-                setTimeout(async () => {
-                  let winner =
-                    dbData.player1_score === 0
-                      ? dbData.player1_name
-                      : dbData.player2_name;
+                document.getElementById("win-overlay-501").style.display =
+                  "flex";
+
+                let matchWon = dbData.status === "match_won";
+                let winnerName =
+                  dbData.player1_score === 0
+                    ? dbData.player1_name
+                    : dbData.player2_name;
+                document.getElementById("win-subtitle-501").innerText = matchWon
+                  ? `${winnerName} gewinnt das Match!`
+                  : `${winnerName} gewinnt das Leg!`;
+
+                let btnNext = document.getElementById("btn-next-leg");
+                let btnRematch = document.getElementById("btn-rematch");
+
+                if (matchWon) {
+                  btnNext.style.display = "none";
+                  btnRematch.style.display = "inline-block";
+                  btnRematch.innerText = amIPlayer1
+                    ? "🔄 Neues Spiel (Rematch)"
+                    : "Warte auf Host...";
+                  btnRematch.disabled = !amIPlayer1;
+
+                  btnRematch.onclick = async () => {
+                    await _supabase
+                      .from("live_matches")
+                      .update({
+                        status: "playing",
+                        player1_score: 501,
+                        player2_score: 501,
+                        player1_legs: 0,
+                        player2_legs: 0,
+                        player1_darts: 0,
+                        player2_darts: 0,
+                        player1_last_score: "-",
+                        player2_last_score: "-",
+                        current_turn: 1,
+                      })
+                      .eq("room_code", currentRoomCode);
+                  };
 
                   let amIWinner =
                     (dbData.player1_score === 0 && amIPlayer1) ||
                     (dbData.player2_score === 0 && !amIPlayer1);
-                  let myScoreThrown = amIPlayer1
-                    ? 501 - dbData.player1_score
-                    : 501 - dbData.player2_score;
+                  let myScoreThrown = amIPlayer1 ? p1TotalScore : p2TotalScore;
                   let myDarts = amIPlayer1 ? p1Darts501 : p2Darts501;
+                  let myFinish =
+                    amIWinner && dbData.last_action.includes("Score: ")
+                      ? parseInt(dbData.last_action.replace("Score: ", ""))
+                      : 0;
+                  let myAvg =
+                    myDarts > 0
+                      ? ((myScoreThrown / myDarts) * 3).toFixed(2)
+                      : "0.00";
 
-                  let myFinish = 0;
-                  if (amIWinner && dbData.last_action.includes("Score: ")) {
-                    myFinish = parseInt(
-                      dbData.last_action.replace("Score: ", "")
-                    );
-                  }
-
-                  await save501Stats(
+                  save501Stats(
                     myOnlineName,
                     amIWinner,
                     myDarts,
                     myScoreThrown,
                     myFinish
                   );
-
-                  let myAvg = ((myScoreThrown / myDarts) * 3).toFixed(2);
                   let oppName = amIPlayer1
                     ? dbData.player2_name
                     : dbData.player1_name;
-                  await save501MatchHistory(
+                  save501MatchHistory(
                     myOnlineName,
                     oppName,
                     amIWinner,
@@ -3159,10 +3254,48 @@
                     myDarts,
                     myFinish
                   );
+                } else {
+                  btnNext.style.display = "inline-block";
+                  btnRematch.style.display = "none";
+                  btnNext.innerText = amIPlayer1
+                    ? "Nächstes Leg starten"
+                    : "Warte auf Host...";
+                  btnNext.disabled = !amIPlayer1;
 
-                  alert(`🎉 GAME SHOT!\n\n${winner} hat gewonnen!`);
-                  cancel501Game(true, false);
-                }, 500);
+                  btnNext.onclick = async () => {
+                    let nextTurn =
+                      (dbData.player1_legs + dbData.player2_legs) % 2 === 0
+                        ? 1
+                        : 2;
+                    await _supabase
+                      .from("live_matches")
+                      .update({
+                        status: "playing",
+                        player1_score: 501,
+                        player2_score: 501,
+                        current_turn: nextTurn,
+                        player1_last_score: "-",
+                        player2_last_score: "-",
+                      })
+                      .eq("room_code", currentRoomCode);
+                  };
+                }
+              }
+
+              if (
+                dbData.status === "playing" &&
+                document.getElementById("win-overlay-501").style.display ===
+                  "flex"
+              ) {
+                document.getElementById("win-overlay-501").style.display =
+                  "none";
+                if (dbData.player1_legs === 0 && dbData.player2_legs === 0) {
+                  p1TotalScore = 0;
+                  p2TotalScore = 0;
+                  p1Darts501 = 0;
+                  p2Darts501 = 0;
+                }
+                sync501UI(dbData);
               }
 
               if (dbData.status === "cancelled") {
@@ -3170,7 +3303,6 @@
                 cancel501Game(true, false);
               }
 
-              // NEU: Undo-Anfrage vom Gegner empfangen
               if (dbData.undo_requested && isMyTurn) {
                 if (
                   confirm(
@@ -3180,7 +3312,7 @@
                   if (dbData.prev_state) {
                     let restore = dbData.prev_state;
                     restore.undo_requested = false;
-                    restore.prev_state = null; // Verhindert doppeltes Undo
+                    restore.prev_state = null;
                     restore.last_action = "Wurf storniert";
                     _supabase
                       .from("live_matches")
@@ -3188,7 +3320,6 @@
                       .eq("room_code", currentRoomCode);
                   }
                 } else {
-                  // Abgelehnt
                   _supabase
                     .from("live_matches")
                     .update({ undo_requested: false })
@@ -3225,26 +3356,22 @@
               .delete()
               .eq("room_code", currentRoomCode);
           }
-
           isLocal501 = false;
           currentRoomCode = "";
-
           if (realtimeSubscription) {
             _supabase.removeChannel(realtimeSubscription);
             realtimeSubscription = null;
           }
-
           document.getElementById("game-501-screen").style.display = "none";
           document.getElementById("lobby-waiting").style.display = "none";
           document.getElementById("lobby-setup").style.display = "block";
-
           goHome();
         }
       }
 
       async function requestUndo() {
         if (isLocal501) {
-          undo501Turn(); // Lokales Undo (wie bisher)
+          undo501Turn();
         } else {
           if (
             confirm(
@@ -3260,15 +3387,76 @@
         }
       }
 
-      // --- GLOBALE TASTATUR-STEUERUNG FÜR 501 ---
+      function handleLegWinLocal(winnerName, playerNum, finishScore) {
+        if (playerNum === 1) localP1Legs++;
+        else localP2Legs++;
+        update501QoL(localP1Score, localP2Score);
+
+        let matchWon = false;
+        const legsToWin = Math.ceil(bestOfLegs / 2);
+
+        if (localP1Legs >= legsToWin || localP2Legs >= legsToWin) {
+          matchWon = true;
+          save501Stats(
+            localP1Name,
+            playerNum === 1,
+            p1Darts501,
+            p1TotalScore,
+            playerNum === 1 ? finishScore : 0
+          );
+          save501Stats(
+            localP2Name,
+            playerNum === 2,
+            p2Darts501,
+            p2TotalScore,
+            playerNum === 2 ? finishScore : 0
+          );
+
+          let p1Avg = ((p1TotalScore / p1Darts501) * 3).toFixed(2);
+          let p2Avg = ((p2TotalScore / p2Darts501) * 3).toFixed(2);
+          save501MatchHistory(
+            localP1Name,
+            localP2Name,
+            playerNum === 1,
+            parseFloat(p1Avg),
+            p1Darts501,
+            playerNum === 1 ? finishScore : 0
+          );
+          save501MatchHistory(
+            localP2Name,
+            localP1Name,
+            playerNum === 2,
+            parseFloat(p2Avg),
+            p2Darts501,
+            playerNum === 2 ? finishScore : 0
+          );
+        }
+
+        const overlay = document.getElementById("win-overlay-501");
+        document.getElementById("win-subtitle-501").innerText = matchWon
+          ? `${winnerName} gewinnt das Match!`
+          : `${winnerName} gewinnt das Leg!`;
+        document.getElementById("btn-next-leg").style.display = matchWon
+          ? "none"
+          : "inline-block";
+        document.getElementById("btn-rematch").style.display = matchWon
+          ? "inline-block"
+          : "none";
+        overlay.style.display = "flex";
+      }
+
+      function startNextLeg() {
+        if (isLocal501) resetLegLocal();
+      }
+      function triggerRematch() {
+        if (isLocal501) startLocal501Game();
+      }
+
       document.addEventListener("keydown", function (event) {
-        // Nur auslösen, wenn wir im 501-Spiel sind
         if (
           document.getElementById("game-501-screen").style.display !== "block"
         )
           return;
-
-        // Verhindern, dass Tastenanschläge in Namens-Inputs etc. das Spiel triggern
         if (document.activeElement.tagName === "INPUT") return;
 
         if (event.key >= "0" && event.key <= "9") {
