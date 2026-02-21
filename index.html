@@ -665,25 +665,108 @@
         color: black;
         font-weight: 900;
       }
+      /* --- QoL 501 Ergänzungen --- */
+      .checkout-path {
+        color: var(--accent-purple);
+        font-size: 0.9em;
+        margin-top: 8px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        min-height: 1.2em; /* Verhindert das Springen der Box */
+      }
+      .darts-count {
+        color: #888;
+        font-size: 0.8em;
+        margin-top: 2px;
+      }
+      .btn-undo-501 {
+        background-color: #444;
+        color: #aaa;
+        width: 100%;
+        margin-top: 15px;
+        font-size: 0.9em;
+        padding: 12px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+      }
+      .btn-undo-501:hover {
+        background-color: #555;
+        color: white;
+      }
     </style>
   </head>
   <body>
-    <h1 id="app-title">Schlag Den Littler</h1>
+    <h1 id="app-title">Secure-Darts</h1>
 
-    <div class="nav-tabs">
-      <button class="nav-btn active" onclick="showScreen('littler')">
-        Littler
+    <div class="nav-tabs" id="main-nav" style="display: none">
+      <button class="nav-btn active" id="tab-play" onclick="showScreen('play')">
+        Spielen
       </button>
-      <button class="nav-btn" onclick="showScreen('online-lobby')">
-        501 Online 🌍
+      <button class="nav-btn" id="tab-stats" onclick="showScreen('stats')">
+        Stats
       </button>
-      <button class="nav-btn" onclick="showScreen('highscores')">
-        Pro Stats 📊
+      <button class="nav-btn" id="tab-rules" onclick="showScreen('rules')">
+        Regeln
       </button>
-      <button class="nav-btn" onclick="showScreen('rules')">Regeln 📜</button>
+      <button
+        class="nav-btn"
+        onclick="goHome()"
+        style="background: #444; margin-left: 10px"
+      >
+        🏠 Home
+      </button>
     </div>
 
     <div class="container" style="position: relative">
+      <div id="home-screen" style="text-align: center; padding: 20px 0">
+        <h2 style="color: #aaa; margin-bottom: 30px; font-weight: normal">
+          Wähle deinen Modus
+        </h2>
+        <button
+          class="primary"
+          style="
+            padding: 25px;
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            line-height: 1.4;
+          "
+          onclick="enterMode('littler')"
+        >
+          🎯 Secure-Darts<br />
+          <span
+            style="
+              font-size: 0.6em;
+              color: #222;
+              text-transform: none;
+              letter-spacing: 0;
+            "
+            >Taktik & Training</span
+          >
+        </button>
+        <button
+          class="primary"
+          style="
+            background: var(--accent-blue);
+            padding: 25px;
+            font-size: 1.3em;
+            line-height: 1.4;
+          "
+          onclick="enterMode('501')"
+        >
+          🌍 501 Classic<br />
+          <span
+            style="
+              font-size: 0.6em;
+              color: #fff;
+              text-transform: none;
+              letter-spacing: 0;
+            "
+            >Lokal & Online Multiplayer</span
+          >
+        </button>
+      </div>
+
       <div id="setup-screen">
         <h3 style="text-align: center; color: #888">Setup</h3>
         <div style="display: flex; gap: 10px; margin-bottom: 10px">
@@ -726,7 +809,6 @@
         <h3 style="color: var(--accent-blue); margin-bottom: 25px">
           🎯 501 Darts
         </h3>
-
         <div id="lobby-setup">
           <div
             style="
@@ -785,11 +867,9 @@
               Lokales Spiel Starten
             </button>
           </div>
-
           <div style="color: #666; font-weight: bold; margin-bottom: 20px">
             --- ODER ONLINE ---
           </div>
-
           <input
             type="text"
             id="online-player-name"
@@ -807,7 +887,6 @@
               font-size: 1.1em;
             "
           />
-
           <div style="display: flex; gap: 10px">
             <div
               style="
@@ -834,7 +913,6 @@
                 Erstellen
               </button>
             </div>
-
             <div
               style="
                 background: #222;
@@ -875,7 +953,6 @@
             </div>
           </div>
         </div>
-
         <div
           id="lobby-waiting"
           style="
@@ -920,11 +997,15 @@
             <div id="p1-name" class="score-name">Spieler 1</div>
             <div id="p1-score" class="score-val">501</div>
             <div id="p1-avg" class="score-avg">Avg: 0.00</div>
+            <div id="p1-darts" class="darts-count">0 Darts</div>
+            <div id="p1-checkout" class="checkout-path"></div>
           </div>
           <div id="p2-box" class="score-box inactive" style="text-align: right">
             <div id="p2-name" class="score-name">Spieler 2</div>
             <div id="p2-score" class="score-val">501</div>
             <div id="p2-avg" class="score-avg">Avg: 0.00</div>
+            <div id="p2-darts" class="darts-count">0 Darts</div>
+            <div id="p2-checkout" class="checkout-path"></div>
           </div>
         </div>
 
@@ -959,8 +1040,20 @@
         </div>
 
         <button
+          id="btn-undo-501"
+          class="btn-undo-501"
+          onclick="undo501Turn()"
+          style="display: none"
+        >
+          ↩️ Letzten Zug rückgängig
+        </button>
+        <button
           class="undo-btn"
-          style="margin-top: 20px"
+          style="
+            margin-top: 10px;
+            background: transparent;
+            border: 1px solid #444;
+          "
           onclick="cancel501Game()"
         >
           🚪 Spiel abbrechen
@@ -990,7 +1083,6 @@
             ✋ STOP / KORREKTUR
           </button>
         </div>
-
         <div class="info-panel">
           <span id="current-player-name">Spieler 1</span>
           <span
@@ -1070,7 +1162,6 @@
             Bestätigen ✅
           </button>
         </div>
-
         <button
           class="undo-btn"
           id="btn-undo"
@@ -1079,7 +1170,6 @@
         >
           ↩️ Letzten Zug rückgängig
         </button>
-
         <div class="live-leaderboard">
           <div class="live-title">Aktueller Spielstand</div>
           <div id="live-leaderboard-list"></div>
@@ -1088,6 +1178,7 @@
 
       <div id="highscore-screen" style="display: none">
         <div
+          id="stats-toggle-container"
           style="
             display: flex;
             justify-content: center;
@@ -1112,7 +1203,6 @@
             🌍 501 Stats
           </button>
         </div>
-
         <div style="text-align: right; margin-bottom: 10px">
           <label style="color: #888; font-size: 0.9em; cursor: pointer"
             ><input
@@ -1123,11 +1213,9 @@
             🤖 Bots anzeigen</label
           >
         </div>
-
         <div id="loading-spinner" style="text-align: center; padding: 20px">
           Lade Daten...
         </div>
-
         <table id="lifetime-table">
           <thead>
             <tr id="stats-table-header">
@@ -1201,7 +1289,6 @@
         </p>
       </div>
     </div>
-
     <a href="admin.html" class="admin-link">⚙️ Admin</a>
 
     <div id="stats-modal" class="modal-overlay" onclick="closeStats(event)">
@@ -1311,11 +1398,104 @@
 
       let currentRawScore = 0;
       let secureMultiplier = 0;
-      isSecured = false;
-      isDoubleHit = false;
+      let isSecured = false;
+      let isDoubleHit = false;
       let thrownScore = 0;
-      thrownSecure = 0;
+      let thrownSecure = 0;
       const MAX_DARTS = 3;
+
+      // ==========================================
+      // --- HAUPTMENÜ & NAVIGATION LOGIK ---
+      // ==========================================
+      let currentAppMode = ""; // 'littler' oder '501'
+
+      function goHome() {
+        document.getElementById("main-nav").style.display = "none";
+        const screens = [
+          "home-screen",
+          "setup-screen",
+          "game-screen",
+          "online-lobby-screen",
+          "game-501-screen",
+          "highscore-screen",
+          "rules-screen",
+        ];
+        screens.forEach((s) => {
+          let el = document.getElementById(s);
+          if (el) el.style.display = "none";
+        });
+
+        document.getElementById("home-screen").style.display = "block";
+        document.getElementById("app-title").innerText = "🎯 SECURE-DARTS";
+        document.body.classList.remove("training-active");
+      }
+
+      function enterMode(mode) {
+        currentAppMode = mode;
+        document.getElementById("home-screen").style.display = "none";
+        document.getElementById("main-nav").style.display = "flex";
+
+        if (mode === "501") {
+          document.getElementById("tab-rules").style.display = "none";
+          document.getElementById("app-title").innerText = "🌍 501 DARTS";
+        } else {
+          document.getElementById("tab-rules").style.display = "block";
+          document.getElementById("app-title").innerText = "🎯 SECURE-DARTS";
+        }
+
+        showScreen("play");
+      }
+
+      function showScreen(screenType) {
+        const screens = [
+          "setup-screen",
+          "game-screen",
+          "online-lobby-screen",
+          "game-501-screen",
+          "highscore-screen",
+          "rules-screen",
+        ];
+        screens.forEach((s) => {
+          let el = document.getElementById(s);
+          if (el) el.style.display = "none";
+        });
+        document
+          .querySelectorAll(".nav-btn")
+          .forEach((b) => b.classList.remove("active"));
+
+        if (screenType === "play") {
+          document.getElementById("tab-play").classList.add("active");
+          if (currentAppMode === "littler") {
+            if (players.length > 0)
+              document.getElementById("game-screen").style.display = "block";
+            else
+              document.getElementById("setup-screen").style.display = "block";
+          } else {
+            if (isLocal501 || currentRoomCode)
+              document.getElementById("game-501-screen").style.display =
+                "block";
+            else
+              document.getElementById("online-lobby-screen").style.display =
+                "block";
+          }
+        } else if (screenType === "stats") {
+          document.getElementById("tab-stats").classList.add("active");
+          document.getElementById("highscore-screen").style.display = "block";
+
+          let toggle = document.getElementById("stats-toggle-container");
+          if (toggle) toggle.style.display = "none";
+
+          switchStatsMode(currentAppMode);
+        } else if (screenType === "rules") {
+          document.getElementById("tab-rules").classList.add("active");
+          document.getElementById("rules-screen").style.display = "block";
+        }
+      }
+
+      window.addEventListener("DOMContentLoaded", (event) => {
+        loadPlayerSuggestions();
+        goHome();
+      });
 
       async function requestWakeLock() {
         try {
@@ -1326,6 +1506,9 @@
         }
       }
 
+      // ==========================================
+      // --- SETUP / LITTLER LOGIK ---
+      // ==========================================
       function addPlayer() {
         const input = document.getElementById("player-input");
         const name = input.value.trim();
@@ -1373,23 +1556,14 @@
       }
 
       function startGame() {
-        // 1. Erst prüfen, ob Training oder Ranked gewünscht ist
         isTrainingMode = document.getElementById("chk-training").checked;
-
-        // 2. Generelle Prüfung: Gibt es überhaupt Spieler?
-        if (players.length === 0) {
+        if (players.length === 0)
           return alert("Bitte füge mindestens einen Spieler hinzu!");
-        }
-
-        // 3. NEUE REGEL: Ranked Games brauchen Gegner!
-        // Wenn KEIN Training aktiv ist UND wir weniger als 2 Teilnehmer haben -> Blockieren
         if (!isTrainingMode && players.length < 2) {
           return alert(
             "⚠️ Ein gewertetes Spiel benötigt mindestens 2 Teilnehmer!\n\nFüge einen Freund oder einen Bot hinzu.\nFür Solo-Sessions: Aktiviere den 'Trainings-Modus'."
           );
         }
-
-        // --- Ab hier läuft der Start wie gewohnt ---
         if (isTrainingMode) {
           document.body.classList.add("training-active");
           document.getElementById("app-title").innerText = "🧪 TRAINING";
@@ -1398,15 +1572,13 @@
           document.getElementById("app-title").innerText =
             "🎯 Schlag den Littler";
         }
-
         requestWakeLock();
-        showScreen("game");
+        showScreen("play");
         updateUI();
         resetTurnInputs();
         checkBotTurn();
       }
 
-      // --- BOT LOGIC ---
       function checkBotTurn() {
         const p = players[currentPlayerIndex];
         if (p.isBot) {
@@ -1416,7 +1588,6 @@
             p
           )} zielt...`;
           document.getElementById("btn-undo").style.display = "none";
-
           if (botTimer) clearTimeout(botTimer);
           botTimer = setTimeout(() => {
             document.getElementById("bot-panic-btn").style.display = "none";
@@ -1472,7 +1643,6 @@
         currentRawScore = targetVal * botMultiplier;
         thrownScore = 3;
         updateTurnDisplay();
-
         if (currentRawScore === 0) {
           document.getElementById("bot-status-text").innerText = `${pName(
             bot
@@ -1503,6 +1673,7 @@
             if (rnd < 0.3) secureType = 1;
             else if (rnd < 0.65) secureType = 2;
           }
+
           if (secureType === 1) {
             tempSecured = true;
             if (tempMultiplier === 0) tempMultiplier = 1;
@@ -1531,7 +1702,6 @@
         return p.name.split(" ").slice(1).join(" ") || p.name;
       }
 
-      // --- UNDO SYSTEM ---
       function saveState() {
         const state = {
           players: JSON.parse(JSON.stringify(players)),
@@ -1551,31 +1721,21 @@
         resetTurnInputs();
         updateUI();
         updateUndoButtonVisibility();
-
-        // SOFTLOCK FIX: Wenn wir auf einem Bot landen (z.B. durch Panic Button), Bot neu starten!
-        if (players[currentPlayerIndex].isBot) {
-          checkBotTurn();
-        }
+        if (players[currentPlayerIndex].isBot) checkBotTurn();
       }
 
       function updateUndoButtonVisibility() {
         const btn = document.getElementById("btn-undo");
-        // 1. Kein Undo, wenn kein Verlauf da ist
         if (gameHistoryStack.length === 0) {
           btn.style.display = "none";
           return;
         }
-
-        // 2. Kein Undo, wenn der AKTUELLE Spieler ein Bot ist (dafür ist der Panic Button)
         if (players[currentPlayerIndex].isBot) {
           btn.style.display = "none";
           return;
         }
-
-        // 3. WICHTIG: Kein Undo, wenn der VORHERIGE Spieler (den wir zurücksetzen würden) ein Bot war!
         const lastState = gameHistoryStack[gameHistoryStack.length - 1];
         const previousPlayer = lastState.players[lastState.currentPlayerIndex];
-
         if (previousPlayer.isBot) {
           btn.style.display = "none";
         } else {
@@ -1583,9 +1743,8 @@
         }
       }
 
-      // --- GAMEPLAY CORE ---
       async function nextTurn() {
-        saveState(); // Backup erstellen
+        saveState();
         const p = players[currentPlayerIndex];
         p.stats.rounds++;
         if (isSecured) p.stats.secures++;
@@ -1624,31 +1783,19 @@
       async function handleGameEnd() {
         const winner = players[currentPlayerIndex];
         document.getElementById("bot-overlay").style.display = "none";
-
         alert(`🏆 ${winner.name} hat gewonnen!`);
-
         for (let p of players) {
-          // Datenbank-Namen bestimmen
           let dbName = p.name;
           if (!p.isBot && isTrainingMode) {
             dbName = `${p.name} (Training)`;
           }
-
-          // FEHLERBEHEBUNG HIER:
-          // Ein Sieg ist ein Sieg, egal ob Training oder Ranked.
-          // Die Trennung passiert ja schon durch den dbName oben.
           let isWin = p.name === winner.name;
-
-          // 1. Stats speichern
           await saveProStats(dbName, p, isWin);
-
-          // 2. Verlauf speichern
           await saveMatchHistory(dbName, p, isWin);
         }
         location.reload();
       }
 
-      // --- DATABASE & STATS ---
       async function saveProStats(name, pObj, isWin) {
         let { data: ex } = await _supabase
           .from("highscores")
@@ -1656,19 +1803,21 @@
           .eq("name", name)
           .single();
         if (!ex) {
-          await _supabase.from("highscores").insert([
-            {
-              name: name,
-              wins: isWin ? 1 : 0,
-              highscore: pObj.score,
-              games_played: 1,
-              total_points: pObj.score,
-              rounds_played: pObj.stats.rounds,
-              secure_count: pObj.stats.secures,
-              double_count: pObj.stats.doubles,
-              number_stats: pObj.stats.numberData,
-            },
-          ]);
+          await _supabase
+            .from("highscores")
+            .insert([
+              {
+                name: name,
+                wins: isWin ? 1 : 0,
+                highscore: pObj.score,
+                games_played: 1,
+                total_points: pObj.score,
+                rounds_played: pObj.stats.rounds,
+                secure_count: pObj.stats.secures,
+                double_count: pObj.stats.doubles,
+                number_stats: pObj.stats.numberData,
+              },
+            ]);
         } else {
           let mStats = ex.number_stats || {};
           let cStats = pObj.stats.numberData;
@@ -1692,17 +1841,47 @@
             .eq("name", name);
         }
       }
+
       async function saveMatchHistory(name, pObj, isWin) {
-        await _supabase.from("match_history").insert([
-          {
-            player_name: name,
-            is_training: isTrainingMode,
-            is_win: isWin,
-            final_score: pObj.score,
-            match_details: pObj.matchLog,
-          },
-        ]);
+        await _supabase
+          .from("match_history")
+          .insert([
+            {
+              player_name: name,
+              is_training: isTrainingMode,
+              is_win: isWin,
+              final_score: pObj.score,
+              match_details: pObj.matchLog,
+            },
+          ]);
       }
+
+      // STATS SWITCHING & LOADING
+      function switchStatsMode(mode) {
+        currentStatsMode = mode;
+        document.getElementById("btn-stats-littler").style.background =
+          mode === "littler" ? "var(--accent-blue)" : "#333";
+        document.getElementById("btn-stats-littler").style.color =
+          mode === "littler" ? "white" : "#aaa";
+        document.getElementById("btn-stats-501").style.background =
+          mode === "501" ? "var(--accent-blue)" : "#333";
+        document.getElementById("btn-stats-501").style.color =
+          mode === "501" ? "white" : "#aaa";
+        if (mode === "littler") {
+          document.getElementById("stats-table-header").innerHTML =
+            "<th>#</th><th>Name</th><th>Siege</th><th>Highscore</th>";
+        } else {
+          document.getElementById("stats-table-header").innerHTML =
+            "<th>#</th><th>Name</th><th>Siege</th><th>3-Dart-Avg</th>";
+        }
+        loadCurrentStats();
+      }
+
+      function loadCurrentStats() {
+        if (currentStatsMode === "littler") loadHighscores();
+        else load501Stats();
+      }
+
       async function loadHighscores() {
         const showBots = document.getElementById("chk-show-bots").checked;
         const tbody = document.querySelector("#lifetime-table tbody");
@@ -1733,6 +1912,40 @@
           tbody.innerHTML =
             '<tr><td colspan="4" style="text-align:center; color:#666;">Keine Daten vorhanden.</td></tr>';
       }
+
+      async function load501Stats() {
+        const showBots = document.getElementById("chk-show-bots").checked;
+        const tbody = document.querySelector("#lifetime-table tbody");
+        tbody.innerHTML = '<tr><td colspan="4">Lade 501 Daten...</td></tr>';
+        let { data: stats501, error } = await _supabase
+          .from("stats_501")
+          .select("*")
+          .order("wins", { ascending: false });
+        if (error) return;
+        tbody.innerHTML = "";
+        let rank = 1;
+        stats501.forEach((entry) => {
+          const isBotEntry =
+            entry.name.includes("🤖") || entry.name.includes("🔥");
+          if (isBotEntry && !showBots) return;
+          let avg = 0;
+          if (entry.total_darts_thrown > 0) {
+            avg = (entry.total_score_thrown / entry.total_darts_thrown) * 3;
+          }
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td style="color:#666">${rank}.</td><td style="font-weight:bold; color:white;">${
+            entry.name
+          }</td><td>${
+            entry.wins
+          }</td><td style="color:var(--accent-green)">${avg.toFixed(2)}</td>`;
+          tbody.appendChild(tr);
+          rank++;
+        });
+        if (rank === 1)
+          tbody.innerHTML =
+            '<tr><td colspan="4" style="text-align:center; color:#666;">Noch keine 501 Spiele absolviert.</td></tr>';
+      }
+
       function openProStats(encodedData) {
         const data = JSON.parse(decodeURIComponent(encodedData));
         currentModalPlayer = data.name;
@@ -1768,9 +1981,7 @@
           if (s && s.count > 0) return (s.points / s.count).toFixed(1);
           return 0;
         });
-        if (statsChart) {
-          statsChart.destroy();
-        }
+        if (statsChart) statsChart.destroy();
         const ctx = document.getElementById("statsChart").getContext("2d");
         statsChart = new Chart(ctx, {
           type: "bar",
@@ -1807,6 +2018,7 @@
         switchModalTab("overview");
         m.style.display = "flex";
       }
+
       async function loadMatchHistory() {
         const container = document.getElementById("history-list");
         container.innerHTML = "Lade Daten...";
@@ -1851,6 +2063,7 @@
           container.appendChild(div);
         });
       }
+
       function switchModalTab(tab) {
         document
           .querySelectorAll(".modal-tab")
@@ -1871,10 +2084,12 @@
           loadMatchHistory();
         }
       }
+
       function closeStats(e) {
         if (e.target.id === "stats-modal" || e.target.className === "close-btn")
           document.getElementById("stats-modal").style.display = "none";
       }
+
       async function loadPlayerSuggestions() {
         let { data: playersDB, error } = await _supabase
           .from("highscores")
@@ -1892,40 +2107,7 @@
           datalist.appendChild(option);
         });
       }
-      window.onload = function () {
-        loadPlayerSuggestions();
-      };
-      function showScreen(screen) {
-        document.getElementById("setup-screen").style.display = "none";
-        document.getElementById("game-screen").style.display = "none";
-        document.getElementById("highscore-screen").style.display = "none";
-        document.getElementById("rules-screen").style.display = "none";
-        document.getElementById("online-lobby-screen").style.display = "none"; // NEU
-        document.getElementById("game-501-screen").style.display = "none";
-        document
-          .querySelectorAll(".nav-btn")
-          .forEach((b) => b.classList.remove("active"));
 
-        if (screen === "littler") {
-          document.querySelectorAll(".nav-btn")[0].classList.add("active");
-          if (players.length > 0)
-            document.getElementById("game-screen").style.display = "block";
-          else document.getElementById("setup-screen").style.display = "block";
-        } else if (screen === "online-lobby") {
-          document.querySelectorAll(".nav-btn")[1].classList.add("active");
-          document.getElementById("online-lobby-screen").style.display =
-            "block";
-        } else if (screen === "highscores") {
-          document.querySelectorAll(".nav-btn")[2].classList.add("active");
-          document.getElementById("highscore-screen").style.display = "block";
-          loadCurrentStats();
-        } else if (screen === "rules") {
-          document.querySelectorAll(".nav-btn")[3].classList.add("active");
-          document.getElementById("rules-screen").style.display = "block";
-        } else if (screen === "game-501") {
-          document.getElementById("game-501-screen").style.display = "block";
-        }
-      }
       function updateUI() {
         const player = players[currentPlayerIndex];
         document.getElementById("current-player-name").innerText = player.name;
@@ -1937,6 +2119,7 @@
         updateLiveLeaderboard();
         updateUndoButtonVisibility();
       }
+
       function updateLiveLeaderboard() {
         const list = document.getElementById("live-leaderboard-list");
         list.innerHTML = "";
@@ -1952,6 +2135,7 @@
           list.appendChild(row);
         });
       }
+
       function resetTurnInputs() {
         currentRawScore = 0;
         secureMultiplier = 0;
@@ -1987,8 +2171,8 @@
           updateTurnDisplay();
         }
       }
+
       function updateTurnDisplay() {
-        // 1. Grundlegende Werte aktualisieren
         document.getElementById("raw-score").innerText = currentRawScore;
         document.getElementById(
           "score-darts-count"
@@ -1996,54 +2180,31 @@
         document.getElementById(
           "secure-darts-count"
         ).innerText = `${thrownSecure}/${MAX_DARTS}`;
-
-        // 2. Aktuelles Ziel ermitteln
-        const currentTarget = targets[globalTargetIndex]; // z.B. 25 oder 50
+        const currentTarget = targets[globalTargetIndex];
         const scoreButtons = document.getElementById("controls-score").children;
-
-        // 3. Logik für Phase 1 (Punkte werfen)
-        // Erstmal schauen: Habe ich überhaupt noch Darts?
         const noDartsLeft = thrownScore >= MAX_DARTS;
-
-        // Standard: Alle Buttons aktivieren oder deaktivieren (je nach Darts übrig)
         for (let btn of scoreButtons) {
           btn.disabled = noDartsLeft;
         }
-
-        // SPEZIAL-REGELN (Nur wenn man noch Darts hat)
         if (!noDartsLeft) {
-          // Button Indizes: 0=Miss, 1=Single, 2=Double, 3=Triple
-
           if (currentTarget === 25) {
-            // Bei 25 (Single Bull): Kein Triple möglich
             scoreButtons[3].disabled = true;
           } else if (currentTarget === 50) {
-            // Bei 50 (Bullseye): Kein Double und Kein Triple möglich
-            // (Da man direkt auf 50 wirft, ist das hier "Single 50")
-            scoreButtons[2].disabled = true; // Double aus
-            scoreButtons[3].disabled = true; // Triple aus
+            scoreButtons[2].disabled = true;
+            scoreButtons[3].disabled = true;
           }
         }
-
-        // 4. Logik für Phase 2 (Sichern)
-        // Nur aktiv, wenn Phase 1 vorbei ist (3 Darts geworfen) UND Score > 0 UND noch Secure-Darts übrig
         let allowSecure =
           thrownScore >= MAX_DARTS &&
           currentRawScore > 0 &&
           thrownSecure < MAX_DARTS;
-
         [...document.getElementById("controls-secure").children].forEach(
           (b) => (b.disabled = !allowSecure)
         );
-
-        // 5. Status Text
         let txt = isSecured ? `Gesichert (x${secureMultiplier})` : "Offen";
-
-        // Sonderfall: 0 Punkte geworfen
         if (thrownScore >= MAX_DARTS && currentRawScore === 0) {
           txt = "0 Punkte (Kein Sichern möglich)";
         }
-
         document.getElementById("secure-status").innerText = txt;
         document.getElementById("secure-status").style.color = isSecured
           ? "var(--accent-green)"
@@ -2052,36 +2213,10 @@
           ? currentRawScore * secureMultiplier
           : 0;
       }
-      function updateUndoButtonVisibility() {
-        const btn = document.getElementById("btn-undo");
-        // 1. Kein Undo wenn Historie leer
-        if (gameHistoryStack.length === 0) {
-          btn.style.display = "none";
-          return;
-        }
 
-        // 2. Kein Undo wenn aktueller Spieler Bot ist
-        if (players[currentPlayerIndex].isBot) {
-          btn.style.display = "none";
-          return;
-        }
-
-        // 3. Kein Undo, wenn der VORHERIGE Spieler ein Bot war (Verhindert das Löschen von Bot-Zügen)
-        const lastState = gameHistoryStack[gameHistoryStack.length - 1];
-        const previousPlayer = lastState.players[lastState.currentPlayerIndex];
-
-        if (previousPlayer.isBot) {
-          btn.style.display = "none";
-        } else {
-          btn.style.display = "block";
-        }
-      }
-
-      // --- SPRACHSTEUERUNG (VOICE CONTROL) ---
+      // --- SPRACHSTEUERUNG ---
       let recognition;
       let isVoiceActive = false;
-
-      // Initialisierung
       if (
         "webkitSpeechRecognition" in window ||
         "SpeechRecognition" in window
@@ -2089,24 +2224,19 @@
         const SpeechRecognition =
           window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
-        recognition.continuous = true; // Hört dauerhaft zu
-        recognition.lang = "de-DE"; // Deutsche Sprache
+        recognition.continuous = true;
+        recognition.lang = "de-DE";
         recognition.interimResults = false;
-
         recognition.onresult = function (event) {
           const last = event.results.length - 1;
           const command = event.results[last][0].transcript
             .trim()
             .toLowerCase();
-          console.log("Sprachbefehl erkannt:", command);
           processVoiceCommand(command);
         };
-
         recognition.onend = function () {
-          // Falls es von alleine ausgeht, aber noch aktiv sein soll -> Neustarten
           if (isVoiceActive) recognition.start();
         };
-
         recognition.onerror = function (event) {
           console.log("Sprach-Fehler:", event.error);
         };
@@ -2119,7 +2249,6 @@
       function toggleVoice() {
         if (!recognition) return;
         const btn = document.getElementById("mic-btn");
-
         if (isVoiceActive) {
           recognition.stop();
           isVoiceActive = false;
@@ -2134,10 +2263,6 @@
       }
 
       function processVoiceCommand(cmd) {
-        // Feedback Sound (optional)
-        // let audio = new Audio('path/to/beep.mp3'); audio.play();
-
-        // 1. BEFEHLE FÜR NAVIGATION
         if (
           cmd.includes("weiter") ||
           cmd.includes("bestätigen") ||
@@ -2164,13 +2289,8 @@
           undoLastTurn();
           return;
         }
-
-        // 2. SPIELPHASEN ERKENNUNG
-        // Wir schauen, ob wir noch Score-Darts (Phase 1) oder Secure-Darts (Phase 2) haben
         const isPhase1 = thrownScore < MAX_DARTS;
         const isPhase2 = !isPhase1 && thrownSecure < MAX_DARTS;
-
-        // --- PHASE 1: PUNKTE WERFEN ---
         if (isPhase1) {
           if (
             cmd.includes("single") ||
@@ -2198,12 +2318,8 @@
             cmd.includes("nichts")
           )
             addRawScore(0);
-        }
-        // --- PHASE 2: SICHERN ---
-        else if (isPhase2) {
-          // Sicherheitscheck: Darf man überhaupt sichern? (Score > 0)
+        } else if (isPhase2) {
           if (currentRawScore === 0) return;
-
           if (
             cmd.includes("single") ||
             cmd.includes("einfach") ||
@@ -2227,18 +2343,16 @@
             addSecure(0);
         }
       }
+
       // ==========================================
       // --- 501 LOGIC (LOKAL & ONLINE) ---
       // ==========================================
-
       let myOnlineName = "";
       let currentRoomCode = "";
       let realtimeSubscription = null;
       let amIPlayer1 = false;
       let isMyTurn = false;
       let current501Input = "";
-
-      // Lokale State Variablen
       let isLocal501 = false;
       let localP1Name = "Spieler 1";
       let localP2Name = "Spieler 2";
@@ -2246,26 +2360,25 @@
       let localP2Score = 501;
       let localCurrentTurn = 1;
 
-      // --- LOKALES SPIEL STARTEN ---
       function startLocal501Game() {
         localP1Name =
           document.getElementById("local-p1-name").value.trim() || "Spieler 1";
         localP2Name =
           document.getElementById("local-p2-name").value.trim() || "Spieler 2";
-
+        p1Darts501 = 0;
+        p2Darts501 = 0;
+        history501Stack = [];
+        update501QoL(501, 501);
         isLocal501 = true;
         localP1Score = 501;
         localP2Score = 501;
         localCurrentTurn = 1;
-        isMyTurn = true; // Lokal ist das eigene Gerät immer "am Zug"
-
+        isMyTurn = true;
         document.getElementById("p1-name").innerText = localP1Name;
         document.getElementById("p2-name").innerText = localP2Name;
         document.getElementById("p1-score").innerText = localP1Score;
         document.getElementById("p2-score").innerText = localP2Score;
-
         updateLocalTurnHighlight();
-
         document.getElementById("online-lobby-screen").style.display = "none";
         document.getElementById("game-501-screen").style.display = "block";
       }
@@ -2282,7 +2395,172 @@
         update501Display();
       }
 
-      // --- ONLINE LOBBY LOGIK (Bleibt gleich) ---
+      let p1Darts501 = 0;
+      let p2Darts501 = 0;
+      let history501Stack = [];
+      function getCheckoutPath(score) {
+        if (
+          score > 170 ||
+          score < 2 ||
+          [169, 168, 166, 165, 163, 162, 159].includes(score)
+        )
+          return "";
+        const checkouts = {
+          170: "T20 T20 BULL",
+          167: "T20 T19 BULL",
+          164: "T20 T18 BULL",
+          161: "T20 T17 BULL",
+          160: "T20 T20 D20",
+          158: "T20 T20 D19",
+          157: "T20 T19 D20",
+          156: "T20 T20 D18",
+          155: "T20 T19 D19",
+          154: "T20 T18 D20",
+          153: "T20 T19 D18",
+          152: "T20 T20 D16",
+          151: "T20 T17 D20",
+          150: "T20 T18 D18",
+          149: "T20 T19 D16",
+          148: "T20 T16 D20",
+          147: "T20 T17 D18",
+          146: "T20 T18 D16",
+          145: "T20 T15 D20",
+          144: "T20 T20 D12",
+          143: "T20 T17 D16",
+          142: "T20 T14 D20",
+          141: "T20 T15 D18",
+          140: "T20 T20 D10",
+          139: "T20 T13 D20",
+          138: "T20 T18 D12",
+          137: "T20 T15 D16",
+          136: "T20 T20 D8",
+          135: "T20 T17 D12",
+          134: "T20 T14 D16",
+          133: "T20 T19 D8",
+          132: "T20 T16 D12",
+          131: "T20 T13 D16",
+          130: "T20 T20 D5",
+          129: "T19 T16 D12",
+          128: "T18 T14 D16",
+          127: "T20 T17 D8",
+          126: "T19 T19 D6",
+          125: "Bull T17 D12",
+          124: "T20 T16 D8",
+          123: "T19 T16 D9",
+          122: "T18 T20 D4",
+          121: "T20 T15 D8",
+          120: "T20 20 D20",
+          119: "T19 T10 D16",
+          118: "T20 18 D20",
+          117: "T20 17 D20",
+          116: "T20 16 D20",
+          115: "T20 15 D20",
+          114: "T20 14 D20",
+          113: "T20 13 D20",
+          112: "T20 12 D20",
+          111: "T20 11 D20",
+          110: "T20 10 D20",
+          109: "T19 12 D20",
+          108: "T20 16 D16",
+          107: "T19 10 D20",
+          106: "T20 10 D18",
+          105: "T19 16 D16",
+          104: "T18 10 D20",
+          103: "T19 10 D18",
+          102: "T20 10 D16",
+          101: "T17 10 D20",
+          100: "T20 D20",
+          99: "T19 10 D16",
+          98: "T20 D19",
+          97: "T19 D20",
+          96: "T20 D18",
+          95: "T19 D19",
+          94: "T18 D20",
+          93: "T19 D18",
+          92: "T20 D16",
+          91: "T17 D20",
+          90: "T18 D18",
+          89: "T19 D16",
+          88: "T16 D20",
+          87: "T17 D18",
+          86: "T18 D16",
+          85: "T15 D20",
+          84: "T20 D12",
+          83: "T17 D16",
+          82: "Bull D16",
+          81: "T15 D18",
+          80: "T20 D10",
+          79: "T13 D20",
+          78: "T18 D12",
+          77: "T15 D16",
+          76: "T20 D8",
+          75: "T17 D12",
+          74: "T14 D16",
+          73: "T19 D8",
+          72: "T16 D12",
+          71: "T13 D16",
+          70: "T18 D8",
+          69: "T15 D12",
+          68: "T20 D4",
+          67: "T17 D8",
+          66: "T10 D18",
+          65: "T19 D4",
+          64: "T16 D8",
+          63: "T13 D12",
+          62: "T10 D16",
+          61: "T15 D8",
+          60: "20 D20",
+          50: "BULLSEYE",
+          40: "D20",
+          32: "D16",
+          24: "D12",
+          16: "D8",
+          8: "D4",
+        };
+        if (checkouts[score]) return checkouts[score];
+        if (score <= 40 && score % 2 === 0) return `D${score / 2}`;
+        return "";
+      }
+
+      function update501QoL(p1Score, p2Score, p1Name, p2Name) {
+        let p1Avg =
+          p1Darts501 > 0
+            ? (((501 - p1Score) / p1Darts501) * 3).toFixed(2)
+            : "0.00";
+        let p2Avg =
+          p2Darts501 > 0
+            ? (((501 - p2Score) / p2Darts501) * 3).toFixed(2)
+            : "0.00";
+        document.getElementById("p1-avg").innerText = `Avg: ${p1Avg}`;
+        document.getElementById("p2-avg").innerText = `Avg: ${p2Avg}`;
+        document.getElementById("p1-darts").innerText = `${p1Darts501} Darts`;
+        document.getElementById("p2-darts").innerText = `${p2Darts501} Darts`;
+        document.getElementById("p1-checkout").innerText =
+          getCheckoutPath(p1Score);
+        document.getElementById("p2-checkout").innerText =
+          getCheckoutPath(p2Score);
+        const undoBtn = document.getElementById("btn-undo-501");
+        if (history501Stack.length > 0 && isLocal501) {
+          undoBtn.style.display = "block";
+        } else {
+          undoBtn.style.display = "none";
+        }
+      }
+
+      function undo501Turn() {
+        if (history501Stack.length === 0) return;
+        const lastState = history501Stack.pop();
+        localP1Score = lastState.p1Score;
+        localP2Score = lastState.p2Score;
+        p1Darts501 = lastState.p1Darts;
+        p2Darts501 = lastState.p2Darts;
+        localCurrentTurn = lastState.turn;
+        document.getElementById("p1-score").innerText = localP1Score;
+        document.getElementById("p2-score").innerText = localP2Score;
+        updateLocalTurnHighlight();
+        update501QoL(localP1Score, localP2Score);
+      }
+
       async function hostOnlineGame() {
         isLocal501 = false;
         myOnlineName = document
@@ -2294,7 +2572,6 @@
           .substring(2, 6)
           .toUpperCase();
         amIPlayer1 = true;
-
         const { error } = await _supabase
           .from("live_matches")
           .insert([
@@ -2305,7 +2582,6 @@
             },
           ]);
         if (error) return alert("Fehler:\n" + error.message);
-
         document.getElementById("lobby-setup").style.display = "none";
         document.getElementById("lobby-waiting").style.display = "block";
         document.getElementById("display-room-code").innerText =
@@ -2324,7 +2600,6 @@
           .toUpperCase();
         if (!myOnlineName) return alert("Bitte gib deinen Namen ein!");
         if (!codeInput) return alert("Bitte gib einen Raumcode ein!");
-
         let { data: room, error } = await _supabase
           .from("live_matches")
           .select("*")
@@ -2332,7 +2607,6 @@
           .single();
         if (error || !room) return alert("Raum nicht gefunden!");
         if (room.status !== "waiting") return alert("Das Spiel läuft bereits.");
-
         amIPlayer1 = false;
         currentRoomCode = codeInput;
         await _supabase
@@ -2343,6 +2617,11 @@
             last_action: "Spiel gestartet!",
           })
           .eq("room_code", codeInput);
+        room.player2_name = myOnlineName;
+        room.status = "playing";
+        document.getElementById("online-lobby-screen").style.display = "none";
+        document.getElementById("game-501-screen").style.display = "block";
+        sync501UI(room);
         listenForOpponent(currentRoomCode);
       }
 
@@ -2417,7 +2696,6 @@
         update501Display();
       }
 
-      // --- NUMPAD INPUT ---
       function append501Input(num) {
         if (!isLocal501 && !isMyTurn) return;
         if (current501Input.length >= 3) return;
@@ -2440,12 +2718,10 @@
 
       function update501Display() {
         const display = document.getElementById("input-display-501");
-
         if (!isLocal501 && !isMyTurn) {
           display.innerText = "Gegner wirft...";
           display.style.color = "#888";
         } else if (current501Input === "") {
-          // Dynamische Anzeige, wer dran ist
           let activeName = "Dein Wurf...";
           if (isLocal501) {
             activeName = localCurrentTurn === 1 ? localP1Name : localP2Name;
@@ -2460,12 +2736,10 @@
         }
       }
 
-      // --- SCORE ABSENDEN (Das "Herz") ---
       async function submit501Score() {
         if (!isLocal501 && !isMyTurn)
           return alert("Warte, dein Gegner ist gerade am Zug!");
         if (current501Input === "") return;
-
         let score = parseInt(current501Input);
         const impossibleScores = [163, 166, 169, 172, 173, 175, 176, 178, 179];
         if (impossibleScores.includes(score)) {
@@ -2475,20 +2749,23 @@
           return;
         }
 
-        // ====== LOKALER MODUS ======
         if (isLocal501) {
+          history501Stack.push({
+            p1Score: localP1Score,
+            p2Score: localP2Score,
+            p1Darts: p1Darts501,
+            p2Darts: p2Darts501,
+            turn: localCurrentTurn,
+          });
           let currentPoints =
             localCurrentTurn === 1 ? localP1Score : localP2Score;
           let newScore = currentPoints - score;
-
           if (newScore < 0 || newScore === 1) {
             alert("💥 ÜBERWORFEN! (Bust)");
             newScore = currentPoints;
           }
-
           if (localCurrentTurn === 1) localP1Score = newScore;
           else localP2Score = newScore;
-
           document.getElementById("p1-score").innerText = localP1Score;
           document.getElementById("p2-score").innerText = localP2Score;
 
@@ -2499,39 +2776,32 @@
             return;
           }
 
-          // Nächster Spieler ist dran
           localCurrentTurn = localCurrentTurn === 1 ? 2 : 1;
           updateLocalTurnHighlight();
-        }
-
-        // ====== ONLINE MODUS ======
-        else {
+          if (localCurrentTurn === 2) p1Darts501 += 3;
+          else p2Darts501 += 3;
+          update501QoL(localP1Score, localP2Score);
+        } else {
           let currentPoints = amIPlayer1
             ? parseInt(document.getElementById("p1-score").innerText)
             : parseInt(document.getElementById("p2-score").innerText);
           let newScore = currentPoints - score;
           let isBust = false;
-
           if (newScore < 0 || newScore === 1) {
             alert("💥 ÜBERWORFEN! (Bust)");
             newScore = currentPoints;
             isBust = true;
           }
-
           let isFinished = newScore === 0;
-
           isMyTurn = false;
           document.getElementById("input-display-501").innerText = "Sende...";
-
           let updatePayload = {
             current_turn: amIPlayer1 ? 2 : 1,
             last_action: isBust ? "Bust" : `Score: ${score}`,
           };
-
           if (amIPlayer1) updatePayload.player1_score = newScore;
           else updatePayload.player2_score = newScore;
           if (isFinished) updatePayload.status = "finished";
-
           await _supabase
             .from("live_matches")
             .update(updatePayload)
