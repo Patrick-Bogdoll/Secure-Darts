@@ -629,14 +629,28 @@ async function loadMatchHistory() {
       } else {
         detailsHTML += `<div class="detail-row" style="justify-content:center; color:#666;">Keine Leg-Details verfügbar</div>`;
       }
-
-      div.innerHTML = `<div class="history-summary" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'"><div><div style="font-weight:bold; color:${
-        m.is_win ? "var(--accent-green)" : "#aaa"
-      }">${
-        m.is_win ? "SIEG" : "Niederlage"
-      }</div><div class="history-date">${date}</div></div><div class="history-score">${
-        m.is_win ? "🏆" : "❌"
-      }</div></div><div class="history-details" style="display:none;">${detailsHTML}</div>`;
+      div.innerHTML = `
+        <div class="history-summary" style="display:flex; align-items:center; gap:10px;">
+          <div onclick="this.parentElement.nextElementSibling.style.display = this.parentElement.nextElementSibling.style.display === 'block' ? 'none' : 'block'" style="flex:1; cursor:pointer;">
+            <div style="font-weight:bold; color:${
+              m.is_win ? "var(--accent-green)" : "#aaa"
+            }">
+              ${m.is_win ? "SIEG" : "Niederlage"}
+            </div>
+            <div class="history-date">${date}</div>
+          </div>
+          <div class="history-score">${m.is_win ? "🏆" : "❌"}</div>
+          
+          ${
+            currentUser && m.player_name === myOnlineName
+              ? `<button onclick="deleteMatch501(${m.id}, ${m.darts_thrown}, ${
+                  m.is_win ? 1 : 0
+                }, ${JSON.stringify(m.match_details).replace(/"/g, "&quot;")})" 
+                     style="background:none; border:none; cursor:pointer; font-size:1.2em; padding:5px;">🗑️</button>`
+              : ""
+          }
+        </div>
+        <div class="history-details" style="display:none;">${detailsHTML}</div>`;
       container.appendChild(div);
     });
   }
@@ -720,5 +734,66 @@ function toggleHistoryDetails(element) {
   // Optional: Scroll into view if opening
   if (!isVisible) {
     details.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
+async function deleteMatch501(matchId, dartsCount, wasWin, matchDetails) {
+  if (
+    !confirm(
+      "Möchtest du dieses Match wirklich löschen? Die Statistiken werden entsprechend korrigiert."
+    )
+  )
+    return;
+
+  // 1. Berechnung der Punkte, die abgezogen werden müssen
+  let totalPointsInMatch = 0;
+  let legsCount = 0;
+  if (matchDetails && Array.isArray(matchDetails)) {
+    legsCount = matchDetails.length;
+    matchDetails.forEach((leg) => {
+      let isP1 = leg.p1_name === currentModalPlayer;
+      totalPointsInMatch += isP1 ? 501 - leg.p1_rest : 501 - leg.p2_rest;
+    });
+  }
+
+  // 2. Gesamt-Statistiken in stats_501 korrigieren (Werte abziehen)
+  const { data: currentStats } = await _supabase
+    .from("stats_501")
+    .select("*")
+    .eq("name", currentModalPlayer)
+    .maybeSingle();
+
+  if (currentStats) {
+    await _supabase
+      .from("stats_501")
+      .update({
+        wins: Math.max(0, currentStats.wins - wasWin),
+        games_played: Math.max(0, currentStats.games_played - legsCount),
+        total_darts_thrown: Math.max(
+          0,
+          currentStats.total_darts_thrown - dartsCount
+        ),
+        total_score_thrown: Math.max(
+          0,
+          currentStats.total_score_thrown - totalPointsInMatch
+        ),
+        // Hinweis: Best Leg und High Finish lassen wir aus Sicherheitsgründen stehen,
+        // da wir nicht wissen, ob sie aus diesem oder einem anderen Match stammen.
+      })
+      .eq("name", currentModalPlayer);
+  }
+
+  // 3. Den Eintrag aus der Historie löschen
+  const { error } = await _supabase
+    .from("match_history_501")
+    .delete()
+    .eq("id", matchId);
+
+  if (error) {
+    alert("Fehler beim Löschen: " + error.message);
+  } else {
+    alert("Match gelöscht und Statistik korrigiert!");
+    // Modal aktualisieren
+    switchModalMode("501");
   }
 }

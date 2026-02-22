@@ -100,6 +100,8 @@ function showAuthScreen() {
     "game-501-screen",
     "highscore-screen",
     "rules-screen",
+    "party-setup-screen",
+    "game-party-screen",
   ];
   screens.forEach((s) => {
     let el = document.getElementById(s);
@@ -172,6 +174,8 @@ function goHome() {
     "game-501-screen",
     "highscore-screen",
     "rules-screen",
+    "party-setup-screen",
+    "game-party-screen",
   ];
   screens.forEach((s) => {
     let el = document.getElementById(s);
@@ -208,6 +212,8 @@ function showScreen(screenType) {
     "game-501-screen",
     "highscore-screen",
     "rules-screen",
+    "party-setup-screen",
+    "game-party-screen",
   ];
   screens.forEach((s) => {
     let el = document.getElementById(s);
@@ -250,4 +256,33 @@ async function requestWakeLock() {
   try {
     if ("wakeLock" in navigator) await navigator.wakeLock.request("screen");
   } catch (err) {}
+}
+
+function openPartySetup() {
+  // 1. Hide all screens (using the array you just updated!)
+  const screens = [
+    "home-screen",
+    "setup-screen",
+    "game-screen",
+    "online-lobby-screen",
+    "game-501-screen",
+    "highscore-screen",
+    "rules-screen",
+    "party-setup-screen",
+    "game-party-screen",
+  ];
+
+  screens.forEach((s) => {
+    let el = document.getElementById(s);
+    if (el) el.style.display = "none";
+  });
+
+  // 2. Show the Party Setup Screen
+  document.getElementById("party-setup-screen").style.display = "block";
+
+  // 3. Update the App Title
+  let titleEl = document.getElementById("app-title");
+  if (titleEl) {
+    titleEl.innerText = "🎉 PARTY X01";
+  }
 }

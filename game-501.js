@@ -806,8 +806,9 @@ async function submit501Score() {
         old: currentPoints,
         thrown: throwText,
         new: newScore,
-      }); // <--- NEU
+      });
       p1Darts501 += dartsThrownThisTurn;
+      p1TotalScore += currentPoints - newScore;
     } else {
       p2LegThrows.push({
         old: currentPoints,
@@ -815,6 +816,7 @@ async function submit501Score() {
         new: newScore,
       }); // <--- NEU
       p2Darts501 += dartsThrownThisTurn;
+      p2TotalScore += currentPoints - newScore;
     }
     let myDarts = amIPlayer1 ? p1Darts501 : p2Darts501;
 

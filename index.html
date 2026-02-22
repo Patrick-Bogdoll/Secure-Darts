@@ -395,6 +395,67 @@
             >Lokal & Online Mehrspieler</span
           >
         </button>
+
+        <button
+          class="primary"
+          onclick="openPartySetup()"
+          style="background-color: var(--accent-purple); color: white"
+        >
+          🎉 Party X01 (Couch-Koop)<br />
+          <span
+            style="
+              font-size: 0.6em;
+              color: #fff;
+              text-transform: none;
+              letter-spacing: 0;
+            "
+            >2 - 8 Lokaler Mehrspieler (Ohne Stats)</span
+          >
+        </button>
+
+        <button
+          class="primary"
+          disabled
+          style="
+            background-color: #383838;
+            color: #666;
+            cursor: not-allowed;
+            margin-top: 15px;
+          "
+        >
+          🎯 Bob's 27
+          <span
+            style="
+              font-size: 0.6em;
+              display: block;
+              font-weight: normal;
+              margin-top: 3px;
+            "
+            >(Work in Progress)</span
+          >
+        </button>
+
+        <button
+          class="primary"
+          disabled
+          style="
+            background-color: #383838;
+            color: #666;
+            cursor: not-allowed;
+            margin-top: 15px;
+          "
+        >
+          🌍 Round the World
+          <span
+            style="
+              font-size: 0.6em;
+              display: block;
+              font-weight: normal;
+              margin-top: 3px;
+            "
+            >(Work in Progress)</span
+          >
+        </button>
       </div>
 
       <div id="setup-screen">
@@ -898,6 +959,204 @@
           onclick="cancel501Game()"
         >
           🚪 Spiel abbrechen
+        </button>
+      </div>
+
+      <div id="party-setup-screen" style="display: none">
+        <h2 style="color: var(--accent-purple); text-align: center">
+          🎉 Party X01 Setup
+        </h2>
+
+        <div style="margin-bottom: 20px">
+          <label
+            style="
+              color: #aaa;
+              font-size: 0.9em;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            "
+            >Start-Punktzahl:</label
+          >
+          <select
+            id="party-starting-score"
+            style="
+              width: 100%;
+              padding: 12px;
+              background: #222;
+              color: white;
+              border: 1px solid #444;
+              border-radius: 8px;
+              font-size: 1.1em;
+              margin-top: 8px;
+              outline: none;
+            "
+          >
+            <option value="301">301</option>
+            <option value="501" selected>501</option>
+            <option value="701">701</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 25px">
+          <input
+            type="text"
+            id="party-player-input"
+            placeholder="Spielername..."
+            style="
+              flex: 1;
+              padding: 15px;
+              border-radius: 8px;
+              border: 1px solid #333;
+              background: #111;
+              color: white;
+            "
+          />
+          <button
+            onclick="addPartyPlayer()"
+            style="
+              background: var(--accent-green);
+              color: black;
+              font-weight: bold;
+              padding: 0 20px;
+              border-radius: 8px;
+              border: none;
+              cursor: pointer;
+            "
+          >
+            Add
+          </button>
+        </div>
+
+        <ul
+          id="party-player-list"
+          style="list-style: none; padding: 0; margin-bottom: 20px"
+        ></ul>
+
+        <button
+          class="primary"
+          onclick="startPartyGame()"
+          style="background-color: var(--accent-purple); color: white"
+        >
+          🚀 Spiel Starten
+        </button>
+        <button class="reset" onclick="goHome()">🏠 Zurück</button>
+      </div>
+
+      <div id="game-party-screen" style="display: none; max-width: 800px">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+          "
+        >
+          <h2
+            id="party-turn-indicator"
+            style="color: var(--accent-blue); margin: 0; font-size: 1.4em"
+          >
+            🎯 Spieler wirft...
+          </h2>
+          <button
+            onclick="cancelPartyGame()"
+            style="
+              background: var(--accent-red);
+              color: white;
+              border: none;
+              padding: 10px 15px;
+              border-radius: 8px;
+              cursor: pointer;
+              font-weight: bold;
+            "
+          >
+            Abbrechen
+          </button>
+        </div>
+
+        <div
+          id="party-scoreboard"
+          style="
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+          "
+        ></div>
+
+        <div
+          id="input-display-party"
+          style="
+            font-size: 3em;
+            font-weight: bold;
+            color: var(--accent-green);
+            height: 60px;
+            background: #111;
+            border-radius: 8px;
+            border: 1px inset #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+          "
+        ></div>
+
+        <div class="preset-grid">
+          <button class="preset-btn" onclick="submitPartyScore(26)">26</button>
+          <button class="preset-btn" onclick="submitPartyScore(41)">41</button>
+          <button class="preset-btn" onclick="submitPartyScore(45)">45</button>
+          <button class="preset-btn" onclick="submitPartyScore(60)">60</button>
+          <button class="preset-btn" onclick="submitPartyScore(81)">81</button>
+          <button class="preset-btn" onclick="submitPartyScore(85)">85</button>
+          <button class="preset-btn" onclick="submitPartyScore(100)">
+            100
+          </button>
+          <button class="preset-btn" onclick="submitPartyScore(140)">
+            140
+          </button>
+          <button class="preset-btn" onclick="submitPartyScore(180)">
+            180
+          </button>
+        </div>
+
+        <div class="numpad-grid">
+          <button class="num-btn" onclick="appendPartyInput('1')">1</button>
+          <button class="num-btn" onclick="appendPartyInput('2')">2</button>
+          <button class="num-btn" onclick="appendPartyInput('3')">3</button>
+          <button class="num-btn" onclick="appendPartyInput('4')">4</button>
+          <button class="num-btn" onclick="appendPartyInput('5')">5</button>
+          <button class="num-btn" onclick="appendPartyInput('6')">6</button>
+          <button class="num-btn" onclick="appendPartyInput('7')">7</button>
+          <button class="num-btn" onclick="appendPartyInput('8')">8</button>
+          <button class="num-btn" onclick="appendPartyInput('9')">9</button>
+          <button class="num-btn action-del" onclick="deletePartyInput()">
+            DEL
+          </button>
+          <button class="num-btn" onclick="appendPartyInput('0')">0</button>
+          <button class="num-btn action-ok" onclick="submitPartyScore(null)">
+            OK
+          </button>
+        </div>
+        <button
+          id="btn-undo-party"
+          onclick="undoPartyTurn()"
+          style="
+            display: none;
+            width: 100%;
+            margin-top: 15px;
+            background: #444;
+            color: #aaa;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+          "
+        >
+          ↩ Letzten Wurf rückgängig machen
         </button>
       </div>
 
@@ -1415,6 +1674,7 @@
     <script src="ui.js"></script>
     <script src="game-littler.js"></script>
     <script src="game-501.js"></script>
+    <script src="game-party.js"></script>
     <script src="stats.js"></script>
   </body>
 </html>
