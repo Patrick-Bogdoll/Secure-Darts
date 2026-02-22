@@ -668,6 +668,19 @@
           </button>
         </div>
 
+        <div
+          id="match-format-display"
+          style="
+            text-align: center;
+            color: #888;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+          "
+        >
+          Best of 3 Legs
+        </div>
         <div class="scoreboard-501">
           <div id="p1-box" class="score-box">
             <div id="p1-name" class="score-name">Spieler 1</div>
@@ -745,6 +758,69 @@
           <button class="num-btn action-ok" onclick="submit501Score()">
             OK
           </button>
+        </div>
+
+        <div
+          id="checkout-overlay"
+          style="
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: var(--card-bg);
+            border: 2px solid var(--accent-green);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 15px;
+            width: 100%;
+            box-sizing: border-box;
+          "
+        >
+          <h3
+            id="checkout-question"
+            style="
+              margin-top: 0;
+              color: white;
+              text-align: center;
+              line-height: 1.3;
+            "
+          >
+            Frage?
+          </h3>
+          <div
+            id="checkout-buttons"
+            style="display: flex; gap: 15px; width: 100%"
+          ></div>
+        </div>
+
+        <div id="side-history-panel-p1" class="side-history-panel left-panel">
+          <h3
+            style="
+              margin-top: 0;
+              color: var(--accent-blue);
+              text-align: center;
+              font-size: 1.1em;
+              text-transform: uppercase;
+            "
+          >
+            Historie <span id="history-p1-name" style="color: white">S1</span>
+          </h3>
+          <div id="side-history-list-p1" class="side-history-list"></div>
+        </div>
+
+        <div id="side-history-panel-p2" class="side-history-panel right-panel">
+          <h3
+            style="
+              margin-top: 0;
+              color: var(--accent-blue);
+              text-align: center;
+              font-size: 1.1em;
+              text-transform: uppercase;
+            "
+          >
+            Historie <span id="history-p2-name" style="color: white">S2</span>
+          </h3>
+          <div id="side-history-list-p2" class="side-history-list"></div>
         </div>
 
         <button

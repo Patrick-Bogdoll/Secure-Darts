@@ -1,3 +1,6 @@
+let p1LegThrows = [];
+let p2LegThrows = [];
+
 function resetStatsTracker() {
   statsTracker = {
     p1: {
@@ -50,6 +53,9 @@ function startLocal501Game() {
 function resetLegLocal() {
   localP1Score = 501;
   localP2Score = 501;
+  p1LegThrows = [];
+  p2LegThrows = [];
+  updateThrowHistoryUI();
   history501Stack = [];
   localCurrentTurn = (localP1Legs + localP2Legs) % 2 === 0 ? 1 : 2;
   isMyTurn = true;
@@ -267,6 +273,10 @@ function undo501Turn() {
   p1TotalScore = lastState.p1Total || 0;
   p2TotalScore = lastState.p2Total || 0;
 
+  p1LegThrows = lastState.p1Throws || [];
+  p2LegThrows = lastState.p2Throws || [];
+  updateThrowHistoryUI();
+
   document.getElementById("p1-score").innerText = localP1Score;
   document.getElementById("p2-score").innerText = localP2Score;
   updateLocalTurnHighlight();
@@ -369,6 +379,38 @@ async function cancelLobby() {
 }
 
 function sync501UI(dbData) {
+  if (!isLocal501) {
+    // Wenn das Leg gerade frisch resettet wurde:
+    if (
+      dbData.player1_score === 501 &&
+      dbData.player2_score === 501 &&
+      dbData.player1_darts === 0 &&
+      dbData.player2_darts === 0
+    ) {
+      p1LegThrows = [];
+      p2LegThrows = [];
+    } else {
+      // Hat der Gegner geworfen?
+      if (amIPlayer1 && dbData.player2_darts > p2Darts501) {
+        p2LegThrows.push({
+          old: parseInt(document.getElementById("p2-score").innerText),
+          thrown: dbData.player2_last_score,
+          new: dbData.player2_score,
+        });
+      } else if (!amIPlayer1 && dbData.player1_darts > p1Darts501) {
+        p1LegThrows.push({
+          old: parseInt(document.getElementById("p1-score").innerText),
+          thrown: dbData.player1_last_score,
+          new: dbData.player1_score,
+        });
+      }
+      // Hat der Gegner "Undo" gedrückt?
+      if (dbData.player1_darts < p1Darts501) p1LegThrows.pop();
+      if (dbData.player2_darts < p2Darts501) p2LegThrows.pop();
+    }
+    updateThrowHistoryUI();
+  }
+
   document.getElementById("p1-name").innerText = dbData.player1_name;
   document.getElementById("p2-name").innerText = dbData.player2_name;
   document.getElementById("p1-score").innerText = dbData.player1_score;
@@ -488,6 +530,86 @@ function update501Display() {
   }
 }
 
+function askCheckoutOverlay(question, minVal, maxVal) {
+  return new Promise((resolve) => {
+    // Genialer UX-Trick: Wenn es nur eine logische Antwort gibt (z. B. Check mit dem 1. Dart = 1 Versuch aufs Doppel),
+    // dann überspringt die App die Abfrage vollautomatisch, um dir einen Klick zu sparen!
+    if (minVal === maxVal) return resolve(minVal);
+
+    // Numpad verstecken
+    document.querySelector(".preset-grid").style.display = "none";
+    document.querySelector(".numpad-grid").style.display = "none";
+
+    const overlay = document.getElementById("checkout-overlay");
+    document.getElementById("checkout-question").innerText = question;
+
+    const btnContainer = document.getElementById("checkout-buttons");
+    btnContainer.innerHTML = "";
+
+    // Buttons generieren (z. B. 1, 2, 3)
+    for (let i = minVal; i <= maxVal; i++) {
+      let btn = document.createElement("button");
+      btn.className = "num-btn";
+      btn.style.background = "var(--accent-green)";
+      btn.style.color = "black";
+      btn.style.flex = "1";
+      btn.innerText = i;
+      btn.onclick = () => {
+        overlay.style.display = "none";
+        // Numpad wieder einblenden
+        document.querySelector(".preset-grid").style.display = "grid";
+        document.querySelector(".numpad-grid").style.display = "grid";
+        resolve(i); // Code läuft weiter!
+      };
+      btnContainer.appendChild(btn);
+    }
+    overlay.style.display = "flex";
+  });
+}
+
+function updateThrowHistoryUI() {
+  let p1Container = document.getElementById("side-history-list-p1");
+  let p2Container = document.getElementById("side-history-list-p2");
+  if (!p1Container || !p2Container) return;
+
+  // Setzt die aktuellen Namen in die Kopfzeile der Historie
+  document.getElementById("history-p1-name").innerText =
+    document.getElementById("p1-name").innerText;
+  document.getElementById("history-p2-name").innerText =
+    document.getElementById("p2-name").innerText;
+
+  // Liste für Spieler 1 (Links) aufbauen
+  let html1 = "";
+  for (let t of p1LegThrows) {
+    html1 += `<div style="display:flex; justify-content:space-between; padding:8px 10px; background:#2a2a2a; margin-bottom:5px; border-radius:6px; font-size: 0.9em; color:#ccc;">
+                <span>${t.old} &rarr; <b style="color:white;">${t.new}</b></span>
+                <span style="color:var(--accent-blue); font-weight:bold;">[${t.thrown}]</span>
+              </div>`;
+  }
+  p1Container.innerHTML = html1;
+
+  // Liste für Spieler 2 (Rechts) aufbauen
+  let html2 = "";
+  for (let t of p2LegThrows) {
+    html2 += `<div style="display:flex; justify-content:space-between; padding:8px 10px; background:#2a2a2a; margin-bottom:5px; border-radius:6px; font-size: 0.9em; color:#ccc;">
+                <span style="color:var(--accent-blue); font-weight:bold;">[${t.thrown}]</span>
+                <span><b style="color:white;">${t.new}</b> &larr; ${t.old}</span>
+              </div>`;
+  }
+  p2Container.innerHTML = html2;
+
+  // Scrollt automatisch zum neuesten Wurf nach unten
+  p1Container.scrollTop = p1Container.scrollHeight;
+  p2Container.scrollTop = p2Container.scrollHeight;
+
+  // Best-of-Text aktualisieren
+  if (document.getElementById("match-format-display")) {
+    document.getElementById(
+      "match-format-display"
+    ).innerText = `Best of ${bestOfLegs} Legs`;
+  }
+}
+
 async function submit501Score() {
   if (!isLocal501 && !isMyTurn) if (current501Input === "") return;
 
@@ -545,38 +667,43 @@ async function submit501Score() {
   if (isBust) {
     pStats.busts++;
     if (isOnFinish) {
-      let ans = prompt(
-        "Bust! Wie viele Darts gingen auf ein Doppel? (0-3)",
-        "1"
+      let ans = await askCheckoutOverlay(
+        "Bust! Wie viele Darts gingen aufs Doppel?",
+        0,
+        3
       );
-      pStats.checkoutAttempts += parseInt(ans) || 0;
+      pStats.checkoutAttempts += ans;
     }
   } else if (isFinished) {
     pStats.checkoutHits++;
-    let turnDarts = prompt(
-      "GAME SHOT! 🎯 Mit dem wievielten Dart hast du gecheckt? (1, 2 oder 3)",
-      "1"
-    );
-    dartsThrownThisTurn = parseInt(turnDarts) || 3;
-    if (dartsThrownThisTurn > 3) dartsThrownThisTurn = 3;
-    if (dartsThrownThisTurn < 1) dartsThrownThisTurn = 1;
 
-    let doubleDarts = prompt(
-      `Wie viele von diesen ${dartsThrownThisTurn} Darts gingen auf ein Doppel?`,
-      "1"
+    // Abfrage 1: Gesamte Darts für den Check
+    let turnDarts = await askCheckoutOverlay(
+      "GAME SHOT! 🎯\nMit dem wievielten Dart gecheckt?",
+      1,
+      3
     );
-    pStats.checkoutAttempts += parseInt(doubleDarts) || 1;
+    dartsThrownThisTurn = turnDarts;
+
+    // Abfrage 2: Darts auf das Doppel (Maximal so viele, wie insgesamt geworfen wurden)
+    let doubleDarts = await askCheckoutOverlay(
+      `Checkout Attempts:\nWie viele der ${turnDarts} Darts waren aufs Doppel?`,
+      1,
+      turnDarts
+    );
+    pStats.checkoutAttempts += doubleDarts;
   } else {
     if (score === 180) pStats.t180++;
     else if (score >= 140) pStats.t140++;
     else if (score >= 100) pStats.t100++;
 
     if (isOnFinish && score > 0) {
-      let ans = prompt(
-        "Du warst im Finish-Bereich! Wie viele Darts hast du auf ein Doppel geworfen? (0-3)",
-        "0"
+      let ans = await askCheckoutOverlay(
+        "Kein Finish! Wie viele Darts gingen aufs Doppel?",
+        0,
+        3
       );
-      pStats.checkoutAttempts += parseInt(ans) || 0;
+      pStats.checkoutAttempts += ans;
     }
   }
 
@@ -600,7 +727,25 @@ async function submit501Score() {
       p2Last: p2LastThrow,
       p1Total: p1TotalScore,
       p2Total: p2TotalScore,
+      p1Throws: [...p1LegThrows], // <--- NEU
+      p2Throws: [...p2LegThrows], // <--- NEU
     });
+
+    // --- NEU: WURF IN DIE LISTE SCHREIBEN (LOKAL) ---
+    if (localCurrentTurn === 1)
+      p1LegThrows.push({
+        old: currentPoints,
+        thrown: throwText,
+        new: newScore,
+      });
+    else
+      p2LegThrows.push({
+        old: currentPoints,
+        thrown: throwText,
+        new: newScore,
+      });
+    updateThrowHistoryUI();
+    // ------------------------------------------------
 
     if (localCurrentTurn === 1) {
       localP1Score = newScore;
@@ -644,13 +789,19 @@ async function submit501Score() {
     };
 
     if (amIPlayer1) {
+      p1LegThrows.push({
+        old: currentPoints,
+        thrown: throwText,
+        new: newScore,
+      }); // <--- NEU
       p1Darts501 += dartsThrownThisTurn;
-      p1TotalScore += currentPoints - newScore;
-      p1LastThrow = throwText;
     } else {
+      p2LegThrows.push({
+        old: currentPoints,
+        thrown: throwText,
+        new: newScore,
+      }); // <--- NEU
       p2Darts501 += dartsThrownThisTurn;
-      p2TotalScore += currentPoints - newScore;
-      p2LastThrow = throwText;
     }
     let myDarts = amIPlayer1 ? p1Darts501 : p2Darts501;
 
@@ -880,6 +1031,11 @@ function listenForOpponent(roomCode) {
             p2TotalScore = 0;
             p1Darts501 = 0;
             p2Darts501 = 0;
+            // NEU: Setzt die Leg-Averages und Pro-Stats beim Rematch auf 0!
+            p1DartsAtLegStart = 0;
+            p2DartsAtLegStart = 0;
+            currentMatchLog501 = [];
+            resetStatsTracker();
           }
           sync501UI(dbData);
         }
@@ -1096,12 +1252,15 @@ document.addEventListener("keydown", function (event) {
     return;
   if (document.activeElement.tagName === "INPUT") return;
 
-  if (event.key >= "0" && event.key <= "9") {
+  if (event.key === "Enter") {
+    event.preventDefault(); // NEU: Verbietet dem Browser den Doppel-Klick!
+    submit501Score();
+  } else if (event.key >= "0" && event.key <= "9") {
+    event.preventDefault();
     append501Input(event.key);
   } else if (event.key === "Backspace") {
+    event.preventDefault();
     delete501Input();
-  } else if (event.key === "Enter") {
-    submit501Score();
   } else if (event.key === "Escape") {
     cancel501Game();
   }

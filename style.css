@@ -726,3 +726,68 @@ input[type="password"]:focus {
   padding-bottom: 15px;
   margin-bottom: 10px;
 }
+/* --- Symmetrische Wurf-Historie (Links & Rechts) --- */
+.side-history-panel {
+  position: absolute;
+  top: 0;
+  width: 280px; /* Etwas schmaler, damit beides perfekt passt */
+  background: var(--card-bg);
+  border: 2px solid #333;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* Heftet Box 1 an die linke Seite */
+.left-panel {
+  left: -500px;
+}
+
+/* Heftet Box 2 an die rechte Seite */
+.right-panel {
+  right: -500px;
+}
+
+.side-history-list {
+  overflow-y: auto;
+  flex: 1;
+  margin-top: 10px;
+  padding-right: 5px;
+}
+
+.side-history-list::-webkit-scrollbar {
+  width: 4px;
+}
+.side-history-list::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 2px;
+}
+
+/* RESPONSIVE: Wenn der Bildschirm zu schmal wird (z.B. Tablet/Handy) */
+@media (max-width: 1250px) {
+  .side-history-panel {
+    position: static;
+    width: 48%;
+    display: inline-flex;
+    margin-top: 20px;
+    max-height: 250px;
+  }
+  .left-panel {
+    margin-right: 4%;
+  }
+  .right-panel {
+    margin-right: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .side-history-panel {
+    width: 100%;
+    margin-right: 0;
+    margin-top: 15px;
+  }
+}
