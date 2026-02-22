@@ -108,33 +108,60 @@ function showAuthScreen() {
   document.getElementById("auth-screen").style.display = "block";
 }
 
-function showMainApp() {
+async function showMainApp() {
   document.getElementById("auth-screen").style.display = "none";
   document.getElementById("top-header").style.display = "block";
   document.getElementById("main-container").style.display = "block";
 
-  if (!isGuest && currentUser) {
-    let displayName = currentUser.email.split("@")[0];
+  // Hide the setup screen by default to ensure it doesn't overlap the home menu
+  document.getElementById("setup-screen").style.display = "none";
 
-    // NEU: Zieht bevorzugt deinen selbst gewählten Namen (oder Google-Namen)
-    if (currentUser.user_metadata) {
-      if (currentUser.user_metadata.display_name) {
-        displayName = currentUser.user_metadata.display_name;
-      } else if (currentUser.user_metadata.full_name) {
-        displayName = currentUser.user_metadata.full_name;
-      }
-    }
+  let displayName = "";
+  if (!isGuest && currentUser) {
+    displayName =
+      currentUser.user_metadata?.display_name ||
+      currentUser.user_metadata?.full_name ||
+      currentUser.email.split("@")[0];
+
+    myOnlineName = displayName;
 
     let p1Input = document.getElementById("local-p1-name");
     let onlineInput = document.getElementById("online-player-name");
     if (p1Input) p1Input.value = displayName;
     if (onlineInput) onlineInput.value = displayName;
   }
+
+  // --- DATABASE-BACKED RECONNECT ---
+  if (!isGuest && myOnlineName) {
+    let { data: room, error } = await _supabase
+      .from("live_matches")
+      .select("*")
+      .or(`player1_name.eq."${myOnlineName}",player2_name.eq."${myOnlineName}"`)
+      .in("status", ["waiting", "playing", "leg_won"])
+      .maybeSingle();
+
+    if (room) {
+      console.log("Active game found! Reconnecting...");
+      currentRoomCode = room.room_code;
+      amIPlayer1 = room.player1_name === myOnlineName;
+      isLocal501 = false;
+      currentAppMode = "501";
+
+      // Ensure the lobby and setup are hidden, only show the game
+      document.getElementById("home-screen").style.display = "none";
+      document.getElementById("online-lobby-screen").style.display = "none";
+      document.getElementById("game-501-screen").style.display = "block";
+
+      sync501UI(room);
+      listenForOpponent(currentRoomCode);
+      return;
+    }
+  }
+
   goHome();
 }
 
 function goHome() {
-  // HIER WAR DER FEHLER: Stand vorher auf "none"
   document.getElementById("hamburger-btn").style.display = "block";
 
   const screens = [
@@ -150,6 +177,8 @@ function goHome() {
     let el = document.getElementById(s);
     if (el) el.style.display = "none";
   });
+
+  // Only show the mode selection
   document.getElementById("home-screen").style.display = "block";
   document.getElementById("app-title").innerText = "🎯 SECURE-DARTS";
   document.body.classList.remove("training-active");

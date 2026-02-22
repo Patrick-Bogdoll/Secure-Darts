@@ -777,17 +777,39 @@ input[type="password"]:focus {
     max-height: 250px;
   }
   .left-panel {
-    margin-right: 4%;
+    margin-right: 2%; /* Reduced margin to save space */
   }
   .right-panel {
     margin-right: 0;
   }
 }
 
+/* NEW: Forced side-by-side layout for small mobile devices */
 @media (max-width: 600px) {
+  .scoreboard-501 {
+    padding: 10px; /* Slimmer scoreboard to save vertical space */
+  }
+
   .side-history-panel {
-    width: 100%;
-    margin-right: 0;
-    margin-top: 15px;
+    width: 49%; /* Keep them side-by-side */
+    display: inline-flex;
+    margin-top: 10px;
+    padding: 8px; /* Smaller padding for mobile */
+    max-height: 200px; /* Shorter height for small screens */
+  }
+
+  .side-history-panel h3 {
+    font-size: 0.7em; /* Smaller titles to prevent wrapping */
+    margin-bottom: 5px;
+  }
+
+  .left-panel {
+    margin-right: 2%;
+  }
+
+  /* Make history items inside the list more compact for mobile */
+  .side-history-list div {
+    padding: 4px 6px !important;
+    font-size: 0.75em !important;
   }
 }
