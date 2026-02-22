@@ -445,18 +445,33 @@ async function open501Stats(encodedData, isSwitching = false) {
 
   let { data: matchData } = await _supabase
     .from("match_history_501")
-    .select("match_average, created_at")
+    .select("match_details, created_at")
     .eq("player_name", data.name)
-    .order("created_at", { ascending: true })
-    .limit(10);
+    .order("created_at", { ascending: false })
+    .limit(5); // Get last 5 matches to show recent legs
+
   let chartLabels = [];
   let chartAverages = [];
+
   if (matchData && matchData.length > 0) {
-    matchData.forEach((m, index) => {
-      chartLabels.push(`Match ${index + 1}`);
-      chartAverages.push(m.match_average);
+    // Flatten leg details from recent matches
+    let legCount = 1;
+    matchData.reverse().forEach((match) => {
+      if (match.match_details && Array.isArray(match.match_details)) {
+        match.match_details.forEach((leg) => {
+          chartLabels.push(`Leg ${legCount++}`);
+          // Calculate Leg Average: ((501 - rest) / darts) * 3
+          let isP1 = leg.p1_name === currentModalPlayer;
+          let darts = isP1 ? leg.p1_darts : leg.p2_darts;
+          let score = isP1 ? 501 - leg.p1_rest : 501 - leg.p2_rest;
+          let avg = darts > 0 ? ((score / darts) * 3).toFixed(2) : 0;
+          chartAverages.push(parseFloat(avg));
+        });
+      }
     });
-  } else {
+  }
+
+  if (chartAverages.length === 0) {
     chartLabels = ["Keine Daten"];
     chartAverages = [0];
   }
@@ -469,15 +484,13 @@ async function open501Stats(encodedData, isSwitching = false) {
       labels: chartLabels,
       datasets: [
         {
-          label: "Match Average",
+          label: "Leg Average",
           data: chartAverages,
-          borderColor: "rgba(41, 121, 255, 1)",
-          backgroundColor: "rgba(41, 121, 255, 0.2)",
-          borderWidth: 3,
+          borderColor: "rgba(0, 230, 118, 1)", // Green for 501 legs
+          backgroundColor: "rgba(0, 230, 118, 0.2)",
+          borderWidth: 2,
           fill: true,
-          tension: 0.3,
-          pointBackgroundColor: "white",
-          pointRadius: 4,
+          tension: 0.4,
         },
       ],
     },
@@ -492,7 +505,7 @@ async function open501Stats(encodedData, isSwitching = false) {
         },
         x: { grid: { display: false }, ticks: { color: "#aaa" } },
       },
-      plugins: { legend: { display: false } },
+      plugins: { legend: { display: true, labels: { color: "#aaa" } } },
     },
   });
 
@@ -521,6 +534,7 @@ async function loadMatchHistory() {
       return;
     }
     container.innerHTML = "";
+    // In stats.js - Inside loadMatchHistory (501 block)
     matches.forEach((m) => {
       const date = new Date(m.created_at).toLocaleDateString("de-DE", {
         day: "2-digit",
@@ -528,26 +542,51 @@ async function loadMatchHistory() {
         hour: "2-digit",
         minute: "2-digit",
       });
+
       const div = document.createElement("div");
       div.className = `history-item ${m.is_win ? "win" : ""}`;
-      let detailsHTML = "";
+
+      // Header Info
+      let detailsHTML = `
+    <div style="text-align:center; padding-bottom:5px; border-bottom:1px solid #444; margin-bottom:10px; color:#aaa;">
+      Gegner: <b style="color:white">${m.opponent_name}</b> | Match Avg: <b style="color:var(--accent-blue)">${m.match_average}</b>
+    </div>`;
+
+      // Leg Loop
       if (m.match_details && Array.isArray(m.match_details)) {
-        m.match_details.forEach((d) => {
-          let targetText =
-            d.target === 25 ? "BULL" : d.target === 50 ? "B-EYE" : d.target;
-          let resClass = d.secured ? "detail-secured" : "detail-missed";
-          let resText = d.secured ? `✅ (${d.multiplier}x)` : "❌";
-          if (d.raw_score === 0) resText = "❌ (0 Score)";
-          detailsHTML += `<div class="detail-row"><span style="width:30px; font-weight:bold;">${targetText}</span><span class="detail-val">Punkte: ${d.raw_score}</span><span class="${resClass}">${resText}</span><span style="font-weight:bold; color:white;">+${d.final_points}</span></div>`;
+        m.match_details.forEach((leg) => {
+          let isP1 = leg.p1_name === currentModalPlayer;
+          let myDarts = isP1 ? leg.p1_darts : leg.p2_darts;
+          let myRest = isP1 ? leg.p1_rest : leg.p2_rest;
+          let legWon = leg.winner === currentModalPlayer;
+
+          let legStatus = legWon
+            ? `<span style="color:var(--accent-green)">Check: ${leg.checkout} (${myDarts} Darts)</span>`
+            : `<span style="color:var(--accent-red)">Rest: ${myRest} (${myDarts} Darts)</span>`;
+
+          detailsHTML += `
+        <div class="detail-row">
+          <span style="font-weight:bold; color:#888;">Leg ${leg.leg_number}</span>
+          <span>${legStatus}</span>
+        </div>`;
         });
       }
-      div.innerHTML = `<div class="history-summary" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'"><div><div style="font-weight:bold; color:${
-        m.is_win ? "var(--accent-green)" : "#aaa"
-      }">${
-        m.is_win ? "SIEG" : "Niederlage"
-      }</div><div class="history-date">${date}</div></div><div class="history-score">${
-        m.final_score
-      } Pkt</div></div><div class="history-details">${detailsHTML}</div>`;
+
+      div.innerHTML = `
+    <div class="history-summary" onclick="toggleHistoryDetails(this)">
+      <div>
+        <div style="font-weight:bold; color:${
+          m.is_win ? "var(--accent-green)" : "#aaa"
+        }">
+          ${m.is_win ? "SIEG" : "NIEDERLAGE"}
+        </div>
+        <div class="history-date">${date}</div>
+      </div>
+      <div class="history-score">${m.is_win ? "🏆" : "❌"}</div>
+    </div>
+    <div class="history-details" style="display:none; padding: 10px; background: #1a1a1a; border-radius: 0 0 8px 8px;">
+      ${detailsHTML}
+    </div>`;
       container.appendChild(div);
     });
   } else {
@@ -626,7 +665,7 @@ async function openMyProfile() {
     return alert("Bitte logge dich ein, um dein Profil zu sehen.");
   }
 
-  // 1. Zieht bevorzugt 501 Daten
+  // 1. Try to fetch 501 data
   let { data, error } = await _supabase
     .from("stats_501")
     .select("*")
@@ -634,14 +673,14 @@ async function openMyProfile() {
     .maybeSingle();
 
   if (data) {
-    let encodedData = encodeURIComponent(JSON.stringify(data));
-    open501Stats(encodedData);
+    open501Stats(encodeURIComponent(JSON.stringify(data)));
   } else {
-    // 2. Fallback: Falls noch kein 501 gespielt wurde, zeige Littler-Stats
+    // 2. Try to fetch Littler data
     let myName =
       currentUser.user_metadata?.display_name ||
       currentUser.user_metadata?.full_name ||
       currentUser.email.split("@")[0];
+
     let { data: littlerData } = await _supabase
       .from("highscores")
       .select("*")
@@ -651,7 +690,35 @@ async function openMyProfile() {
     if (littlerData) {
       openProStats(encodeURIComponent(JSON.stringify(littlerData)));
     } else {
-      alert("Dein Profil ist noch leer. Spiele dein erstes Match!");
+      // --- NEW: FORCED PROFILE VIEW FOR NEW USERS ---
+      // If no data exists yet, we pass a skeleton object so the modal opens
+      const skeletonData = {
+        name: myName,
+        user_id: currentUser.id,
+        wins: 0,
+        games_played: 0,
+        total_darts_thrown: 0,
+        total_score_thrown: 0,
+        highest_finish: 0,
+        best_leg: 0,
+        count_100: 0,
+        count_140: 0,
+        count_180: 0,
+        checkout_attempts: 0,
+        checkout_hits: 0,
+      };
+      open501Stats(encodeURIComponent(JSON.stringify(skeletonData)));
     }
+  }
+}
+
+function toggleHistoryDetails(element) {
+  const details = element.nextElementSibling;
+  const isVisible = details.style.display === "block";
+  details.style.display = isVisible ? "none" : "block";
+
+  // Optional: Scroll into view if opening
+  if (!isVisible) {
+    details.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 }
