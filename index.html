@@ -61,25 +61,6 @@
         border-radius: 12px;
         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
       }
-
-      .nav-tabs {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 25px;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-      .nav-btn {
-        background: #333;
-        border: none;
-        color: #aaa;
-        padding: 10px 20px;
-        cursor: pointer;
-        border-radius: 30px;
-        transition: 0.3s;
-        font-weight: bold;
-        font-size: 0.9em;
-      }
       .nav-btn.active {
         background: var(--accent-blue);
         color: white;
@@ -529,14 +510,23 @@
         margin-right: 10px;
         cursor: pointer;
       }
-      input[type="text"] {
+      input[type="text"],
+      input[type="email"],
+      input[type="password"] {
         flex: 1;
         padding: 15px;
         border-radius: 8px;
-        border: none;
-        background: #333;
+        border: 1px solid #333;
+        background: #111;
         color: white;
-        font-size: 1em;
+        font-size: 1.1em;
+        transition: border-color 0.3s;
+      }
+      input[type="text"]:focus,
+      input[type="email"]:focus,
+      input[type="password"]:focus {
+        outline: none;
+        border-color: var(--accent-blue);
       }
       /* Animation für aktives Mikrofon */
       .mic-active {
@@ -694,32 +684,358 @@
         background-color: #555;
         color: white;
       }
+      /* --- SIDEBAR MENU STYLES --- */
+      .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease;
+      }
+      .sidebar-overlay.open {
+        opacity: 1;
+        visibility: visible;
+      }
+      .nav-tabs {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        width: 250px;
+        height: 100vh;
+        background: var(--card-bg);
+        box-shadow: 2px 0 15px rgba(0, 0, 0, 0.8);
+        z-index: 1001;
+        flex-direction: column;
+        justify-content: flex-start;
+        padding: 20px;
+        padding-bottom: 30px;
+        gap: 15px;
+        margin: 0;
+        transition: left 0.3s ease;
+        display: flex;
+        overflow-y: auto;
+        box-sizing: border-box; /* WICHTIG: Zwingt das Menü in den Bildschirm! */
+      }
+      .nav-tabs.open {
+        left: 0;
+      }
+      .nav-btn {
+        width: 100%;
+        text-align: left;
+        padding: 15px 20px;
+        border-radius: 8px;
+        font-size: 1.1em;
+        margin: 0 !important;
+      }
+      .sidebar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #333;
+        padding-bottom: 15px;
+        margin-bottom: 10px;
+      }
     </style>
   </head>
   <body>
-    <h1 id="app-title">Secure-Darts</h1>
+    <div
+      id="auth-screen"
+      class="container"
+      style="
+        text-align: center;
+        margin-top: 4vh;
+        max-width: 420px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+      "
+    >
+      <div
+        style="
+          font-size: 4.5em;
+          margin-bottom: 5px;
+          text-shadow: 0 0 20px rgba(0, 230, 118, 0.2);
+        "
+      >
+        🎯
+      </div>
+      <h2
+        style="
+          color: white;
+          margin-bottom: 10px;
+          text-transform: uppercase;
+          letter-spacing: 2px;
+        "
+      >
+        Willkommen
+      </h2>
+      <p
+        style="
+          color: #888;
+          margin-bottom: 30px;
+          font-size: 0.95em;
+          line-height: 1.5;
+        "
+      >
+        Melde dich an, um deine Statistiken geräteübergreifend und sicher zu
+        speichern.
+      </p>
 
-    <div class="nav-tabs" id="main-nav" style="display: none">
-      <button class="nav-btn active" id="tab-play" onclick="showScreen('play')">
-        Spielen
+      <input
+        type="email"
+        id="auth-email"
+        placeholder="E-Mail Adresse"
+        style="
+          width: 100%;
+          box-sizing: border-box;
+          margin-bottom: 15px;
+          text-align: center;
+        "
+      />
+      <input
+        type="password"
+        id="auth-password"
+        placeholder="Passwort (min. 6 Zeichen)"
+        style="
+          width: 100%;
+          box-sizing: border-box;
+          margin-bottom: 25px;
+          text-align: center;
+        "
+      />
+
+      <div
+        style="
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-bottom: 25px;
+        "
+      >
+        <button
+          class="primary"
+          style="margin: 0; padding: 16px; font-size: 1.1em"
+          onclick="handleLogin()"
+        >
+          Einloggen
+        </button>
+        <button
+          class="primary"
+          style="
+            margin: 0;
+            padding: 16px;
+            font-size: 1.1em;
+            background: #2a2a2a;
+            color: white;
+            border: 1px solid #444;
+          "
+          onclick="handleRegister()"
+        >
+          Account erstellen
+        </button>
+
+        <button
+          class="primary"
+          style="
+            margin: 0;
+            padding: 15px;
+            font-size: 1.1em;
+            background: white;
+            color: #444;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+          "
+          onclick="handleGoogleLogin()"
+        >
+          <svg style="width: 22px; height: 22px" viewBox="0 0 24 24">
+            <path
+              fill="#4285F4"
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+            />
+            <path
+              fill="#EA4335"
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+            />
+          </svg>
+          Mit Google anmelden
+        </button>
+      </div>
+
+      <div style="display: flex; align-items: center; margin: 25px 0">
+        <div style="flex: 1; height: 1px; background: #333"></div>
+        <div
+          style="
+            color: #666;
+            padding: 0 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+          "
+        >
+          Oder
+        </div>
+        <div style="flex: 1; height: 1px; background: #333"></div>
+      </div>
+
+      <button
+        class="reset"
+        style="
+          background: transparent;
+          border: 1px dashed #555;
+          color: #aaa;
+          margin-top: 0;
+          padding: 15px;
+          transition: all 0.3s;
+        "
+        onmouseover="this.style.borderColor='white'; this.style.color='white'"
+        onmouseout="this.style.borderColor='#555'; this.style.color='#aaa'"
+        onclick="continueAsGuest()"
+      >
+        Als Gast fortfahren (Lokal)
       </button>
-      <button class="nav-btn" id="tab-stats" onclick="showScreen('stats')">
-        Stats
+    </div>
+    <div
+      id="top-header"
+      style="
+        display: none;
+        width: 100%;
+        max-width: 600px;
+        position: relative;
+        text-align: center;
+        margin-bottom: 20px;
+      "
+    >
+      <button
+        id="hamburger-btn"
+        onclick="toggleMenu()"
+        style="
+          display: none;
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          background: transparent;
+          border: none;
+          font-size: 2em;
+          padding: 0;
+          margin: 0;
+          width: auto;
+          color: white;
+          cursor: pointer;
+          z-index: 10;
+        "
+      >
+        ☰
       </button>
-      <button class="nav-btn" id="tab-rules" onclick="showScreen('rules')">
-        Regeln
+      <h1 id="app-title" style="margin: 0; display: inline-block">
+        Secure-Darts
+      </h1>
+    </div>
+
+    <div
+      id="sidebar-overlay"
+      class="sidebar-overlay"
+      onclick="toggleMenu()"
+    ></div>
+    <div class="nav-tabs" id="main-nav">
+      <div class="sidebar-header">
+        <h3 style="margin: 0; color: var(--accent-green)">Menü</h3>
+        <button
+          onclick="toggleMenu()"
+          style="
+            background: transparent;
+            border: none;
+            color: #aaa;
+            font-size: 2em;
+            padding: 0;
+            margin: 0;
+            width: auto;
+            line-height: 1;
+            cursor: pointer;
+          "
+        >
+          ×
+        </button>
+      </div>
+      <button
+        class="nav-btn active"
+        id="tab-play"
+        onclick="showScreen('play'); toggleMenu();"
+      >
+        🎯 Spielen
       </button>
       <button
         class="nav-btn"
-        onclick="goHome()"
-        style="background: #444; margin-left: 10px"
+        id="tab-stats"
+        onclick="showScreen('stats'); toggleMenu();"
       >
-        🏠 Home
+        📊 Statistiken
+      </button>
+      <button
+        class="nav-btn"
+        id="tab-rules"
+        onclick="showScreen('rules'); toggleMenu();"
+      >
+        📜 Regeln
+      </button>
+
+      <div style="flex: 1; min-height: 20px"></div>
+      <button
+        class="nav-btn"
+        onclick="changeUsername(); toggleMenu();"
+        style="
+          background: #2a2a2a;
+          color: white;
+          border: 1px solid var(--accent-blue);
+        "
+      >
+        👤 Profil (Name ändern)
+      </button>
+      <button
+        class="nav-btn"
+        onclick="window.location.href='admin.html'"
+        style="background: #222; color: #aaa; border: 1px solid #444"
+      >
+        ⚙️ Admin
+      </button>
+      <button
+        class="nav-btn"
+        onclick="goHome(); toggleMenu();"
+        style="background: #444"
+      >
+        🏠 Modus wechseln
+      </button>
+      <button
+        class="nav-btn"
+        onclick="handleLogout(); toggleMenu();"
+        style="background: var(--accent-red); color: white"
+      >
+        🚪 Logout
       </button>
     </div>
 
-    <div class="container" style="position: relative">
-      <div id="home-screen" style="text-align: center; padding: 20px 0">
+    <div id="main-container" class="container" style="position: relative">
+      <div
+        id="home-screen"
+        style="text-align: center; padding: 20px 0; position: relative"
+      >
         <h2 style="color: #aaa; margin-bottom: 30px; font-weight: normal">
           Wähle deinen Modus
         </h2>
@@ -1404,7 +1720,6 @@
         </p>
       </div>
     </div>
-    <a href="admin.html" class="admin-link">⚙️ Admin</a>
 
     <div id="stats-modal" class="modal-overlay" onclick="closeStats(event)">
       <div class="stats-card">
@@ -1472,6 +1787,29 @@
                 -
               </div>
             </div>
+
+            <div class="kpi-box" id="box-kpi-7" style="display: none">
+              <div class="kpi-label">Bestes Leg</div>
+              <div class="kpi-value" id="kpi-7" style="color: white">-</div>
+            </div>
+            <div class="kpi-box" id="box-kpi-8" style="display: none">
+              <div class="kpi-label">100+</div>
+              <div class="kpi-value" id="kpi-8" style="color: white">-</div>
+            </div>
+            <div class="kpi-box" id="box-kpi-9" style="display: none">
+              <div class="kpi-label">140+</div>
+              <div class="kpi-value" id="kpi-9" style="color: white">-</div>
+            </div>
+            <div class="kpi-box" id="box-kpi-10" style="display: none">
+              <div class="kpi-label">180s</div>
+              <div
+                class="kpi-value"
+                id="kpi-10"
+                style="color: var(--accent-green)"
+              >
+                -
+              </div>
+            </div>
           </div>
 
           <h4
@@ -1525,8 +1863,187 @@
 
       let currentAppMode = "";
 
+      // ==========================================
+      // --- AUTHENTIFIZIERUNG (LOGIN) ---
+      // ==========================================
+      let currentUser = null;
+      let isGuest = false;
+
+      function toggleMenu() {
+        const nav = document.getElementById("main-nav");
+        const overlay = document.getElementById("sidebar-overlay");
+        if (nav.classList.contains("open")) {
+          nav.classList.remove("open");
+          overlay.classList.remove("open");
+        } else {
+          nav.classList.add("open");
+          overlay.classList.add("open");
+        }
+      }
+
+      async function initAuth() {
+        const {
+          data: { session },
+        } = await _supabase.auth.getSession();
+        if (session) {
+          currentUser = session.user;
+          isGuest = false;
+          showMainApp();
+        } else {
+          showAuthScreen();
+        }
+      }
+
+      function showAuthScreen() {
+        document.getElementById("top-header").style.display = "none";
+        document.getElementById("main-container").style.display = "none";
+        const screens = [
+          "home-screen",
+          "setup-screen",
+          "game-screen",
+          "online-lobby-screen",
+          "game-501-screen",
+          "highscore-screen",
+          "rules-screen",
+        ];
+        screens.forEach((s) => {
+          let el = document.getElementById(s);
+          if (el) el.style.display = "none";
+        });
+        document.getElementById("auth-screen").style.display = "block";
+      }
+
+      function showMainApp() {
+        document.getElementById("auth-screen").style.display = "none";
+        document.getElementById("top-header").style.display = "block";
+        document.getElementById("main-container").style.display = "block";
+
+        if (!isGuest && currentUser) {
+          let displayName = currentUser.email.split("@")[0];
+
+          // NEU: Zieht bevorzugt deinen selbst gewählten Namen (oder Google-Namen)
+          if (currentUser.user_metadata) {
+            if (currentUser.user_metadata.display_name) {
+              displayName = currentUser.user_metadata.display_name;
+            } else if (currentUser.user_metadata.full_name) {
+              displayName = currentUser.user_metadata.full_name;
+            }
+          }
+
+          let p1Input = document.getElementById("local-p1-name");
+          let onlineInput = document.getElementById("online-player-name");
+          if (p1Input) p1Input.value = displayName;
+          if (onlineInput) onlineInput.value = displayName;
+        }
+        goHome();
+      }
+
+      async function handleLogin() {
+        const email = document.getElementById("auth-email").value.trim();
+        const password = document.getElementById("auth-password").value.trim();
+        if (!email || !password)
+          return alert("Bitte E-Mail und Passwort eingeben.");
+
+        const { data, error } = await _supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) return alert("Login fehlgeschlagen: " + error.message);
+
+        currentUser = data.user;
+        isGuest = false;
+        showMainApp();
+      }
+
+      async function handleRegister() {
+        const email = document.getElementById("auth-email").value.trim();
+        const password = document.getElementById("auth-password").value.trim();
+        if (!email || !password)
+          return alert("Bitte E-Mail und Passwort eingeben.");
+
+        const { data, error } = await _supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (error)
+          return alert("Registrierung fehlgeschlagen: " + error.message);
+
+        alert("Erfolgreich registriert und eingeloggt!");
+        currentUser = data.user;
+        isGuest = false;
+        showMainApp();
+      }
+
+      async function handleGoogleLogin() {
+        const { data, error } = await _supabase.auth.signInWithOAuth({
+          provider: "google",
+        });
+
+        if (error) {
+          alert("Google Login fehlgeschlagen: " + error.message);
+          console.error(error);
+        }
+        // Supabase leitet den Browser jetzt automatisch zu Google weiter.
+        // Nach erfolgreichem Login springt er zurück, initAuth() erkennt den User und startet das Spiel!
+      }
+
+      function continueAsGuest() {
+        isGuest = true;
+        currentUser = null;
+        showMainApp();
+      }
+
+      async function handleLogout() {
+        if (!isGuest) await _supabase.auth.signOut();
+        isGuest = false;
+        currentUser = null;
+        document.getElementById("auth-email").value = "";
+        document.getElementById("auth-password").value = "";
+        showAuthScreen();
+      }
+
+      async function changeUsername() {
+        if (isGuest || !currentUser)
+          return alert("Als Gast kannst du keinen Namen speichern.");
+
+        let currentName = currentUser.email.split("@")[0];
+        if (
+          currentUser.user_metadata &&
+          currentUser.user_metadata.display_name
+        ) {
+          currentName = currentUser.user_metadata.display_name;
+        } else if (
+          currentUser.user_metadata &&
+          currentUser.user_metadata.full_name
+        ) {
+          currentName = currentUser.user_metadata.full_name;
+        }
+
+        let newName = prompt(
+          "Wie lautet dein gewünschter Darts-Name?",
+          currentName
+        );
+
+        if (newName && newName.trim() !== "" && newName !== currentName) {
+          // Speichert den Namen im Hintergrund in deinem Account
+          const { data, error } = await _supabase.auth.updateUser({
+            data: { display_name: newName.trim() },
+          });
+
+          if (error) {
+            alert("Fehler beim Speichern: " + error.message);
+          } else {
+            currentUser = data.user;
+            alert("Name erfolgreich geändert auf: " + newName.trim());
+            showMainApp(); // Refresht die Inputs sofort!
+          }
+        }
+      }
+
       function goHome() {
-        document.getElementById("main-nav").style.display = "none";
+        // HIER WAR DER FEHLER: Stand vorher auf "none"
+        document.getElementById("hamburger-btn").style.display = "block";
+
         const screens = [
           "home-screen",
           "setup-screen",
@@ -1548,7 +2065,8 @@
       function enterMode(mode) {
         currentAppMode = mode;
         document.getElementById("home-screen").style.display = "none";
-        document.getElementById("main-nav").style.display = "flex";
+        document.getElementById("hamburger-btn").style.display = "block"; // Zeigt den Hamburger-Button an
+
         if (mode === "501") {
           document.getElementById("tab-rules").style.display = "none";
           document.getElementById("app-title").innerText = "🌍 501 DARTS";
@@ -1606,7 +2124,7 @@
 
       window.addEventListener("DOMContentLoaded", (event) => {
         loadPlayerSuggestions();
-        goHome();
+        initAuth(); // <--- NEU: Prüft Login statt direkt ins Home-Menü zu gehen
       });
       async function requestWakeLock() {
         try {
@@ -1943,42 +2461,120 @@
       // ==========================================
       async function save501Stats(
         playerName,
-        isWin,
+        legsWon,
+        legsPlayed,
         matchDarts,
         matchScore,
-        finalFinish
+        finalFinish,
+        trackerObj
       ) {
         if (playerName.includes("🤖") || playerName.includes("🔥")) return;
-        let { data: ex } = await _supabase
-          .from("stats_501")
-          .select("*")
-          .eq("name", playerName)
-          .single();
-        if (!ex) {
-          await _supabase.from("stats_501").insert([
-            {
-              name: playerName,
-              wins: isWin ? 1 : 0,
-              games_played: 1,
-              total_darts_thrown: matchDarts,
-              total_score_thrown: matchScore,
-              highest_finish: isWin ? finalFinish : 0,
-            },
-          ]);
-        } else {
-          let newHighFinish = isWin
-            ? Math.max(ex.highest_finish || 0, finalFinish)
-            : ex.highest_finish || 0;
-          await _supabase
+
+        let isMe = false;
+        if (
+          !isGuest &&
+          currentUser &&
+          (playerName === myOnlineName || playerName === localP1Name)
+        )
+          isMe = true;
+
+        let ex = null;
+        if (isMe) {
+          let { data: exById } = await _supabase
             .from("stats_501")
-            .update({
-              wins: (ex.wins || 0) + (isWin ? 1 : 0),
-              games_played: (ex.games_played || 0) + 1,
-              total_darts_thrown: (ex.total_darts_thrown || 0) + matchDarts,
-              total_score_thrown: (ex.total_score_thrown || 0) + matchScore,
-              highest_finish: newHighFinish,
-            })
-            .eq("name", playerName);
+            .select("*")
+            .eq("user_id", currentUser.id)
+            .maybeSingle();
+          if (exById) ex = exById;
+          else {
+            let { data: exByName } = await _supabase
+              .from("stats_501")
+              .select("*")
+              .eq("name", playerName)
+              .is("user_id", null)
+              .maybeSingle();
+            if (exByName) ex = exByName;
+          }
+        } else {
+          let { data: guestData } = await _supabase
+            .from("stats_501")
+            .select("*")
+            .eq("name", playerName)
+            .is("user_id", null)
+            .maybeSingle();
+          if (guestData) ex = guestData;
+        }
+
+        let tr = trackerObj || {
+          bestLeg: 0,
+          t100: 0,
+          t140: 0,
+          t180: 0,
+          busts: 0,
+          checkoutAttempts: 0,
+          checkoutHits: 0,
+        };
+
+        if (!ex) {
+          let payload = {
+            name: playerName,
+            wins: legsWon, // Speichert jetzt Legs Won
+            games_played: legsPlayed, // Speichert jetzt Legs Played
+            total_darts_thrown: matchDarts,
+            total_score_thrown: matchScore,
+            highest_finish: finalFinish,
+            best_leg: tr.bestLeg || 0,
+            count_100: tr.t100 || 0,
+            count_140: tr.t140 || 0,
+            count_180: tr.t180 || 0,
+            count_busts: tr.busts || 0,
+            checkout_attempts: tr.checkoutAttempts || 0,
+            checkout_hits: tr.checkoutHits || 0,
+          };
+          if (isMe) payload.user_id = currentUser.id;
+
+          const { error: insErr } = await _supabase
+            .from("stats_501")
+            .insert([payload]);
+          if (insErr) {
+            alert("Supabase Insert Fehler: " + insErr.message);
+            console.error(insErr);
+          }
+        } else {
+          let newHighFinish = Math.max(ex.highest_finish || 0, finalFinish);
+          let newBestLeg = ex.best_leg > 0 ? ex.best_leg : 999;
+          if (tr.bestLeg > 0) newBestLeg = Math.min(newBestLeg, tr.bestLeg);
+          if (newBestLeg === 999) newBestLeg = 0;
+
+          let updatePayload = {
+            wins: (ex.wins || 0) + legsWon,
+            games_played: (ex.games_played || 0) + legsPlayed,
+            total_darts_thrown: (ex.total_darts_thrown || 0) + matchDarts,
+            total_score_thrown: (ex.total_score_thrown || 0) + matchScore,
+            highest_finish: newHighFinish,
+            best_leg: newBestLeg,
+            count_100: (ex.count_100 || 0) + (tr.t100 || 0),
+            count_140: (ex.count_140 || 0) + (tr.t140 || 0),
+            count_180: (ex.count_180 || 0) + (tr.t180 || 0),
+            count_busts: (ex.count_busts || 0) + (tr.busts || 0),
+            checkout_attempts:
+              (ex.checkout_attempts || 0) + (tr.checkoutAttempts || 0),
+            checkout_hits: (ex.checkout_hits || 0) + (tr.checkoutHits || 0),
+          };
+
+          if (isMe) {
+            updatePayload.user_id = currentUser.id;
+            updatePayload.name = playerName;
+            await _supabase
+              .from("stats_501")
+              .update(updatePayload)
+              .eq("user_id", currentUser.id);
+          } else {
+            await _supabase
+              .from("stats_501")
+              .update(updatePayload)
+              .eq("name", ex.name);
+          }
         }
       }
 
@@ -2097,6 +2693,10 @@
         document.getElementById("lbl-kpi-4").innerText = "Ø Score";
         document.getElementById("lbl-kpi-5").innerText = "Secure Rate";
         document.getElementById("lbl-kpi-6").innerText = "Double Rate";
+        document.getElementById("lbl-kpi-7").style.display = "none";
+        document.getElementById("lbl-kpi-8").style.display = "none";
+        document.getElementById("lbl-kpi-9").style.display = "none";
+        document.getElementById("lbl-kpi-10").style.display = "none";
         document.querySelector(".modal-tab:nth-child(2)").style.display =
           "block";
         const data = JSON.parse(decodeURIComponent(encodedData));
@@ -2170,17 +2770,24 @@
         switchModalTab("overview");
         m.style.display = "flex";
       }
+
       async function open501Stats(encodedData) {
         const data = JSON.parse(decodeURIComponent(encodedData));
         currentModalPlayer = data.name;
         const m = document.getElementById("stats-modal");
+
         document.getElementById("modal-name").innerText = data.name + " (501)";
-        document.getElementById("lbl-kpi-1").innerText = "Siege";
-        document.getElementById("lbl-kpi-2").innerText = "Spiele";
-        document.getElementById("lbl-kpi-3").innerText = "Winrate";
+        document.getElementById("lbl-kpi-1").innerText = "Legs Won";
+        document.getElementById("lbl-kpi-2").innerText = "Legs Played";
+        document.getElementById("lbl-kpi-3").innerText = "Legs Win%";
         document.getElementById("lbl-kpi-4").innerText = "Lifetime Avg";
         document.getElementById("lbl-kpi-5").innerText = "High Finish";
-        document.getElementById("lbl-kpi-6").innerText = "Total Darts";
+        document.getElementById("lbl-kpi-6").innerText = "Double Rate";
+
+        // Zusatzboxen einblenden
+        for (let i = 7; i <= 10; i++)
+          document.getElementById("box-kpi-" + i).style.display = "block";
+
         let gp = data.games_played || 0;
         let lifetimeAvg =
           data.total_darts_thrown > 0
@@ -2188,6 +2795,7 @@
                 2
               )
             : "0.00";
+
         document.getElementById("kpi-1").innerText = data.wins;
         document.getElementById("kpi-2").innerText = gp;
         document.getElementById("kpi-2").style.color = "white";
@@ -2195,9 +2803,22 @@
           gp > 0 ? Math.round((data.wins / gp) * 100) + "%" : "0%";
         document.getElementById("kpi-4").innerText = lifetimeAvg;
         document.getElementById("kpi-5").innerText = data.highest_finish || 0;
-        document.getElementById("kpi-6").innerText =
-          data.total_darts_thrown || 0;
-        document.getElementById("kpi-6").style.color = "#aaa";
+
+        let doubleRate = "0%";
+        if (data.checkout_attempts > 0) {
+          doubleRate =
+            Math.round((data.checkout_hits / data.checkout_attempts) * 100) +
+            "%";
+        }
+        document.getElementById("kpi-6").innerText = doubleRate;
+        document.getElementById("kpi-6").style.color = "var(--accent-red)";
+
+        document.getElementById("kpi-7").innerText =
+          data.best_leg > 0 ? data.best_leg : "-";
+        document.getElementById("kpi-8").innerText = data.count_100 || 0;
+        document.getElementById("kpi-9").innerText = data.count_140 || 0;
+        document.getElementById("kpi-10").innerText = data.count_180 || 0;
+
         let { data: matchData } = await _supabase
           .from("match_history_501")
           .select("match_average, created_at")
@@ -2215,6 +2836,7 @@
           chartLabels = ["Keine Daten"];
           chartAverages = [0];
         }
+
         if (statsChart) statsChart.destroy();
         const ctx = document.getElementById("statsChart").getContext("2d");
         statsChart = new Chart(ctx, {
@@ -2249,6 +2871,7 @@
             plugins: { legend: { display: false } },
           },
         });
+
         document.querySelector(".modal-tab:nth-child(2)").style.display =
           "none";
         switchModalTab("overview");
@@ -2598,6 +3221,53 @@
       let p1Darts501 = 0;
       let p2Darts501 = 0;
       let history501Stack = [];
+      let statsTracker = {
+        p1: {
+          dartsCurrentLeg: 0,
+          bestLeg: 0,
+          t100: 0,
+          t140: 0,
+          t180: 0,
+          busts: 0,
+          checkoutAttempts: 0,
+          checkoutHits: 0,
+        },
+        p2: {
+          dartsCurrentLeg: 0,
+          bestLeg: 0,
+          t100: 0,
+          t140: 0,
+          t180: 0,
+          busts: 0,
+          checkoutAttempts: 0,
+          checkoutHits: 0,
+        },
+      };
+
+      function resetStatsTracker() {
+        statsTracker = {
+          p1: {
+            dartsCurrentLeg: 0,
+            bestLeg: 0,
+            t100: 0,
+            t140: 0,
+            t180: 0,
+            busts: 0,
+            checkoutAttempts: 0,
+            checkoutHits: 0,
+          },
+          p2: {
+            dartsCurrentLeg: 0,
+            bestLeg: 0,
+            t100: 0,
+            t140: 0,
+            t180: 0,
+            busts: 0,
+            checkoutAttempts: 0,
+            checkoutHits: 0,
+          },
+        };
+      }
 
       function startLocal501Game() {
         bestOfLegs = parseInt(
@@ -2619,6 +3289,7 @@
         document.getElementById("online-lobby-screen").style.display = "none";
         document.getElementById("game-501-screen").style.display = "block";
         resetLegLocal();
+        resetStatsTracker();
       }
 
       function resetLegLocal() {
@@ -2627,6 +3298,8 @@
         history501Stack = [];
         localCurrentTurn = (localP1Legs + localP2Legs) % 2 === 0 ? 1 : 2;
         isMyTurn = true;
+        statsTracker.p1.dartsCurrentLeg = 0;
+        statsTracker.p2.dartsCurrentLeg = 0;
         document.getElementById("win-overlay-501").style.display = "none";
         document.getElementById("p1-name").innerText = localP1Name;
         document.getElementById("p2-name").innerText = localP2Name;
@@ -2856,6 +3529,7 @@
         p2TotalScore = 0;
         p1Darts501 = 0;
         p2Darts501 = 0;
+        resetStatsTracker();
 
         const { error } = await _supabase.from("live_matches").insert([
           {
@@ -2898,6 +3572,7 @@
         if (error || !room) return alert("Raum nicht gefunden!");
         if (room.status !== "waiting") return alert("Das Spiel läuft bereits.");
 
+        resetStatsTracker();
         amIPlayer1 = false;
         currentRoomCode = codeInput;
         bestOfLegs = room.best_of_legs || 3;
@@ -3037,9 +3712,7 @@
       }
 
       async function submit501Score() {
-        if (!isLocal501 && !isMyTurn)
-          return alert("Warte, dein Gegner ist gerade am Zug!");
-        if (current501Input === "") return;
+        if (!isLocal501 && !isMyTurn) if (current501Input === "") return;
 
         let score = parseInt(current501Input);
 
@@ -3051,14 +3724,13 @@
           return;
         }
 
-        let currentPoints = 0;
-        if (isLocal501) {
-          currentPoints = localCurrentTurn === 1 ? localP1Score : localP2Score;
-        } else {
-          currentPoints = amIPlayer1
-            ? parseInt(document.getElementById("p1-score").innerText)
-            : parseInt(document.getElementById("p2-score").innerText);
-        }
+        let currentPoints = isLocal501
+          ? localCurrentTurn === 1
+            ? localP1Score
+            : localP2Score
+          : amIPlayer1
+          ? parseInt(document.getElementById("p1-score").innerText)
+          : parseInt(document.getElementById("p2-score").innerText);
 
         const bogeyFinishes = [169, 168, 166, 165, 163, 162, 159];
         if (score === currentPoints && bogeyFinishes.includes(score)) {
@@ -3069,6 +3741,76 @@
           update501Display();
           return;
         }
+
+        let newScore = currentPoints - score;
+        let isBust = false;
+        let throwText = score.toString();
+
+        if (newScore < 0 || newScore === 1) {
+          newScore = currentPoints;
+          isBust = true;
+          throwText = "Bust";
+        }
+
+        let isFinished = newScore === 0;
+
+        // --- PRO STATS & CHECKOUT TRACKING ---
+        let isOnFinish = getCheckoutPath(currentPoints) !== "";
+        let dartsThrownThisTurn = 3;
+        let pStats = isLocal501
+          ? localCurrentTurn === 1
+            ? statsTracker.p1
+            : statsTracker.p2
+          : amIPlayer1
+          ? statsTracker.p1
+          : statsTracker.p2;
+
+        if (isBust) {
+          pStats.busts++;
+          if (isOnFinish) {
+            let ans = prompt(
+              "Bust! Wie viele Darts gingen auf ein Doppel? (0-3)",
+              "1"
+            );
+            pStats.checkoutAttempts += parseInt(ans) || 0;
+          }
+        } else if (isFinished) {
+          pStats.checkoutHits++;
+          let turnDarts = prompt(
+            "GAME SHOT! 🎯 Mit dem wievielten Dart hast du gecheckt? (1, 2 oder 3)",
+            "1"
+          );
+          dartsThrownThisTurn = parseInt(turnDarts) || 3;
+          if (dartsThrownThisTurn > 3) dartsThrownThisTurn = 3;
+          if (dartsThrownThisTurn < 1) dartsThrownThisTurn = 1;
+
+          let doubleDarts = prompt(
+            `Wie viele von diesen ${dartsThrownThisTurn} Darts gingen auf ein Doppel?`,
+            "1"
+          );
+          pStats.checkoutAttempts += parseInt(doubleDarts) || 1;
+        } else {
+          if (score === 180) pStats.t180++;
+          else if (score >= 140) pStats.t140++;
+          else if (score >= 100) pStats.t100++;
+
+          if (isOnFinish && score > 0) {
+            let ans = prompt(
+              "Du warst im Finish-Bereich! Wie viele Darts hast du auf ein Doppel geworfen? (0-3)",
+              "0"
+            );
+            pStats.checkoutAttempts += parseInt(ans) || 0;
+          }
+        }
+
+        pStats.dartsCurrentLeg += dartsThrownThisTurn;
+        if (
+          isFinished &&
+          (pStats.bestLeg === 0 || pStats.dartsCurrentLeg < pStats.bestLeg)
+        ) {
+          pStats.bestLeg = pStats.dartsCurrentLeg;
+        }
+        // -------------------------------------
 
         if (isLocal501) {
           history501Stack.push({
@@ -3083,22 +3825,14 @@
             p2Total: p2TotalScore,
           });
 
-          let newScore = currentPoints - score;
-          let throwText = score.toString();
-
-          if (newScore < 0 || newScore === 1) {
-            newScore = currentPoints;
-            throwText = "Bust";
-          }
-
           if (localCurrentTurn === 1) {
             localP1Score = newScore;
-            p1Darts501 += 3;
+            p1Darts501 += dartsThrownThisTurn; // Nutzt jetzt die echten Darts!
             p1TotalScore += currentPoints - newScore;
             p1LastThrow = throwText;
           } else {
             localP2Score = newScore;
-            p2Darts501 += 3;
+            p2Darts501 += dartsThrownThisTurn; // Nutzt jetzt die echten Darts!
             p2TotalScore += currentPoints - newScore;
             p2LastThrow = throwText;
           }
@@ -3107,7 +3841,7 @@
           document.getElementById("p2-score").innerText = localP2Score;
           update501QoL(localP1Score, localP2Score);
 
-          if (newScore === 0) {
+          if (isFinished) {
             handleLegWinLocal(
               localCurrentTurn === 1 ? localP1Name : localP2Name,
               localCurrentTurn === 1 ? 1 : 2,
@@ -3115,7 +3849,6 @@
             );
             return;
           }
-
           localCurrentTurn = localCurrentTurn === 1 ? 2 : 1;
           updateLocalTurnHighlight();
         } else {
@@ -3136,30 +3869,19 @@
               parseFloat(
                 document.getElementById("p2-avg").innerText.replace("Avg: ", "")
               ) || 0,
+            player1_last_score:
+              document.getElementById("p1-last-throw").innerText,
+            player2_last_score:
+              document.getElementById("p2-last-throw").innerText,
             current_turn: amIPlayer1 ? 1 : 2,
           };
 
-          let currentPoints = amIPlayer1
-            ? prevState.player1_score
-            : prevState.player2_score;
-          let newScore = currentPoints - score;
-          let isBust = false;
-          let throwText = score.toString();
-
-          if (newScore < 0 || newScore === 1) {
-            newScore = currentPoints;
-            isBust = true;
-            throwText = "Bust";
-          }
-
-          let isFinished = newScore === 0;
-
           if (amIPlayer1) {
-            p1Darts501 += 3;
+            p1Darts501 += dartsThrownThisTurn;
             p1TotalScore += currentPoints - newScore;
             p1LastThrow = throwText;
           } else {
-            p2Darts501 += 3;
+            p2Darts501 += dartsThrownThisTurn;
             p2TotalScore += currentPoints - newScore;
             p2LastThrow = throwText;
           }
@@ -3169,7 +3891,6 @@
             amIPlayer1 ? newScore : prevState.player1_score,
             amIPlayer1 ? prevState.player2_score : newScore
           );
-
           isMyTurn = false;
           document.getElementById("input-display-501").innerText = "Sende...";
 
@@ -3201,32 +3922,23 @@
             let p2LegsDB =
               parseInt(document.getElementById("p2-legs-display").innerText) ||
               0;
-
             if (amIPlayer1) p1LegsDB++;
             else p2LegsDB++;
-
             updatePayload.player1_legs = p1LegsDB;
             updatePayload.player2_legs = p2LegsDB;
 
-            // SICHERHEIT: Garantiert, dass BestOf immer mindestens 1 ist, um NaN zu verhindern!
             let safeBestOf = parseInt(bestOfLegs) || 3;
             let neededLegs = Math.max(1, Math.ceil(safeBestOf / 2));
-
-            if (p1LegsDB >= neededLegs || p2LegsDB >= neededLegs) {
+            if (p1LegsDB >= neededLegs || p2LegsDB >= neededLegs)
               updatePayload.status = "match_won";
-            } else {
-              updatePayload.status = "leg_won";
-            }
+            else updatePayload.status = "leg_won";
           }
-
-          // NEU: Fehler abfangen, falls Supabase das Update blockiert!
           const { error: dbError } = await _supabase
             .from("live_matches")
             .update(updatePayload)
             .eq("room_code", currentRoomCode);
           if (dbError) {
             alert("Datenbank-Fehler beim Senden: " + dbError.message);
-            console.error(dbError);
             document.getElementById("input-display-501").innerText = "Fehler!";
           }
         }
@@ -3321,12 +4033,19 @@
                       ? ((myScoreThrown / myDarts) * 3).toFixed(2)
                       : "0.00";
 
+                  let totalLegs = dbData.player1_legs + dbData.player2_legs;
+                  let myLegsWon = amIPlayer1
+                    ? dbData.player1_legs
+                    : dbData.player2_legs;
+
                   save501Stats(
                     myOnlineName,
-                    amIWinner,
+                    myLegsWon,
+                    totalLegs,
                     myDarts,
                     myScoreThrown,
-                    myFinish
+                    myFinish,
+                    amIPlayer1 ? statsTracker.p1 : statsTracker.p2
                   );
                   let oppName = amIPlayer1
                     ? dbData.player2_name
@@ -3399,30 +4118,6 @@
                 alert("⚠️ Dein Gegner hat das Spiel abgebrochen!");
                 cancel501Game(true, false);
               }
-
-              if (dbData.undo_requested && isMyTurn) {
-                if (
-                  confirm(
-                    "Dein Gegner möchte seinen letzten Wurf rückgängig machen. Zulassen?"
-                  )
-                ) {
-                  if (dbData.prev_state) {
-                    let restore = dbData.prev_state;
-                    restore.undo_requested = false;
-                    restore.prev_state = null;
-                    restore.last_action = "Wurf storniert";
-                    _supabase
-                      .from("live_matches")
-                      .update(restore)
-                      .eq("room_code", currentRoomCode);
-                  }
-                } else {
-                  _supabase
-                    .from("live_matches")
-                    .update({ undo_requested: false })
-                    .eq("room_code", currentRoomCode);
-                }
-              }
             }
           )
           .on(
@@ -3470,17 +4165,36 @@
         if (isLocal501) {
           undo501Turn();
         } else {
-          if (
-            confirm(
-              "Möchtest du beim Gegner anfragen, deinen letzten Wurf rückgängig zu machen?"
-            )
-          ) {
-            await _supabase
-              .from("live_matches")
-              .update({ undo_requested: true })
-              .eq("room_code", currentRoomCode);
-            alert("Anfrage gesendet. Warte auf Bestätigung...");
+          // 1. Aktuellen Status aus der Datenbank abrufen
+          let { data: room } = await _supabase
+            .from("live_matches")
+            .select("prev_state")
+            .eq("room_code", currentRoomCode)
+            .single();
+
+          if (room && room.prev_state) {
+            // 2. Sicherheits-Check: Dürfen wir stornieren? (Nur wenn WIR den letzten Wurf gemacht haben)
+            let wasMyTurn =
+              (amIPlayer1 && room.prev_state.current_turn === 1) ||
+              (!amIPlayer1 && room.prev_state.current_turn === 2);
+
+            if (wasMyTurn) {
+              // 3. Zustand sofort wiederherstellen (ohne den Gegner zu fragen!)
+              let restore = room.prev_state;
+              restore.undo_requested = false;
+              restore.prev_state = null; // Verhindert doppeltes Undo in Folge
+
+              await _supabase
+                .from("live_matches")
+                .update(restore)
+                .eq("room_code", currentRoomCode);
+              return;
+            }
           }
+          // Falls der Gegner in der Zwischenzeit schon geworfen hat:
+          alert(
+            "⚠️ Undo nicht mehr möglich! Dein Gegner hat bereits geworfen."
+          );
         }
       }
 
@@ -3494,19 +4208,26 @@
 
         if (localP1Legs >= legsToWin || localP2Legs >= legsToWin) {
           matchWon = true;
+
+          let totalLegs = localP1Legs + localP2Legs;
+          // WICHTIG: Hier am Ende muss zwingend statsTracker.p1 / .p2 stehen!
           save501Stats(
             localP1Name,
-            playerNum === 1,
+            localP1Legs,
+            totalLegs,
             p1Darts501,
             p1TotalScore,
-            playerNum === 1 ? finishScore : 0
+            playerNum === 1 ? finishScore : 0,
+            statsTracker.p1
           );
           save501Stats(
             localP2Name,
-            playerNum === 2,
+            localP2Legs,
+            totalLegs,
             p2Darts501,
             p2TotalScore,
-            playerNum === 2 ? finishScore : 0
+            playerNum === 2 ? finishScore : 0,
+            statsTracker.p2
           );
 
           let p1Avg = ((p1TotalScore / p1Darts501) * 3).toFixed(2);
