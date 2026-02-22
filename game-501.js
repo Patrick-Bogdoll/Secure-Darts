@@ -32,6 +32,7 @@ function startLocal501Game() {
     document.getElementById("local-p1-name").value.trim() || "Spieler 1";
   localP2Name =
     document.getElementById("local-p2-name").value.trim() || "Spieler 2";
+  isP2Bot = localP2Name.includes("🤖");
   localP1Legs = 0;
   localP2Legs = 0;
   p1TotalScore = 0;
@@ -66,6 +67,10 @@ function resetLegLocal() {
   document.getElementById("p2-name").innerText = localP2Name;
   updateLocalTurnHighlight();
   update501QoL(localP1Score, localP2Score);
+  // Wenn Spieler 2 ein Bot ist und er anfangen darf, spielt er automatisch los!
+  if (localCurrentTurn === 2 && isP2Bot) {
+    setTimeout(() => play501BotTurn(), 800);
+  }
 }
 
 function update501QoL(p1Score, p2Score) {
@@ -663,34 +668,39 @@ async function submit501Score() {
     : amIPlayer1
     ? statsTracker.p1
     : statsTracker.p2;
+  let isBotThrow = isLocal501 && localCurrentTurn === 2 && isP2Bot; // Prüft, ob der Bot gerade dran ist
 
   if (isBust) {
     pStats.busts++;
     if (isOnFinish) {
-      let ans = await askCheckoutOverlay(
-        "Bust! Wie viele Darts gingen aufs Doppel?",
-        0,
-        3
-      );
+      let ans = isBotThrow
+        ? botDoubleAttempts
+        : await askCheckoutOverlay(
+            "Bust! Wie viele Darts gingen aufs Doppel?",
+            0,
+            3
+          );
       pStats.checkoutAttempts += ans;
     }
   } else if (isFinished) {
     pStats.checkoutHits++;
 
-    // Abfrage 1: Gesamte Darts für den Check
-    let turnDarts = await askCheckoutOverlay(
-      "GAME SHOT! 🎯\nMit dem wievielten Dart gecheckt?",
-      1,
-      3
-    );
+    let turnDarts = isBotThrow
+      ? botDartsThrownThisTurn
+      : await askCheckoutOverlay(
+          "GAME SHOT! 🎯\nMit dem wievielten Dart gecheckt?",
+          1,
+          3
+        );
     dartsThrownThisTurn = turnDarts;
 
-    // Abfrage 2: Darts auf das Doppel (Maximal so viele, wie insgesamt geworfen wurden)
-    let doubleDarts = await askCheckoutOverlay(
-      `Checkout Attempts:\nWie viele der ${turnDarts} Darts waren aufs Doppel?`,
-      1,
-      turnDarts
-    );
+    let doubleDarts = isBotThrow
+      ? botDoubleAttempts
+      : await askCheckoutOverlay(
+          `Checkout Attempts:\nWie viele der ${turnDarts} Darts waren aufs Doppel?`,
+          1,
+          turnDarts
+        );
     pStats.checkoutAttempts += doubleDarts;
   } else {
     if (score === 180) pStats.t180++;
@@ -698,11 +708,13 @@ async function submit501Score() {
     else if (score >= 100) pStats.t100++;
 
     if (isOnFinish && score > 0) {
-      let ans = await askCheckoutOverlay(
-        "Kein Finish! Wie viele Darts gingen aufs Doppel?",
-        0,
-        3
-      );
+      let ans = isBotThrow
+        ? botDoubleAttempts
+        : await askCheckoutOverlay(
+            "Kein Finish! Wie viele Darts gingen aufs Doppel?",
+            0,
+            3
+          );
       pStats.checkoutAttempts += ans;
     }
   }
@@ -773,6 +785,7 @@ async function submit501Score() {
     }
     localCurrentTurn = localCurrentTurn === 1 ? 2 : 1;
     updateLocalTurnHighlight();
+    if (localCurrentTurn === 2 && isP2Bot) play501BotTurn();
   } else {
     let prevState = {
       player1_score: parseInt(document.getElementById("p1-score").innerText),
@@ -969,8 +982,7 @@ function listenForOpponent(roomCode) {
               myDarts,
               myScoreThrown,
               myFinish,
-              amIPlayer1 ? statsTracker.p1 : statsTracker.p2,
-              currentMatchLog501
+              amIPlayer1 ? statsTracker.p1 : statsTracker.p2
             );
             let oppName = amIPlayer1
               ? dbData.player2_name
@@ -981,7 +993,8 @@ function listenForOpponent(roomCode) {
               amIWinner,
               parseFloat(myAvg),
               myDarts,
-              myFinish
+              myFinish,
+              currentMatchLog501
             );
           } else {
             btnNext.style.display = "inline-block";
@@ -1200,7 +1213,8 @@ function handleLegWinLocal(winnerName, playerNum, finishScore) {
       playerNum === 1,
       parseFloat(p1Avg),
       p1Darts501,
-      playerNum === 1 ? finishScore : 0
+      playerNum === 1 ? finishScore : 0,
+      currentMatchLog501
     );
     save501MatchHistory(
       localP2Name,
@@ -1208,7 +1222,8 @@ function handleLegWinLocal(winnerName, playerNum, finishScore) {
       playerNum === 2,
       parseFloat(p2Avg),
       p2Darts501,
-      playerNum === 2 ? finishScore : 0
+      playerNum === 2 ? finishScore : 0,
+      currentMatchLog501
     );
   }
 
@@ -1247,13 +1262,154 @@ function triggerRematch() {
   if (isLocal501) startLocal501Game();
 }
 
+// --- BOT VARIABLEN ---
+let isP2Bot = false;
+let botDifficulty501 = 40;
+let botDartsThrownThisTurn = 0;
+let botDoubleAttempts = 0;
+let currentBotAvgSelection = 40;
+
+// Öffnet das neue Menü
+function add501Bot() {
+  currentBotAvgSelection = 40;
+  document.getElementById("bot-avg-display").innerText = currentBotAvgSelection;
+  document.getElementById("bot-setup-overlay").style.display = "flex";
+}
+
+// Steuert die Plus/Minus Buttons
+function changeBotAvg(delta) {
+  currentBotAvgSelection += delta;
+  if (currentBotAvgSelection < 20) currentBotAvgSelection = 20;
+  if (currentBotAvgSelection > 120) currentBotAvgSelection = 120;
+  document.getElementById("bot-avg-display").innerText = currentBotAvgSelection;
+}
+
+function cancelBotSetup() {
+  document.getElementById("bot-setup-overlay").style.display = "none";
+}
+
+function confirmBotSetup() {
+  document.getElementById("bot-setup-overlay").style.display = "none";
+  localP2Name = `🤖 Bot (Avg: ${currentBotAvgSelection})`;
+  document.getElementById("local-p2-name").value = localP2Name;
+  isP2Bot = true;
+  botDifficulty501 = currentBotAvgSelection;
+}
+
+async function play501BotTurn() {
+  if (localP2Score <= 0 || !isP2Bot) return;
+
+  document.querySelector(".numpad-grid").style.pointerEvents = "none";
+  document.querySelector(".preset-grid").style.pointerEvents = "none";
+
+  await new Promise((r) => setTimeout(r, 600));
+
+  botDartsThrownThisTurn = 0;
+  botDoubleAttempts = 0;
+  let totalTurnScore = 0;
+
+  for (let i = 0; i < 3; i++) {
+    botDartsThrownThisTurn++;
+    let currentRest = localP2Score - totalTurnScore;
+    let target = getBotTarget(currentRest);
+
+    if ((currentRest <= 40 && currentRest % 2 === 0) || currentRest === 50) {
+      botDoubleAttempts++;
+    }
+
+    let hit = calculateBotHit(target, botDifficulty501);
+    totalTurnScore += hit;
+
+    document.getElementById(
+      "input-display-501"
+    ).innerText = `Bot wirft: ${hit}...`;
+    await new Promise((r) => setTimeout(r, 800));
+
+    let tempScore = localP2Score - totalTurnScore;
+    if (tempScore <= 1 || tempScore === 0) break;
+  }
+
+  current501Input = totalTurnScore.toString();
+  document.querySelector(".numpad-grid").style.pointerEvents = "auto";
+  document.querySelector(".preset-grid").style.pointerEvents = "auto";
+  submit501Score();
+}
+
+function getBotTarget(remaining) {
+  if (remaining > 170) return 60;
+  if (remaining <= 40 && remaining % 2 === 0) return remaining;
+  if (remaining <= 50) return 50;
+  if (remaining < 60) return remaining % 2 !== 0 ? 1 : 20;
+  return 60;
+}
+
+function calculateBotHit(target, avg) {
+  let rnd = Math.random() * 100;
+
+  // Realistische Scoring-Berechnung
+  if (target > 40 && target % 3 === 0) {
+    let single = target / 3;
+    let chanceTriple = Math.max(0, (avg - 30) * 0.6); // Triple-Chance steigt erst ab Avg 30
+    let chanceSingle = Math.min(100 - chanceTriple - 5, 10 + avg * 0.8); // Wahrscheinlichkeit, zumindest das Single-Feld zu treffen
+
+    if (rnd < chanceTriple) return target;
+    if (rnd < chanceTriple + chanceSingle) return single;
+
+    // Kompletter Fehlschlag in die Nachbarfelder (1 und 5 bei Ziel 20)
+    let neighbors = single === 20 ? [1, 5] : single === 19 ? [3, 7] : [1, 2, 3];
+    return neighbors[Math.floor(Math.random() * neighbors.length)];
+  }
+
+  // Realistische Doppel-Berechnung (Checkout)
+  if (target <= 40 && target % 2 === 0) {
+    let doubleChance = Math.max(2, (avg - 20) * 0.5);
+    if (rnd < doubleChance) return target;
+    if (rnd < doubleChance + 40) return target / 2; // Trifft aus Versehen innen das Single
+    return 0; // Wirft komplett vorbei (Bust)
+  }
+
+  if (target === 50) {
+    let bullChance = Math.max(2, (avg - 30) * 0.4);
+    let singleBullChance = Math.min(100 - bullChance, 10 + avg * 0.6);
+    if (rnd < bullChance) return 50;
+    if (rnd < bullChance + singleBullChance) return 25;
+    return Math.floor(Math.random() * 20) + 1;
+  }
+
+  let singleChance = Math.min(95, 20 + avg * 0.8);
+  if (rnd < singleChance) return target;
+  return Math.floor(Math.random() * 20) + 1;
+}
+
 document.addEventListener("keydown", function (event) {
   if (document.getElementById("game-501-screen").style.display !== "block")
     return;
   if (document.activeElement.tagName === "INPUT") return;
 
+  // --- NEU: Tastatur-Steuerung für das Checkout-Overlay ---
+  const checkoutOverlay = document.getElementById("checkout-overlay");
+  if (checkoutOverlay && checkoutOverlay.style.display === "flex") {
+    event.preventDefault(); // Blockiert Scrollen etc.
+
+    // Prüfen, ob die Taste eine Zahl ist
+    if (event.key >= "0" && event.key <= "9") {
+      // Sucht alle generierten Buttons im Overlay
+      const btns = document
+        .getElementById("checkout-buttons")
+        .getElementsByTagName("button");
+      for (let btn of btns) {
+        if (btn.innerText === event.key) {
+          btn.click(); // Klickt den Button virtuell an!
+          break;
+        }
+      }
+    }
+    return; // Bricht ab, damit die Zahl nicht versehentlich ins Numpad getippt wird
+  }
+  // --------------------------------------------------------
+
   if (event.key === "Enter") {
-    event.preventDefault(); // NEU: Verbietet dem Browser den Doppel-Klick!
+    event.preventDefault(); // Verbietet dem Browser den Doppel-Klick!
     submit501Score();
   } else if (event.key >= "0" && event.key <= "9") {
     event.preventDefault();
