@@ -1,9 +1,10 @@
 // ==========================================
-// ROUND THE WORLD LOGIK (Doubles)
+// ROUND THE WORLD LOGIK (Single, Double, Triple wählbar)
 // ==========================================
 
 let rtwPlayer = null;
 let rtwHistoryStack = [];
+let rtwTargetMode = "double"; // 'single', 'double', 'triple'
 
 const rtwTargets = [
   20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5, 25,
@@ -15,6 +16,8 @@ const rtwBoardOrder = [
 function startRtwGame() {
   const nameInput =
     document.getElementById("rtw-player-input").value.trim() || "Spieler";
+  const modeSelect = document.getElementById("rtw-target-mode");
+  rtwTargetMode = modeSelect ? modeSelect.value : "double";
 
   rtwPlayer = { name: nameInput, targetIndex: 0, dartsThrown: 0 };
   rtwHistoryStack = [];
@@ -27,10 +30,10 @@ function startRtwGame() {
 }
 
 function cancelRtwGame() {
-  if (confirm("Spiel wirklich abbrechen?")) {
+  showCancelModal(() => {
     document.getElementById("game-rtw-screen").style.display = "none";
     goHome();
-  }
+  });
 }
 
 function updateRtwUI() {
@@ -41,7 +44,16 @@ function updateRtwUI() {
   ).innerText = `🎯 ${rtwPlayer.name} wirft...`;
   document.getElementById("rtw-darts-count").innerText = rtwPlayer.dartsThrown;
 
-  let targetDisplay = targetVal === 25 ? "BULL" : `D${targetVal}`;
+  let targetDisplay = targetVal;
+  if (targetVal === 25) {
+    targetDisplay =
+      rtwTargetMode === "double" || rtwTargetMode === "triple"
+        ? "BULLSEYE"
+        : "BULL";
+  } else {
+    if (rtwTargetMode === "double") targetDisplay = "D" + targetVal;
+    else if (rtwTargetMode === "triple") targetDisplay = "T" + targetVal;
+  }
   document.getElementById("rtw-target-display").innerText = targetDisplay;
 
   renderDynamicDartboardRTW(targetVal);
@@ -87,19 +99,19 @@ function undoRtwTurn() {
   updateRtwUI();
 }
 
-// --- SVG DARTBOARD GENERATOR (RTW Doubles) ---
+// --- SVG DARTBOARD GENERATOR (Highlighting based on mode) ---
 function renderDynamicDartboardRTW(activeTarget) {
   const container = document.getElementById("rtw-dartboard-container");
 
   const cx = 150,
     cy = 150;
   const rBoard = 145;
-  const rDoubleOuter = 115;
-  const rDoubleInner = 105;
-  const rTripleOuter = 65;
-  const rTripleInner = 55;
-  const rOuterBull = 16;
-  const rInnerBull = 7;
+  const rDoubleOuter = 115,
+    rDoubleInner = 105;
+  const rTripleOuter = 65,
+    rTripleInner = 55;
+  const rOuterBull = 16,
+    rInnerBull = 7;
   const rText = 130;
 
   let slicesHTML = `
@@ -140,43 +152,56 @@ function renderDynamicDartboardRTW(activeTarget) {
     const endAngle = startAngle + angleStep;
 
     const isRedBlack = index % 2 === 0;
+    const isActive = num === activeTarget;
+
     const colorSingle = isRedBlack ? "#222222" : "#5d554a";
     const colorDoubleTriple = isRedBlack ? "#a82b2b" : "#1a5d38";
 
-    const isActive = num === activeTarget;
-    const doubleColor = isActive ? "var(--accent-green)" : colorDoubleTriple;
-    const strokeWidth = isActive ? "1.5" : "0.5";
-    const strokeColor = isActive ? "#fff" : "#aaa";
+    let innerSingleClass = "";
+    let tripleClass = "";
+    let outerSingleClass = "";
+    let doubleClass = "";
 
-    // Die Blinking-Klasse kommt NUR an das Doppel
-    const activeClass = isActive ? ' class="blinking-target"' : "";
+    // Highlight the segment corresponding to the selected mode
+    if (isActive) {
+      if (rtwTargetMode === "single") {
+        innerSingleClass = ' class="blinking-target"';
+        outerSingleClass = ' class="blinking-target"';
+      } else if (rtwTargetMode === "double") {
+        doubleClass = ' class="blinking-target"';
+      } else if (rtwTargetMode === "triple") {
+        tripleClass = ' class="blinking-target"';
+      }
+    }
 
-    slicesHTML += `<path d="${createArc(
+    // Inner Single
+    slicesHTML += `<path${innerSingleClass} d="${createArc(
       rOuterBull,
       rTripleInner,
       startAngle,
       endAngle
     )}" fill="${colorSingle}" stroke="#aaa" stroke-width="0.5" />`;
-    slicesHTML += `<path d="${createArc(
+    // Triple
+    slicesHTML += `<path${tripleClass} d="${createArc(
       rTripleInner,
       rTripleOuter,
       startAngle,
       endAngle
     )}" fill="${colorDoubleTriple}" stroke="#aaa" stroke-width="0.5" />`;
-    slicesHTML += `<path d="${createArc(
+    // Outer Single
+    slicesHTML += `<path${outerSingleClass} d="${createArc(
       rTripleOuter,
       rDoubleInner,
       startAngle,
       endAngle
     )}" fill="${colorSingle}" stroke="#aaa" stroke-width="0.5" />`;
-
-    // Nur der äußere Doppel-Ring blinkt
-    slicesHTML += `<path${activeClass} d="${createArc(
+    // Double
+    slicesHTML += `<path${doubleClass} d="${createArc(
       rDoubleInner,
       rDoubleOuter,
       startAngle,
       endAngle
-    )}" fill="${doubleColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+    )}" fill="${colorDoubleTriple}" stroke="#aaa" stroke-width="0.5" />`;
 
     const textRad = ((startAngle + angleStep / 2 - 90) * Math.PI) / 180;
     const tx = cx + rText * Math.cos(textRad);
@@ -184,13 +209,22 @@ function renderDynamicDartboardRTW(activeTarget) {
     slicesHTML += `<text x="${tx}" y="${ty}" fill="white" font-size="14" font-weight="bold" font-family="sans-serif" text-anchor="middle" dominant-baseline="central">${num}</text>`;
   });
 
+  // Bullseye Handling based on target mode
   const isBullTarget = activeTarget === 25 || activeTarget === 50;
-  const bullClass = isBullTarget ? ' class="blinking-target"' : "";
-  const outerBullColor = isBullTarget ? "var(--accent-green)" : "#1a5d38";
-  const innerBullColor = isBullTarget ? "var(--accent-green)" : "#a82b2b";
+  let outerBullClass = "";
+  let innerBullClass = "";
 
-  slicesHTML += `<circle${bullClass} cx="${cx}" cy="${cy}" r="${rOuterBull}" fill="${outerBullColor}" stroke="#aaa" stroke-width="0.5" />`;
-  slicesHTML += `<circle${bullClass} cx="${cx}" cy="${cy}" r="${rInnerBull}" fill="${innerBullColor}" stroke="#aaa" stroke-width="0.5" />`;
+  if (isBullTarget) {
+    if (rtwTargetMode === "single") {
+      outerBullClass = ' class="blinking-target"';
+      innerBullClass = ' class="blinking-target"';
+    } else {
+      innerBullClass = ' class="blinking-target"'; // Play Double/Triple mode as Bullseye
+    }
+  }
+
+  slicesHTML += `<circle${outerBullClass} cx="${cx}" cy="${cy}" r="${rOuterBull}" fill="#1a5d38" stroke="#aaa" stroke-width="0.5" />`;
+  slicesHTML += `<circle${innerBullClass} cx="${cx}" cy="${cy}" r="${rInnerBull}" fill="#a82b2b" stroke="#aaa" stroke-width="0.5" />`;
 
   container.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 300 300" style="max-width: 350px; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));">${slicesHTML}</svg>`;
 }

@@ -46,22 +46,79 @@ function addBot() {
 }
 
 function startGame() {
-  isTrainingMode = document.getElementById("chk-training").checked;
+  const chkTraining = document.getElementById("chk-training");
+  isTrainingMode = chkTraining ? chkTraining.checked : false;
+
   if (players.length === 0) return alert("Bitte füge einen Spieler hinzu!");
-  if (!isTrainingMode && players.length < 2)
+  if (!isTrainingMode && players.length < 2) {
     return alert("⚠️ Ein gewertetes Spiel benötigt mindestens 2 Teilnehmer!");
+  }
+
+  // 1. Reset variables safely
+  currentAppMode = "littler";
+  currentPlayerIndex = 0;
+  globalTargetIndex = 0;
+
   if (isTrainingMode) {
     document.body.classList.add("training-active");
-    document.getElementById("app-title").innerText = "🧪 TRAINING";
+    const titleEl = document.getElementById("app-title");
+    if (titleEl) titleEl.innerText = "🧪 TRAINING";
   } else {
     document.body.classList.remove("training-active");
-    document.getElementById("app-title").innerText = "🎯 Schlag den Littler";
+    const titleEl = document.getElementById("app-title");
+    if (titleEl) titleEl.innerText = "🎯 Schlag den Littler";
   }
-  requestWakeLock();
-  showScreen("play");
-  updateUI();
-  resetTurnInputs();
-  checkBotTurn();
+
+  // 2. Prevent WakeLock crashes (often fails on local/HTTP testing)
+  try {
+    if (typeof requestWakeLock === "function") {
+      requestWakeLock();
+    }
+  } catch (e) {
+    console.warn("WakeLock skipped/not supported:", e);
+  }
+
+  // 3. THE FIX: Manually hide all screens to bypass the 'showScreen("play")' ID crash!
+  const allScreens = [
+    "auth-screen",
+    "setup-screen",
+    "online-lobby-screen",
+    "game-501-screen",
+    "highscore-screen",
+    "rules-screen",
+    "party-setup-screen",
+    "game-party-screen",
+    "bobs-setup-screen",
+    "game-bobs-screen",
+    "rtw-setup-screen",
+    "game-rtw-screen",
+    "game-screen",
+    "game-littler-screen",
+  ];
+
+  for (let i = 0; i < allScreens.length; i++) {
+    const el = document.getElementById(allScreens[i]);
+    if (el) el.style.display = "none";
+  }
+
+  // 4. Forcefully display the Littler game screen
+  const littlerScreen =
+    document.getElementById("game-screen") ||
+    document.getElementById("game-littler-screen");
+  if (littlerScreen) {
+    littlerScreen.style.display = "block";
+  } else {
+    console.error("Critical: The Game-Screen HTML element is missing!");
+  }
+
+  // 5. Safely load the UI
+  try {
+    updateUI();
+    resetTurnInputs();
+    checkBotTurn();
+  } catch (error) {
+    console.error("Error during UI update:", error);
+  }
 }
 
 function checkBotTurn() {
@@ -261,9 +318,12 @@ async function handleGameEnd() {
   document.getElementById("bot-overlay").style.display = "none";
   alert(`🏆 ${winner.name} hat gewonnen!`);
   for (let p of players) {
+    if (p.isBot) continue;
+
     let dbName = p.name;
-    if (!p.isBot && isTrainingMode) dbName = `${p.name} (Training)`;
+    if (isTrainingMode) dbName = `${p.name} (Training)`;
     let isWin = p.name === winner.name;
+
     await saveProStats(dbName, p, isWin);
     await saveMatchHistory(dbName, p, isWin);
   }
@@ -315,15 +375,25 @@ async function saveProStats(name, pObj, isWin) {
 }
 
 async function saveMatchHistory(name, pObj, isWin) {
-  await _supabase.from("match_history").insert([
-    {
-      player_name: name,
-      is_training: isTrainingMode,
-      is_win: isWin,
-      final_score: pObj.score,
-      match_details: pObj.matchLog,
-    },
-  ]);
+  // Paket für die Datenbank schnüren
+  let payload = {
+    player_name: name,
+    is_training: isTrainingMode,
+    is_win: isWin,
+    final_score: pObj.score,
+    match_details: pObj.matchLog,
+  };
+
+  // NEU: user_id anhängen, falls ein Nutzer eingeloggt ist
+  if (!isGuest && currentUser) {
+    payload.user_id = currentUser.id;
+  }
+
+  const { error } = await _supabase.from("match_history").insert([payload]);
+
+  if (error) {
+    console.error("Fehler beim Speichern der Littler-History:", error.message);
+  }
 }
 
 function addRawScore(m) {
@@ -355,43 +425,65 @@ function addSecure(t) {
 }
 
 function updateTurnDisplay() {
-  document.getElementById("raw-score").innerText = currentRawScore;
-  document.getElementById(
-    "score-darts-count"
-  ).innerText = `${thrownScore}/${MAX_DARTS}`;
-  document.getElementById(
-    "secure-darts-count"
-  ).innerText = `${thrownSecure}/${MAX_DARTS}`;
+  const rawScoreEl = document.getElementById("raw-score");
+  if (rawScoreEl) rawScoreEl.innerText = currentRawScore;
+
+  const scoreDartsEl = document.getElementById("score-darts-count");
+  if (scoreDartsEl) scoreDartsEl.innerText = `${thrownScore}/${MAX_DARTS}`;
+
+  const secureDartsEl = document.getElementById("secure-darts-count");
+  if (secureDartsEl) secureDartsEl.innerText = `${thrownSecure}/${MAX_DARTS}`;
+
   const currentTarget = targets[globalTargetIndex];
-  const scoreButtons = document.getElementById("controls-score").children;
+  const controlsScore = document.getElementById("controls-score");
   const noDartsLeft = thrownScore >= MAX_DARTS;
-  for (let btn of scoreButtons) {
-    btn.disabled = noDartsLeft;
-  }
-  if (!noDartsLeft) {
-    if (currentTarget === 25) {
-      scoreButtons[3].disabled = true;
-    } else if (currentTarget === 50) {
-      scoreButtons[2].disabled = true;
-      scoreButtons[3].disabled = true;
+
+  if (controlsScore) {
+    const scoreButtons = controlsScore.children;
+    // SICHERHEITS-FIX: Klassische For-Schleife (100% kompatibel mit allen Browsern)
+    for (let i = 0; i < scoreButtons.length; i++) {
+      scoreButtons[i].disabled = noDartsLeft;
+    }
+
+    if (!noDartsLeft && scoreButtons.length >= 4) {
+      if (currentTarget === 25) {
+        scoreButtons[3].disabled = true;
+      } else if (currentTarget === 50) {
+        scoreButtons[2].disabled = true;
+        scoreButtons[3].disabled = true;
+      }
     }
   }
+
   let allowSecure =
     thrownScore >= MAX_DARTS && currentRawScore > 0 && thrownSecure < MAX_DARTS;
-  [...document.getElementById("controls-secure").children].forEach(
-    (b) => (b.disabled = !allowSecure)
-  );
+  const controlsSecure = document.getElementById("controls-secure");
+
+  if (controlsSecure) {
+    const secureButtons = controlsSecure.children;
+    // SICHERHEITS-FIX: Klassische For-Schleife
+    for (let i = 0; i < secureButtons.length; i++) {
+      secureButtons[i].disabled = !allowSecure;
+    }
+  }
+
   let txt = isSecured ? `Gesichert (x${secureMultiplier})` : "Offen";
   if (thrownScore >= MAX_DARTS && currentRawScore === 0) {
     txt = "0 Punkte (Kein Sichern möglich)";
   }
-  document.getElementById("secure-status").innerText = txt;
-  document.getElementById("secure-status").style.color = isSecured
-    ? "var(--accent-green)"
-    : "#aaa";
-  document.getElementById("round-result").innerText = isSecured
-    ? currentRawScore * secureMultiplier
-    : 0;
+
+  const secureStatusEl = document.getElementById("secure-status");
+  if (secureStatusEl) {
+    secureStatusEl.innerText = txt;
+    secureStatusEl.style.color = isSecured ? "var(--accent-green)" : "#aaa";
+  }
+
+  const roundResultEl = document.getElementById("round-result");
+  if (roundResultEl) {
+    roundResultEl.innerText = isSecured
+      ? currentRawScore * secureMultiplier
+      : 0;
+  }
 }
 
 function resetTurnInputs() {
@@ -504,11 +596,20 @@ function processVoiceCommand(cmd) {
 
 function updateUI() {
   const player = players[currentPlayerIndex];
-  document.getElementById("current-player-name").innerText = player.name;
-  document.getElementById("current-player-score").innerText = player.score;
+  if (!player) return; // Prevent crash if player isn't loaded yet
+
+  const nameEl = document.getElementById("current-player-name");
+  if (nameEl) nameEl.innerText = player.name;
+
+  const scoreEl = document.getElementById("current-player-score");
+  if (scoreEl) scoreEl.innerText = player.score;
+
   let t = targets[globalTargetIndex];
-  document.getElementById("current-target").innerText =
-    t === 25 ? "BULL" : t === 50 ? "BULLSEYE" : t;
+  const targetDisplay = document.getElementById("current-target");
+  if (targetDisplay) {
+    targetDisplay.innerText = t === 25 ? "BULL" : t === 50 ? "BULLSEYE" : t;
+  }
+
   updateLiveLeaderboard();
   updateUndoButtonVisibility();
 }
@@ -553,4 +654,14 @@ if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
   document.getElementById("mic-btn").innerText =
     "❌ Browser unterstützt keine Sprache";
   document.getElementById("mic-btn").disabled = true;
+}
+
+function cancelMatch() {
+  showCancelModal(() => {
+    isTrainingMode = false;
+    players = [];
+    if (botTimer) clearTimeout(botTimer);
+    showScreen("main-menu");
+    goHome();
+  });
 }

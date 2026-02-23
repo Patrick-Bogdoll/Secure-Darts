@@ -550,7 +550,11 @@
             </div>
             <button
               class="primary"
-              style="margin-top: 0; width: 100%"
+              style="
+                margin-top: 0;
+                width: 100%;
+                background-color: var(--accent-green);
+              "
               onclick="startLocal501Game()"
             >
               Lokales Spiel Starten
@@ -992,122 +996,156 @@
         <button class="reset" onclick="goHome()">🏠 Home</button>
       </div>
 
-      <div id="game-party-screen" style="display: none; max-width: 800px">
-        <div
-          style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 15px;
-          "
-        >
-          <h2
-            id="party-turn-indicator"
-            style="color: var(--accent-blue); margin: 0; font-size: 1.4em"
-          >
-            🎯 Spieler wirft...
-          </h2>
-          <button
-            onclick="cancelPartyGame()"
-            style="
-              background: var(--accent-red);
-              color: white;
-              border: none;
-              padding: 10px 15px;
-              border-radius: 8px;
-              cursor: pointer;
-              font-weight: bold;
-            "
-          >
-            Abbrechen
-          </button>
+      <div id="game-party-screen" class="screen" style="display: none">
+        <div class="header-bar">
+          <h2 style="margin: 0; flex: 1; text-align: center">🎉 Party X01</h2>
+          <div style="width: 80px"></div>
         </div>
 
         <div
           id="party-scoreboard"
           style="
             display: flex;
-            gap: 15px;
-            overflow-x: auto;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+            justify-content: center;
+            margin-bottom: 10px;
           "
         ></div>
 
         <div
-          id="input-display-party"
+          class="card"
           style="
-            font-size: 3em;
-            font-weight: bold;
-            color: var(--accent-green);
-            height: 60px;
-            background: #111;
-            border-radius: 8px;
-            border: 1px inset #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 15px;
-            letter-spacing: 2px;
-          "
-        ></div>
-
-        <div class="preset-grid">
-          <button class="preset-btn" onclick="submitPartyScore(26)">26</button>
-          <button class="preset-btn" onclick="submitPartyScore(41)">41</button>
-          <button class="preset-btn" onclick="submitPartyScore(45)">45</button>
-          <button class="preset-btn" onclick="submitPartyScore(60)">60</button>
-          <button class="preset-btn" onclick="submitPartyScore(81)">81</button>
-          <button class="preset-btn" onclick="submitPartyScore(85)">85</button>
-          <button class="preset-btn" onclick="submitPartyScore(100)">
-            100
-          </button>
-          <button class="preset-btn" onclick="submitPartyScore(140)">
-            140
-          </button>
-          <button class="preset-btn" onclick="submitPartyScore(180)">
-            180
-          </button>
-        </div>
-
-        <div class="numpad-grid">
-          <button class="num-btn" onclick="appendPartyInput('1')">1</button>
-          <button class="num-btn" onclick="appendPartyInput('2')">2</button>
-          <button class="num-btn" onclick="appendPartyInput('3')">3</button>
-          <button class="num-btn" onclick="appendPartyInput('4')">4</button>
-          <button class="num-btn" onclick="appendPartyInput('5')">5</button>
-          <button class="num-btn" onclick="appendPartyInput('6')">6</button>
-          <button class="num-btn" onclick="appendPartyInput('7')">7</button>
-          <button class="num-btn" onclick="appendPartyInput('8')">8</button>
-          <button class="num-btn" onclick="appendPartyInput('9')">9</button>
-          <button class="num-btn action-del" onclick="deletePartyInput()">
-            DEL
-          </button>
-          <button class="num-btn" onclick="appendPartyInput('0')">0</button>
-          <button class="num-btn action-ok" onclick="submitPartyScore(null)">
-            OK
-          </button>
-        </div>
-        <button
-          id="btn-undo-party"
-          onclick="undoPartyTurn()"
-          style="
-            display: none;
-            width: 100%;
-            margin-top: 15px;
-            background: #444;
-            color: #aaa;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
+            margin-top: 10px;
+            border: 2px solid var(--accent-blue);
+            background: rgba(33, 150, 243, 0.05);
+            text-align: center;
           "
         >
-          ↩ Letzten Wurf rückgängig machen
-        </button>
+          <h2
+            id="party-turn-indicator"
+            style="color: var(--accent-blue); margin: 0; font-size: 1.4em"
+          >
+            -
+          </h2>
+
+          <div
+            id="party-checkout-display"
+            style="
+              color: var(--accent-purple);
+              font-weight: 800;
+              font-size: 1.3em;
+              margin: 10px 0;
+              min-height: 1.4em;
+              letter-spacing: 1px;
+            "
+          ></div>
+
+          <div
+            id="input-display-party"
+            style="
+              font-size: 3em;
+              font-weight: bold;
+              margin: 5px auto;
+              min-height: 60px;
+              color: white;
+              background: #111;
+              border-radius: 8px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 100%;
+              max-width: 300px;
+            "
+          ></div>
+
+          <div class="preset-grid" style="margin-top: 15px">
+            <button class="preset-btn" onclick="submitPartyScore(26)">
+              26
+            </button>
+            <button class="preset-btn" onclick="submitPartyScore(41)">
+              41
+            </button>
+            <button class="preset-btn" onclick="submitPartyScore(45)">
+              45
+            </button>
+            <button class="preset-btn" onclick="submitPartyScore(60)">
+              60
+            </button>
+            <button class="preset-btn" onclick="submitPartyScore(81)">
+              81
+            </button>
+            <button class="preset-btn" onclick="submitPartyScore(85)">
+              85
+            </button>
+            <button class="preset-btn" onclick="submitPartyScore(100)">
+              100
+            </button>
+            <button class="preset-btn" onclick="submitPartyScore(140)">
+              140
+            </button>
+            <button class="preset-btn" onclick="submitPartyScore(180)">
+              180
+            </button>
+          </div>
+
+          <div class="numpad-grid">
+            <button class="num-btn" onclick="appendPartyInput('1')">1</button>
+            <button class="num-btn" onclick="appendPartyInput('2')">2</button>
+            <button class="num-btn" onclick="appendPartyInput('3')">3</button>
+            <button class="num-btn" onclick="appendPartyInput('4')">4</button>
+            <button class="num-btn" onclick="appendPartyInput('5')">5</button>
+            <button class="num-btn" onclick="appendPartyInput('6')">6</button>
+            <button class="num-btn" onclick="appendPartyInput('7')">7</button>
+            <button class="num-btn" onclick="appendPartyInput('8')">8</button>
+            <button class="num-btn" onclick="appendPartyInput('9')">9</button>
+            <button class="num-btn action-del" onclick="deletePartyInput()">
+              DEL
+            </button>
+            <button class="num-btn" onclick="appendPartyInput('0')">0</button>
+            <button class="num-btn action-ok" onclick="submitPartyScore(null)">
+              OK
+            </button>
+          </div>
+          <button
+            id="btn-undo-party"
+            onclick="undoPartyTurn()"
+            style="
+              display: none;
+              width: 100%;
+              margin-top: 15px;
+              background: #444;
+              color: #aaa;
+              padding: 12px;
+              border: none;
+              border-radius: 8px;
+              font-weight: bold;
+              cursor: pointer;
+            "
+          >
+            ↩ Letzten Wurf rückgängig machen
+          </button>
+          <button
+            onclick="cancelPartyGame()"
+            style="
+              background: black;
+              color: red;
+              width: 100%;
+              margin-top: 15px;
+              padding: 12px;
+              border: 2px solid red;
+              border-radius: 8px;
+              font-weight: bold;
+              font-size: 1.1em;
+              cursor: pointer;
+              text-align: center;
+              display: block;
+            "
+          >
+            ❌ Spiel abbrechen
+          </button>
+        </div>
       </div>
 
       <div id="game-screen" style="display: none">
@@ -1252,16 +1290,6 @@
           >
             🌍 501 Stats
           </button>
-        </div>
-        <div style="text-align: right; margin-bottom: 10px">
-          <label style="color: #888; font-size: 0.9em; cursor: pointer"
-            ><input
-              type="checkbox"
-              id="chk-show-bots"
-              onchange="loadCurrentStats()"
-            />
-            🤖 Bots anzeigen</label
-          >
         </div>
         <div id="loading-spinner" style="text-align: center; padding: 20px">
           Lade Daten...
@@ -1811,10 +1839,39 @@
           margin-bottom: 20px;
         "
       >
-        Triff alle Doppel im Uhrzeigersinn (Start bei D20) und zum Schluss das
-        Bullseye.<br />
-        Es geht darum, alle Doppel mit möglichst wenigen Darts zu treffen.
+        Triff alle Zahlen im Uhrzeigersinn (Start bei 20) und zum Schluss das
+        Bullseye.
       </p>
+
+      <div style="margin-bottom: 20px">
+        <label
+          style="
+            color: #aaa;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+          "
+          >Ziel-Modus:</label
+        >
+        <select
+          id="rtw-target-mode"
+          style="
+            width: 100%;
+            padding: 12px;
+            background: #222;
+            color: white;
+            border: 1px solid #444;
+            border-radius: 8px;
+            font-size: 1.1em;
+            margin-top: 8px;
+            outline: none;
+          "
+        >
+          <option value="single">Zahl (Einfache Felder)</option>
+          <option value="double" selected>Double (Doppel-Felder)</option>
+          <option value="triple">Triple (Dreifach-Felder)</option>
+        </select>
+      </div>
 
       <div style="margin-bottom: 25px">
         <input
@@ -1915,7 +1972,7 @@
           margin-bottom: 10px;
         "
       >
-        Wie viele nächste Ziele hast du getroffen?
+        Was oft hast du das Ziel getroffen?
       </div>
 
       <div class="controls" style="grid-template-columns: repeat(4, 1fr)">
@@ -1973,6 +2030,57 @@
       >
         Spiel abbrechen
       </button>
+    </div>
+
+    <div id="cancel-modal" class="modal-overlay" style="display: none">
+      <div
+        class="modal-content"
+        style="
+          border: 2px solid var(--accent-red);
+          background: #111;
+          text-align: center;
+          max-width: 350px;
+        "
+      >
+        <h2 style="color: var(--accent-red); margin-top: 0">
+          Spiel abbrechen?
+        </h2>
+        <p style="color: #ccc; margin-bottom: 25px">
+          Möchtest du das aktuelle Spiel wirklich beenden? Dein Fortschritt geht
+          verloren.
+        </p>
+
+        <div style="display: flex; gap: 10px; flex-direction: column">
+          <button
+            id="confirm-cancel-btn"
+            style="
+              background: var(--accent-red);
+              color: white;
+              padding: 12px;
+              border: none;
+              border-radius: 8px;
+              font-weight: bold;
+              cursor: pointer;
+            "
+          >
+            Ja, Spiel abbrechen
+          </button>
+          <button
+            onclick="closeCancelModal()"
+            style="
+              background: #333;
+              color: white;
+              padding: 12px;
+              border: none;
+              border-radius: 8px;
+              font-weight: bold;
+              cursor: pointer;
+            "
+          >
+            Nein, weiterpielen
+          </button>
+        </div>
+      </div>
     </div>
 
     <script src="app.js"></script>

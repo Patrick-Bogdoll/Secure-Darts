@@ -90,10 +90,17 @@ function startPartyGame() {
 }
 
 function cancelPartyGame() {
-  if (confirm("Möchtest du das Spiel wirklich abbrechen?")) {
+  // Wir rufen unser neues Modal auf und übergeben die Abbruch-Logik
+  showCancelModal(() => {
+    // Dieser Teil wird erst ausgeführt, wenn im Modal auf "Ja" geklickt wird
     document.getElementById("game-party-screen").style.display = "none";
+
+    // Falls du Variablen zurücksetzen möchtest (optional, aber sauberer):
+    partyPlayers = [];
+    partyHistory = [];
+
     goHome();
-  }
+  });
 }
 
 // --- NEU: UNDO LOGIK ---
@@ -137,7 +144,22 @@ function updatePartyTurnIndicator() {
   const currentPlayer = partyPlayers[currentPartyTurnIndex];
   document.getElementById(
     "party-turn-indicator"
-  ).innerText = `🎯 ${currentPlayer.name} wirft...`;
+  ).innerText = `🎯 ${currentPlayer.name} ist dran`;
+
+  // Checkout-Weg anzeigen (Nutzt die Funktion aus game-501.js)
+  const checkoutPath =
+    typeof getCheckoutPath === "function"
+      ? getCheckoutPath(currentPlayer.score)
+      : "";
+  const checkoutDiv = document.getElementById("party-checkout-display");
+
+  if (checkoutPath) {
+    checkoutDiv.innerText = `Finish: ${checkoutPath}`;
+    checkoutDiv.style.opacity = "1";
+  } else {
+    checkoutDiv.innerText = "";
+    checkoutDiv.style.opacity = "0";
+  }
 }
 
 function updatePartyScoreboard() {
@@ -148,24 +170,26 @@ function updatePartyScoreboard() {
     const isCurrent = index === currentPartyTurnIndex;
 
     const card = document.createElement("div");
+    // Kompakteres Design für die Übersicht
     card.style.cssText = `
-        flex: 1; min-width: 120px; max-width: 200px; padding: 15px; border-radius: 12px;
-        background: ${isCurrent ? "var(--accent-blue)" : "var(--card-bg)"};
-        color: ${isCurrent ? "white" : "#aaa"};
-        text-align: center; 
-        border: 2px solid ${isCurrent ? "white" : "#444"};
-        box-shadow: ${isCurrent ? "0 0 15px rgba(33, 150, 243, 0.6)" : "none"};
-        transition: 0.3s;
-        transform: ${isCurrent ? "scale(1.05)" : "scale(1)"};
-      `;
+      padding: 8px 12px; border-radius: 8px;
+      background: ${isCurrent ? "var(--accent-blue)" : "#2a2a2a"};
+      color: ${isCurrent ? "white" : "#888"};
+      text-align: center; 
+      border: 1px solid ${isCurrent ? "white" : "#444"};
+      min-width: 80px;
+      transition: 0.3s;
+      ${
+        isCurrent
+          ? "box-shadow: 0 0 10px rgba(33, 150, 243, 0.5);"
+          : "opacity: 0.7;"
+      }
+    `;
 
     card.innerHTML = `
-        <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-          ${p.name}
-        </div>
-        <div style="font-size: 2.8em; font-weight: bold; line-height: 1;">${p.score}</div>
-        <div style="font-size: 0.85em; margin-top: 10px; opacity: 0.8;">${p.dartsThrown} Darts</div>
-      `;
+      <div style="font-size: 0.8em; font-weight: bold; margin-bottom: 2px;">${p.name}</div>
+      <div style="font-size: 1.4em; font-weight: 900;">${p.score}</div>
+    `;
 
     board.appendChild(card);
   });

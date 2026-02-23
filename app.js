@@ -27,6 +27,7 @@ const MAX_DARTS = 3;
 let currentAppMode = "";
 let currentUser = null;
 let isGuest = false;
+let pendingCancelAction = null;
 
 let myOnlineName = "";
 let currentRoomCode = "";
@@ -251,11 +252,18 @@ function showScreen(screenType) {
     .forEach((b) => b.classList.remove("active"));
 
   if (screenType === "play") {
-    document.getElementById("tab-play").classList.add("active");
+    document.getElementById("tab-play")?.classList.add("active");
     if (currentAppMode === "littler") {
-      if (players.length > 0)
-        document.getElementById("game-screen").style.display = "block";
-      else document.getElementById("setup-screen").style.display = "block";
+      if (players.length > 0) {
+        // Safely check if the game screen exists before displaying it
+        const gameScreen =
+          document.getElementById("game-screen") ||
+          document.getElementById("game-littler-screen");
+        if (gameScreen) gameScreen.style.display = "block";
+      } else {
+        const setupScreen = document.getElementById("setup-screen");
+        if (setupScreen) setupScreen.style.display = "block";
+      }
     } else {
       if (isLocal501 || currentRoomCode)
         document.getElementById("game-501-screen").style.display = "block";
@@ -379,3 +387,29 @@ function openRtwSetup() {
   let inputEl = document.getElementById("rtw-player-input");
   if (inputEl) inputEl.value = myOnlineName || "Spieler";
 }
+
+function showCancelModal(actionFunction) {
+  pendingCancelAction = actionFunction;
+  document.getElementById("cancel-modal").style.display = "flex";
+}
+
+function closeCancelModal() {
+  document.getElementById("cancel-modal").style.display = "none";
+  pendingCancelAction = null;
+}
+
+// NEU: In DOMContentLoaded verschoben, damit der Button sicher existiert
+window.addEventListener("DOMContentLoaded", (event) => {
+  initAuth();
+
+  // Event-Listener für den "Ja"-Button im Abbruch-Modal
+  const confirmBtn = document.getElementById("confirm-cancel-btn");
+  if (confirmBtn) {
+    confirmBtn.onclick = function () {
+      if (pendingCancelAction) {
+        pendingCancelAction();
+      }
+      closeCancelModal();
+    };
+  }
+});

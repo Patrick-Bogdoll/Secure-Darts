@@ -163,19 +163,29 @@ async function save501MatchHistory(
   matchLog
 ) {
   if (playerName.includes("🤖") || playerName.includes("🔥")) return;
-  await _supabase.from("match_history_501").insert([
-    {
-      player_name: playerName,
-      opponent_name: opponentName,
-      is_win: isWin,
-      match_average: matchAvg,
-      darts_thrown: darts,
-      highest_finish: finish,
-      match_details: matchLog,
-    },
-  ]);
-}
 
+  // Wir bereiten das Paket für die Datenbank vor
+  let payload = {
+    player_name: playerName,
+    opponent_name: opponentName,
+    is_win: isWin,
+    match_average: matchAvg,
+    darts_thrown: darts,
+    highest_finish: finish,
+    match_details: matchLog,
+  };
+
+  // NEU: Wenn ein Nutzer eingeloggt ist, hängen wir seine ID an den Spielbericht
+  if (!isGuest && currentUser) {
+    payload.user_id = currentUser.id;
+  }
+
+  const { error } = await _supabase.from("match_history_501").insert([payload]);
+
+  if (error) {
+    console.error("Fehler beim Speichern der Match-History:", error.message);
+  }
+}
 function switchStatsMode(mode) {
   currentStatsMode = mode;
   document.getElementById("btn-stats-littler").style.background =
@@ -212,8 +222,7 @@ async function loadHighscores() {
   tbody.innerHTML = "";
   let rank = 1;
   highscores.forEach((entry) => {
-    const isBotEntry = entry.name.includes("🤖") || entry.name.includes("🔥");
-    if (isBotEntry && !showBots) return;
+    if (entry.name.includes("🤖") || entry.name.includes("🔥")) return;
     const tr = document.createElement("tr");
     const safeData = encodeURIComponent(JSON.stringify(entry));
     let dName = entry.name.replace(
@@ -230,25 +239,28 @@ async function loadHighscores() {
 }
 
 async function load501Stats() {
-  const showBots = document.getElementById("chk-show-bots").checked;
   const tbody = document.querySelector("#lifetime-table tbody");
   tbody.innerHTML = '<tr><td colspan="4">Lade 501 Daten...</td></tr>';
+
   let { data: stats501, error } = await _supabase
     .from("stats_501")
     .select("*")
     .order("wins", { ascending: false });
+
   if (error) return;
   tbody.innerHTML = "";
   let rank = 1;
+
   stats501.forEach((entry) => {
-    const isBotEntry = entry.name.includes("🤖") || entry.name.includes("🔥");
-    if (isBotEntry && !showBots) return;
-    let avg = 0;
-    if (entry.total_darts_thrown > 0) {
-      avg = (entry.total_score_thrown / entry.total_darts_thrown) * 3;
-    }
+    if (entry.name.includes("🤖") || entry.name.includes("🔥")) return;
+
+    let avg =
+      entry.total_darts_thrown > 0
+        ? (entry.total_score_thrown / entry.total_darts_thrown) * 3
+        : 0;
     const tr = document.createElement("tr");
     const safeData = encodeURIComponent(JSON.stringify(entry));
+
     tr.innerHTML = `<td style="color:#666">${rank}.</td><td style="font-weight:bold;"><a href="#" class="clickable-name" style="color:white;" onclick="open501Stats('${safeData}')">${
       entry.name
     }</a></td><td>${
@@ -257,9 +269,6 @@ async function load501Stats() {
     tbody.appendChild(tr);
     rank++;
   });
-  if (rank === 1)
-    tbody.innerHTML =
-      '<tr><td colspan="4" style="text-align:center; color:#666;">Noch keine 501 Spiele absolviert.</td></tr>';
 }
 
 function openProStats(encodedData, isSwitching = false) {
@@ -336,23 +345,37 @@ function openProStats(encodedData, isSwitching = false) {
   if (statsChart) statsChart.destroy();
   const ctx = document.getElementById("statsChart").getContext("2d");
   statsChart = new Chart(ctx, {
-    type: "bar",
+    type: "line",
     data: {
       labels: chartLabels,
       datasets: [
         {
-          label: "Ø Punkte pro Aufnahme",
-          data: chartData,
-          backgroundColor: "rgba(41, 121, 255, 0.6)",
-          borderColor: "rgba(41, 121, 255, 1)",
-          borderWidth: 1,
-          borderRadius: 3,
+          label: "Leg Average",
+          data: chartAverages,
+          borderColor: "rgba(0, 230, 118, 1)",
+          backgroundColor: "rgba(0, 230, 118, 0.2)",
+          borderWidth: 3, // Etwas dickere Linie für bessere Sichtbarkeit
+          fill: true,
+          tension: 0.4,
+
+          // Punkte-Styling
+          pointRadius: 4,
+          pointHitRadius: 50, // Riesige unsichtbare Trefferzone
+          pointHoverRadius: 10, // Deutliches Feedback beim "Andocken"
+          pointBackgroundColor: "rgba(0, 230, 118, 1)",
         },
       ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+
+      // --- DAS IST DIE LÖSUNG ---
+      interaction: {
+        mode: "index", // Findet den Punkt basierend auf der X-Achse (vertikale Linie)
+        intersect: false, // WICHTIG: Man muss den Punkt NICHT mehr berühren
+      },
+
       scales: {
         y: {
           beginAtZero: true,
@@ -361,10 +384,20 @@ function openProStats(encodedData, isSwitching = false) {
         },
         x: {
           grid: { display: false },
-          ticks: { color: "#aaa", font: { size: 10 } },
+          ticks: { color: "#aaa" },
         },
       },
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: true,
+          backgroundColor: "rgba(0, 0, 0, 0.8)",
+          titleFont: { size: 14 },
+          bodyFont: { size: 16, weight: "bold" },
+          displayColors: false,
+          padding: 10,
+        },
+      },
     },
   });
   if (!isSwitching) {
@@ -478,6 +511,7 @@ async function open501Stats(encodedData, isSwitching = false) {
 
   if (statsChart) statsChart.destroy();
   const ctx = document.getElementById("statsChart").getContext("2d");
+
   statsChart = new Chart(ctx, {
     type: "line",
     data: {
@@ -486,26 +520,64 @@ async function open501Stats(encodedData, isSwitching = false) {
         {
           label: "Leg Average",
           data: chartAverages,
-          borderColor: "rgba(0, 230, 118, 1)", // Green for 501 legs
+          borderColor: "rgba(0, 230, 118, 1)",
           backgroundColor: "rgba(0, 230, 118, 0.2)",
-          borderWidth: 2,
+          borderWidth: 3,
           fill: true,
           tension: 0.4,
+
+          // --- PUNKT-REAKTION ---
+          pointRadius: 5, // Sichtbarer Punkt
+          pointHitRadius: 100, // RIESIGER unsichtbarer Klick-Bereich (100px!)
+          pointHoverRadius: 12, // Massives Aufploppen bei Kontakt
+          pointBackgroundColor: "rgba(0, 230, 118, 1)",
+          pointBorderColor: "#fff",
+          pointBorderWidth: 2,
         },
       ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+
+      // --- DAS LÖST DAS PROBLEM BEIM AIMEN ---
+      interaction: {
+        mode: "nearest", // Findet den absolut nächsten Punkt...
+        axis: "x", // ...aber ignoriert die Höhe (nur links/rechts zählt)
+        intersect: false, // WICHTIG: Man muss den Punkt NICHT berühren
+      },
+
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: true,
+          position: "nearest", // Tooltip springt zum nächsten Punkt
+          external: null,
+          // Verbessertes Tooltip-Design
+          backgroundColor: "rgba(0, 0, 0, 0.9)",
+          titleFont: { size: 14 },
+          bodyFont: { size: 16, weight: "bold" },
+          padding: 12,
+          displayColors: false,
+          callbacks: {
+            label: function (context) {
+              return `Avg: ${context.parsed.y}`;
+            },
+          },
+        },
+      },
+
       scales: {
         y: {
           beginAtZero: true,
-          grid: { color: "#333" },
-          ticks: { color: "#aaa" },
+          grid: { color: "rgba(255,255,255,0.05)" },
+          ticks: { color: "#888" },
         },
-        x: { grid: { display: false }, ticks: { color: "#aaa" } },
+        x: {
+          grid: { display: false },
+          ticks: { color: "#888" },
+        },
       },
-      plugins: { legend: { display: true, labels: { color: "#aaa" } } },
     },
   });
 
@@ -611,46 +683,112 @@ async function loadMatchHistory() {
       });
       const div = document.createElement("div");
       div.className = `history-item ${m.is_win ? "win" : ""}`;
-      let detailsHTML = `<div style="text-align:center; padding-bottom:5px; border-bottom:1px solid #444; margin-bottom:10px; color:#aaa;">Gegner: <b style="color:white">${m.opponent_name}</b> | Match Avg: <b style="color:var(--accent-blue)">${m.match_average}</b></div>`;
 
+      let legsHTML = "";
       if (m.match_details && Array.isArray(m.match_details)) {
         m.match_details.forEach((leg) => {
-          let isP1 = leg.p1_name === currentModalPlayer;
-          let myDarts = isP1 ? leg.p1_darts : leg.p2_darts;
-          let myRest = isP1 ? leg.p1_rest : leg.p2_rest;
-          let legWon = leg.winner === currentModalPlayer;
+          const isP1 = leg.p1_name === currentModalPlayer;
+          const myHistory = isP1 ? leg.p1_history : leg.p2_history;
+          const oppHistory = isP1 ? leg.p2_history : leg.p1_history;
+          const myDarts = isP1 ? leg.p1_darts : leg.p2_darts;
+          const oppDarts = isP1 ? leg.p2_darts : leg.p1_darts;
 
-          let legText = legWon
-            ? `<span style="color:var(--accent-green)">Gecheckt (${leg.checkout}) in ${myDarts} Darts</span>`
-            : `<span style="color:var(--accent-red)">Verloren (Rest: ${myRest}) nach ${myDarts} Darts</span>`;
+          // Kopfzeile des Legs
+          legsHTML += `
+            <div class="leg-detail-container" style="margin-top:15px; border-top:1px solid #444; padding-top:10px;">
+              <div style="text-align:center; font-weight:bold; color:var(--accent-blue); margin-bottom:15px; text-transform:uppercase; letter-spacing:1px;">
+                LEG ${leg.leg_number} (${
+            leg.winner === currentModalPlayer ? "GEWONNEN" : "VERLOREN"
+          })
+              </div>
+              
+              <div style="display:grid; grid-template-columns: 20% 20% 20% 20% 20%; text-align:center; font-size:0.7em; color:#888; margin-bottom:10px; text-transform:uppercase;">
+                <div>Darts<br><b style="color:white; font-size:1.3em;">${myDarts}</b></div>
+                <div>Avg<br><b style="color:white; font-size:1.3em;">${
+                  myDarts > 0
+                    ? (((501 - leg.p1_rest) / myDarts) * 3).toFixed(1)
+                    : "0"
+                }</b></div>
+                <div>Rest<br><b style="color:var(--accent-blue); font-size:1.3em;">${
+                  isP1 ? leg.p1_rest : leg.p2_rest
+                }</b></div>
+                <div>Finish<br><b style="color:white; font-size:1.3em;">${
+                  leg.checkout || "-"
+                }</b></div>
+                <div>Opp. Rest<br><b style="color:white; font-size:1.3em;">${
+                  isP1 ? leg.p2_rest : leg.p1_rest
+                }</b></div>
+              </div>
 
-          detailsHTML += `<div class="detail-row"><span style="width:45px; font-weight:bold; color:#888;">Leg ${leg.leg_number}</span><span style="flex:1; text-align:right;">${legText}</span></div>`;
+              <table style="width:100%; table-layout: fixed; font-size:0.85em; border-collapse:collapse; text-align:center;">
+                <thead>
+                  <tr style="color:#555; font-size:0.8em; border-bottom:1px solid #333; text-transform:uppercase;">
+                    <th style="width:20%; padding:8px 0;">Punkte</th>
+                    <th style="width:20%; padding:8px 0;">Score</th>
+                    <th style="width:20%; padding:8px 0; color:var(--accent-blue); font-weight:bold;">Aufn.</th>
+                    <th style="width:20%; padding:8px 0;">Score</th>
+                    <th style="width:20%; padding:8px 0;">Punkte</th>
+                  </tr>
+                </thead>
+                <tbody>`;
+
+          const maxTurns = Math.max(
+            myHistory?.length || 0,
+            oppHistory?.length || 0
+          );
+          for (let i = 0; i < maxTurns; i++) {
+            const myTurn = myHistory ? myHistory[i] : null;
+            const oppTurn = oppHistory ? oppHistory[i] : null;
+
+            legsHTML += `
+              <tr style="border-bottom:1px solid #222;">
+                <td style="color:#888; padding:8px 0;">${
+                  myTurn ? myTurn.old : ""
+                }</td>
+                <td style="font-weight:bold; color:white; padding:8px 0;">${
+                  myTurn ? myTurn.thrown : ""
+                }</td>
+                <td style="color:#444; padding:8px 0; font-size:0.9em;">${
+                  i + 1
+                }</td>
+                <td style="font-weight:bold; color:white; padding:8px 0;">${
+                  oppTurn ? oppTurn.thrown : ""
+                }</td>
+                <td style="color:#888; padding:8px 0;">${
+                  oppTurn ? oppTurn.old : ""
+                }</td>
+              </tr>`;
+          }
+          legsHTML += `</tbody></table></div>`;
         });
-      } else {
-        detailsHTML += `<div class="detail-row" style="justify-content:center; color:#666;">Keine Leg-Details verfügbar</div>`;
       }
+
       div.innerHTML = `
-        <div class="history-summary" style="display:flex; align-items:center; gap:10px;">
-          <div onclick="this.parentElement.nextElementSibling.style.display = this.parentElement.nextElementSibling.style.display === 'block' ? 'none' : 'block'" style="flex:1; cursor:pointer;">
+        <div class="history-summary" onclick="toggleHistoryDetails(this)" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+          <div style="flex:1;">
             <div style="font-weight:bold; color:${
               m.is_win ? "var(--accent-green)" : "#aaa"
             }">
-              ${m.is_win ? "SIEG" : "Niederlage"}
+              ${m.is_win ? "MATCH-SIEG" : "Match-Niederlage"} gegen ${
+        m.opponent_name
+      }
             </div>
-            <div class="history-date">${date}</div>
+            <div class="history-date">${date} | Avg: ${m.match_average}</div>
           </div>
           <div class="history-score">${m.is_win ? "🏆" : "❌"}</div>
           
           ${
             currentUser && m.player_name === myOnlineName
-              ? `<button onclick="deleteMatch501(${m.id}, ${m.darts_thrown}, ${
-                  m.is_win ? 1 : 0
-                }, ${JSON.stringify(m.match_details).replace(/"/g, "&quot;")})" 
-                     style="background:none; border:none; cursor:pointer; font-size:1.2em; padding:5px;">🗑️</button>`
+              ? `<button onclick="event.stopPropagation(); deleteMatch501(${
+                  m.id
+                }, ${m.darts_thrown}, ${m.is_win ? 1 : 0}, ${JSON.stringify(
+                  m.match_details
+                ).replace(/"/g, "&quot;")})" 
+                     style="background:none; border:none; cursor:pointer; font-size:1.2em;">🗑️</button>`
               : ""
           }
         </div>
-        <div class="history-details" style="display:none;">${detailsHTML}</div>`;
+        <div class="history-details" style="display:none; padding:10px; background:#111;">${legsHTML}</div>`;
       container.appendChild(div);
     });
   }

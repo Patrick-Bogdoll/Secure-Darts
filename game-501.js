@@ -134,6 +134,7 @@ function getCheckoutPath(score) {
     [169, 168, 166, 165, 163, 162, 159].includes(score)
   )
     return "";
+
   const checkouts = {
     170: "T20 T20 BULL",
     167: "T20 T19 BULL",
@@ -258,9 +259,33 @@ function getCheckoutPath(score) {
     43: "3 D20",
     42: "10 D16",
     41: "9 D16",
+    // NEU: Spezielle Wege für ungerade Reste unter 40
+    39: "7 D16",
+    37: "5 D16",
+    35: "3 D16",
+    33: "1 D16",
+    31: "15 D8",
+    29: "13 D8",
+    27: "11 D8",
+    25: "9 D8",
+    23: "7 D8",
+    21: "5 D8",
+    19: "3 D8",
+    17: "1 D8",
+    15: "7 D4",
+    13: "5 D4",
+    11: "3 D4",
+    9: "1 D4",
+    7: "3 D2",
+    5: "1 D2",
+    3: "1 D1",
   };
+
   if (checkouts[score]) return checkouts[score];
+
+  // Automatischer Fallback für alle geraden Zahlen bis 40
   if (score <= 40 && score % 2 === 0) return `D${score / 2}`;
+
   return "";
 }
 
@@ -1078,7 +1103,8 @@ function listenForOpponent(roomCode) {
 }
 
 async function cancel501Game(force = false, broadcastToOpponent = true) {
-  if (force || confirm("Spiel wirklich verlassen?")) {
+  // 1. Die eigentliche Abbruch-Logik als interne Funktion definiert
+  const executeCancel = async () => {
     if (!isLocal501 && currentRoomCode && broadcastToOpponent) {
       await _supabase
         .from("live_matches")
@@ -1089,16 +1115,30 @@ async function cancel501Game(force = false, broadcastToOpponent = true) {
         .delete()
         .eq("room_code", currentRoomCode);
     }
+
     isLocal501 = false;
     currentRoomCode = "";
+
     if (realtimeSubscription) {
       _supabase.removeChannel(realtimeSubscription);
       realtimeSubscription = null;
     }
+
     document.getElementById("game-501-screen").style.display = "none";
     document.getElementById("lobby-waiting").style.display = "none";
     document.getElementById("lobby-setup").style.display = "block";
     goHome();
+  };
+
+  // 2. Entscheidung: Modal zeigen oder direkt ausführen
+  if (force) {
+    // Wenn 'force' true ist (z.B. Gegner hat verlassen), direkt ohne Nachfrage abbrechen
+    await executeCancel();
+  } else {
+    // Ansonsten unser neues Modal nutzen
+    showCancelModal(async () => {
+      await executeCancel();
+    });
   }
 }
 
@@ -1145,10 +1185,10 @@ function recordLegStat501(
   p2Rest,
   finishScore
 ) {
-  // Berechnet die exakt in diesem Leg geworfenen Darts
   let p1LegDarts = p1Darts501 - p1DartsAtLegStart;
   let p2LegDarts = p2Darts501 - p2DartsAtLegStart;
 
+  // NEU: Wir speichern die kompletten Wurflisten für dieses Leg
   let legObj = {
     leg_number: currentMatchLog501.length + 1,
     winner: winnerName,
@@ -1159,10 +1199,12 @@ function recordLegStat501(
     p1_rest: p1Rest,
     p2_rest: p2Rest,
     checkout: finishScore,
+    // Diese Listen enthalten {old, thrown, new} für jeden Wurf
+    p1_history: [...p1LegThrows],
+    p2_history: [...p2LegThrows],
   };
   currentMatchLog501.push(legObj);
 
-  // Startwerte für das nächste Leg setzen
   p1DartsAtLegStart = p1Darts501;
   p2DartsAtLegStart = p2Darts501;
 }

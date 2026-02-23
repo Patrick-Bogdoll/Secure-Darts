@@ -321,11 +321,12 @@ td {
 
 .modal-overlay {
   position: fixed;
+  display: flex;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.95);
+  background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(5px);
   display: none;
   justify-content: center;
@@ -827,4 +828,20 @@ input[type="password"]:focus {
     padding: 4px 6px !important;
     font-size: 0.75em !important;
   }
+}
+
+.leg-detail-container table th {
+  text-align: center;
+  font-weight: normal;
+}
+
+.leg-detail-container table td {
+  text-align: center;
+}
+
+.modal-content {
+  padding: 25px;
+  border-radius: 15px;
+  width: 90%;
+  box-shadow: 0 0 20px rgba(255, 23, 68, 0.3);
 }
