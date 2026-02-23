@@ -4,8 +4,9 @@ let currentModalRawName = "";
 
 async function switchModalMode(mode) {
   if (!currentModalRawName) return;
+
   currentModalType = mode;
-  document.getElementById("tab-overview").style.opacity = "0.5"; // Kurzer Lade-Effekt
+  document.getElementById("tab-overview").style.opacity = "0.5";
 
   // 1. Buttons visuell updaten (ohne Glow)
   document.querySelectorAll("#modal-mode-toggle .nav-btn").forEach((btn) => {
@@ -61,14 +62,6 @@ async function switchModalMode(mode) {
   }
 
   document.getElementById("tab-overview").style.opacity = "1";
-
-  // ---> NEU: Historie sofort updaten, falls der Tab offen ist <---
-  // (Für Bob's und RTW passiert das Update bereits in ihren open...Stats Funktionen)
-  if (document.getElementById("tab-history").style.display === "block") {
-    if (mode === "501" || mode === "littler") {
-      if (typeof loadMatchHistory === "function") loadMatchHistory();
-    }
-  }
 }
 
 async function save501Stats(
@@ -388,7 +381,7 @@ function openProStats(encodedData, isSwitching = false) {
       datasets: [
         {
           label: "Leg Average",
-          data: chartAverages,
+          data: chartData,
           borderColor: "rgba(0, 230, 118, 1)",
           backgroundColor: "rgba(0, 230, 118, 0.2)",
           borderWidth: 3, // Etwas dickere Linie für bessere Sichtbarkeit
