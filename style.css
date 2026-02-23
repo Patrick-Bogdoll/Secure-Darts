@@ -123,13 +123,28 @@ button:disabled {
   cursor: not-allowed;
   transform: none;
 }
+/* Suche diesen Bereich in deiner style.css oder füge ihn am Ende hinzu */
+.home-screen button,
 button.primary {
-  background-color: var(--accent-green);
-  width: 100%;
-  margin-top: 25px;
-  color: #000;
-  font-weight: 800;
-  font-size: 1.2em;
+  width: 100%; /* Nutzt die volle Breite des Containers */
+  min-height: 80px; /* Gleiche Höhe für alle Buttons */
+  margin-top: 30px; /* Einheitlicher Abstand nach oben */
+  display: flex; /* Ermöglicht Zentrierung von Icon + Text */
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 10px 20px; /* Innenabstand für bessere Optik */
+  box-sizing: border-box;
+}
+
+/* Optional: Verkleinere die Untertitel etwas, damit sie in die Box passen */
+button span,
+button small {
+  font-size: 1em;
+  font-weight: normal;
+  margin-top: 4px;
+  opacity: 0.8;
 }
 button.reset {
   background-color: #ff9800;
