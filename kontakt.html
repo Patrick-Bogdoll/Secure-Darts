@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kontakt - Secure Darts</title>
+    <style>
+      :root {
+        --bg-color: #121212;
+        --text-color: #e0e0e0;
+        --accent-blue: #2979ff;
+        --accent-green: #00e676;
+        --card-bg: #1e1e1e;
+        --accent-red: #ff1744;
+      }
+
+      body {
+        font-family: "Segoe UI", Roboto, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 500px;
+        width: 100%;
+        background-color: var(--card-bg);
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+        text-align: center;
+      }
+
+      h2 {
+        color: var(--accent-blue);
+        margin-top: 0;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+
+      p {
+        color: #aaa;
+        font-size: 0.9em;
+        margin-bottom: 25px;
+      }
+
+      .form-group {
+        text-align: left;
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        font-size: 0.8em;
+        text-transform: uppercase;
+        color: #666;
+        margin-bottom: 5px;
+        letter-spacing: 1px;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #333;
+        background: #111;
+        color: white;
+        font-size: 1em;
+        box-sizing: border-box;
+        outline: none;
+        transition: border-color 0.3s;
+      }
+
+      input:focus,
+      textarea:focus {
+        border-color: var(--accent-blue);
+      }
+
+      textarea {
+        height: 120px;
+        resize: vertical;
+      }
+
+      button {
+        width: 100%;
+        padding: 18px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.1em;
+        cursor: pointer;
+        font-weight: bold;
+        transition: transform 0.1s;
+        margin-top: 10px;
+      }
+
+      button:active {
+        transform: scale(0.98);
+      }
+
+      button:disabled {
+        background-color: #444;
+        color: #888;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn-submit {
+        background-color: var(--accent-blue);
+        color: white;
+      }
+
+      .btn-back {
+        background-color: transparent;
+        color: #888;
+        border: 1px solid #333;
+        margin-top: 15px;
+        font-size: 0.9em;
+        text-decoration: none;
+        display: inline-block;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 15px;
+        border-radius: 8px;
+      }
+
+      .btn-back:hover {
+        color: white;
+        border-color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>📧 Kontakt</h2>
+      <p>
+        Fehler gefunden oder Feedback? Deine Nachricht wird sicher an
+        info@darts-secure.com gesendet.
+      </p>
+
+      <form
+        id="contact-form"
+        action="https://formspree.io/f/mnjboqwo"
+        method="POST"
+      >
+        <div class="form-group">
+          <label>Deine E-Mail Adresse</label>
+          <input
+            type="email"
+            name="email"
+            placeholder="name@beispiel.de"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Betreff</label>
+          <input
+            type="text"
+            name="_subject"
+            placeholder="z.B. Bug Report: App-Lag"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Nachricht</label>
+          <textarea
+            name="message"
+            placeholder="Beschreibe dein Anliegen möglichst genau..."
+            required
+          ></textarea>
+        </div>
+
+        <button type="submit" id="submit-btn" class="btn-submit">
+          Bericht absenden
+        </button>
+      </form>
+
+      <a href="index.html" class="btn-back">🏠 Zurück zur App</a>
+    </div>
+
+    <script>
+      const form = document.getElementById("contact-form");
+      const button = document.getElementById("submit-btn");
+
+      form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        // UI Sperren
+        button.disabled = true;
+        button.innerText = "Wird gesendet...";
+
+        const data = new FormData(event.target);
+
+        try {
+          const response = await fetch(event.target.action, {
+            method: "POST",
+            body: data,
+            headers: {
+              Accept: "application/json",
+            },
+          });
+
+          if (response.ok) {
+            alert("Vielen Dank! Dein Bericht wurde erfolgreich gesendet.");
+            window.location.href = "index.html";
+          } else {
+            const result = await response.json();
+            alert(
+              "Fehler: " +
+                (result.errors
+                  ? result.errors.map((e) => e.message).join(", ")
+                  : "Unbekannter Fehler")
+            );
+            resetButton();
+          }
+        } catch (error) {
+          alert("Netzwerkfehler. Bitte prüfe deine Verbindung.");
+          resetButton();
+        }
+      });
+
+      function resetButton() {
+        button.disabled = false;
+        button.innerText = "Bericht absenden";
+      }
+    </script>
+  </body>
+</html>
