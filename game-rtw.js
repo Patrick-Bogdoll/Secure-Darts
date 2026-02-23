@@ -1,5 +1,5 @@
 // ==========================================
-// ROUND THE WORLD LOGIK (Single, Double, Triple wählbar)
+// ROUND THE WORLD LOGIK (21 Runden, Punkte sammeln & Speichern)
 // ==========================================
 
 let rtwPlayer = null;
@@ -9,6 +9,7 @@ let rtwTargetMode = "double"; // 'single', 'double', 'triple'
 const rtwTargets = [
   20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5, 25,
 ];
+
 const rtwBoardOrder = [
   20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5,
 ];
@@ -19,7 +20,13 @@ function startRtwGame() {
   const modeSelect = document.getElementById("rtw-target-mode");
   rtwTargetMode = modeSelect ? modeSelect.value : "double";
 
-  rtwPlayer = { name: nameInput, targetIndex: 0, dartsThrown: 0 };
+  rtwPlayer = {
+    name: nameInput,
+    targetIndex: 0,
+    dartsThrown: 0,
+    pointsTable: [],
+    totalPoints: 0,
+  };
   rtwHistoryStack = [];
 
   document.getElementById("btn-undo-rtw").style.display = "none";
@@ -42,41 +49,92 @@ function updateRtwUI() {
   document.getElementById(
     "rtw-turn-indicator"
   ).innerText = `🎯 ${rtwPlayer.name} wirft...`;
-  document.getElementById("rtw-darts-count").innerText = rtwPlayer.dartsThrown;
+  document.getElementById("rtw-darts-count").innerText = `${
+    rtwPlayer.targetIndex + 1
+  } / 21`;
 
   let targetDisplay = targetVal;
+
   if (targetVal === 25) {
     targetDisplay =
       rtwTargetMode === "double" || rtwTargetMode === "triple"
         ? "BULLSEYE"
-        : "BULL";
+        : "SINGLE BULL";
   } else {
     if (rtwTargetMode === "double") targetDisplay = "D" + targetVal;
     else if (rtwTargetMode === "triple") targetDisplay = "T" + targetVal;
   }
-  document.getElementById("rtw-target-display").innerText = targetDisplay;
 
+  document.getElementById("rtw-target-display").innerText = targetDisplay;
   renderDynamicDartboardRTW(targetVal);
+}
+
+// NEU: Supabase Speicherfunktion (läuft leise im Hintergrund)
+async function saveRtwStatsBackground() {
+  try {
+    const payload = {
+      name: rtwPlayer.name,
+      total_points: rtwPlayer.totalPoints,
+      mode: rtwTargetMode,
+      details: rtwPlayer.pointsTable, // Speichert das Array als JSONB
+    };
+
+    // Wenn der User eingeloggt ist (aus app.js), verknüpfen wir die user_id
+    if (typeof currentUser !== "undefined" && currentUser) {
+      payload.user_id = currentUser.id;
+    }
+
+    const { error } = await _supabase.from("stats_rtw").insert([payload]);
+
+    if (error) {
+      console.error("Fehler beim Speichern der RTW-Stats:", error.message);
+    } else {
+      console.log(
+        "✅ RTW-Stats erfolgreich im Hintergrund in Supabase gespeichert!"
+      );
+    }
+  } catch (err) {
+    console.error("Unerwarteter Fehler beim Speichern:", err);
+  }
 }
 
 function submitRtwScore(hits) {
   rtwHistoryStack.push({
     targetIndex: rtwPlayer.targetIndex,
     dartsThrown: rtwPlayer.dartsThrown,
+    totalPoints: rtwPlayer.totalPoints,
+    tableLength: rtwPlayer.pointsTable.length,
   });
   document.getElementById("btn-undo-rtw").style.display = "block";
 
+  const currentTarget = rtwTargets[rtwPlayer.targetIndex];
+  rtwPlayer.pointsTable.push({
+    target: currentTarget,
+    hits: hits,
+  });
+  rtwPlayer.totalPoints += hits;
+
   rtwPlayer.dartsThrown += 3;
-  rtwPlayer.targetIndex += hits;
+  rtwPlayer.targetIndex += 1;
 
   if (rtwPlayer.targetIndex >= rtwTargets.length) {
     rtwPlayer.targetIndex = rtwTargets.length - 1;
     updateRtwUI();
 
+    // Sobald das letzte Feld bespielt wurde, feuern wir den Upload in den Hintergrund ab!
+    saveRtwStatsBackground();
+
     setTimeout(() => {
-      alert(
-        `🎉 GESCHAFFT! 🎉\n\nDu bist einmal um die Welt gereist!\nBenötigte Darts: ${rtwPlayer.dartsThrown}`
-      );
+      let resultMsg = `🎉 SPIEL BEENDET! 🎉\n\nDein geheimes Ergebnis:\n\n`;
+
+      rtwPlayer.pointsTable.forEach((entry) => {
+        let fieldName = entry.target === 25 ? "BULL" : entry.target;
+        resultMsg += `Feld ${fieldName}: ${entry.hits} Treffer\n`;
+      });
+
+      resultMsg += `\nGESAMTPUNKTE: ${rtwPlayer.totalPoints} / 63`;
+
+      alert(resultMsg);
       document.getElementById("game-rtw-screen").style.display = "none";
       goHome();
     }, 300);
@@ -92,6 +150,9 @@ function undoRtwTurn() {
 
   rtwPlayer.targetIndex = lastState.targetIndex;
   rtwPlayer.dartsThrown = lastState.dartsThrown;
+  rtwPlayer.totalPoints = lastState.totalPoints;
+
+  rtwPlayer.pointsTable = rtwPlayer.pointsTable.slice(0, lastState.tableLength);
 
   if (rtwHistoryStack.length === 0)
     document.getElementById("btn-undo-rtw").style.display = "none";
@@ -99,7 +160,7 @@ function undoRtwTurn() {
   updateRtwUI();
 }
 
-// --- SVG DARTBOARD GENERATOR (Highlighting based on mode) ---
+// --- SVG DARTBOARD GENERATOR ---
 function renderDynamicDartboardRTW(activeTarget) {
   const container = document.getElementById("rtw-dartboard-container");
 
@@ -162,7 +223,6 @@ function renderDynamicDartboardRTW(activeTarget) {
     let outerSingleClass = "";
     let doubleClass = "";
 
-    // Highlight the segment corresponding to the selected mode
     if (isActive) {
       if (rtwTargetMode === "single") {
         innerSingleClass = ' class="blinking-target"';
@@ -174,28 +234,24 @@ function renderDynamicDartboardRTW(activeTarget) {
       }
     }
 
-    // Inner Single
     slicesHTML += `<path${innerSingleClass} d="${createArc(
       rOuterBull,
       rTripleInner,
       startAngle,
       endAngle
     )}" fill="${colorSingle}" stroke="#aaa" stroke-width="0.5" />`;
-    // Triple
     slicesHTML += `<path${tripleClass} d="${createArc(
       rTripleInner,
       rTripleOuter,
       startAngle,
       endAngle
     )}" fill="${colorDoubleTriple}" stroke="#aaa" stroke-width="0.5" />`;
-    // Outer Single
     slicesHTML += `<path${outerSingleClass} d="${createArc(
       rTripleOuter,
       rDoubleInner,
       startAngle,
       endAngle
     )}" fill="${colorSingle}" stroke="#aaa" stroke-width="0.5" />`;
-    // Double
     slicesHTML += `<path${doubleClass} d="${createArc(
       rDoubleInner,
       rDoubleOuter,
@@ -209,17 +265,15 @@ function renderDynamicDartboardRTW(activeTarget) {
     slicesHTML += `<text x="${tx}" y="${ty}" fill="white" font-size="14" font-weight="bold" font-family="sans-serif" text-anchor="middle" dominant-baseline="central">${num}</text>`;
   });
 
-  // Bullseye Handling based on target mode
-  const isBullTarget = activeTarget === 25 || activeTarget === 50;
+  const isBullTarget = activeTarget === 25;
   let outerBullClass = "";
   let innerBullClass = "";
 
   if (isBullTarget) {
     if (rtwTargetMode === "single") {
       outerBullClass = ' class="blinking-target"';
-      innerBullClass = ' class="blinking-target"';
     } else {
-      innerBullClass = ' class="blinking-target"'; // Play Double/Triple mode as Bullseye
+      innerBullClass = ' class="blinking-target"';
     }
   }
 
