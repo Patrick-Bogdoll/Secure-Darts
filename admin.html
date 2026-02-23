@@ -29,7 +29,7 @@
 
       .container {
         width: 100%;
-        max-width: 900px;
+        max-width: 1000px;
         background: var(--card-bg);
         padding: 20px;
         border-radius: 8px;
@@ -38,12 +38,14 @@
 
       .header-tabs {
         display: flex;
+        flex-wrap: wrap;
         gap: 10px;
         margin-bottom: 20px;
       }
 
       .tab-btn {
         flex: 1;
+        min-width: 150px;
         padding: 12px;
         background: #333;
         border: none;
@@ -277,23 +279,31 @@
           class="tab-btn active"
           onclick="switchTab('littler')"
         >
-          🎯 Secure-Darts (Littler)
+          🎯 Littler
         </button>
         <button id="tab-501" class="tab-btn" onclick="switchTab('501')">
           🌍 501 Darts
         </button>
+        <button id="tab-bobs" class="tab-btn" onclick="switchTab('bobs')">
+          ⭕️ Bob's 27
+        </button>
+        <button id="tab-rtw" class="tab-btn" onclick="switchTab('rtw')">
+          🌎 RTW
+        </button>
       </div>
 
-      <table id="data-table">
-        <thead id="table-head"></thead>
-        <tbody></tbody>
-      </table>
+      <div style="overflow-x: auto">
+        <table id="data-table">
+          <thead id="table-head"></thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </div>
 
     <div id="edit-modal" class="modal-overlay">
       <div class="modal-content">
         <h2 id="modal-title" style="margin-top: 0; color: var(--accent-blue)">
-          Spieler bearbeiten
+          Spieler/Match bearbeiten
         </h2>
         <div id="edit-fields" class="form-grid"></div>
         <div class="modal-actions">
@@ -324,7 +334,6 @@
           alert("Zugriff verweigert!");
           window.location.href = "index.html";
         } else {
-          // Falls Admin, darf das Login-Overlay für das Passwort erscheinen
           document.getElementById("login-overlay").style.display = "flex";
         }
       }
@@ -332,8 +341,8 @@
       verifyAdmin();
 
       // --- SUPABASE SETUP ---
-      const SUPABASE_URL = "https://etzkulwnjhkoiklrohbt.supabase.co"; // Deine URL
-      const SUPABASE_KEY = "sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy"; // Dein Key
+      const SUPABASE_URL = "https://etzkulwnjhkoiklrohbt.supabase.co";
+      const SUPABASE_KEY = "sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy";
 
       const { createClient } = supabase;
       const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -356,7 +365,7 @@
         if (hash === ADMIN_HASH) {
           document.getElementById("login-overlay").style.display = "none";
           document.getElementById("admin-container").style.display = "block";
-          loadData(); // Daten erst nach erfolgreichem Login laden!
+          loadData();
         } else {
           alert("Falsches Passwort!");
           document.getElementById("admin-pw").value = "";
@@ -369,12 +378,12 @@
 
       function switchTab(mode) {
         currentMode = mode;
-        document
-          .getElementById("tab-littler")
-          .classList.toggle("active", mode === "littler");
-        document
-          .getElementById("tab-501")
-          .classList.toggle("active", mode === "501");
+        const tabs = ["littler", "501", "bobs", "rtw"];
+        tabs.forEach((t) => {
+          document
+            .getElementById(`tab-${t}`)
+            .classList.toggle("active", mode === t);
+        });
         loadData();
       }
 
@@ -403,16 +412,14 @@
               <td>
                 <button class="btn-edit" onclick="openEditModal(${
                   p.id
-                }, '${encodeURIComponent(
-              JSON.stringify(p)
-            )}')">✏️ Bearbeiten</button>
+                }, '${encodeURIComponent(JSON.stringify(p))}')">✏️ Edit</button>
                 <button class="btn-delete" onclick="deleteRecord(${p.id}, '${
               p.name
             }')">🗑️</button>
               </td>`;
             tbody.appendChild(tr);
           });
-        } else {
+        } else if (currentMode === "501") {
           thead.innerHTML =
             "<tr><th>ID</th><th>Name</th><th>Legs Won</th><th>Avg</th><th>Aktionen</th></tr>";
           const { data, error } = await _supabase
@@ -435,12 +442,64 @@
               <td>
                 <button class="btn-edit" onclick="openEditModal(${
                   p.id
-                }, '${encodeURIComponent(
-              JSON.stringify(p)
-            )}')">✏️ Bearbeiten</button>
+                }, '${encodeURIComponent(JSON.stringify(p))}')">✏️ Edit</button>
                 <button class="btn-delete" onclick="deleteRecord(${p.id}, '${
               p.name
             }')">🗑️</button>
+              </td>`;
+            tbody.appendChild(tr);
+          });
+        } else if (currentMode === "bobs") {
+          thead.innerHTML =
+            "<tr><th>ID</th><th>Name</th><th>Endstand</th><th>Sieg</th><th>Aktionen</th></tr>";
+          const { data, error } = await _supabase
+            .from("stats_bobs")
+            .select("*")
+            .order("id", { ascending: false });
+          if (error) return alert("Fehler: " + error.message);
+
+          tbody.innerHTML = "";
+          data.forEach((p) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${p.id}</td><td><b>${p.name}</b></td><td>${
+              p.final_score
+            }</td><td style="color:${
+              p.is_win ? "var(--accent-green)" : "var(--accent-red)"
+            }; font-weight:bold;">${p.is_win ? "Sieg" : "Bust"}</td>
+              <td>
+                <button class="btn-edit" onclick="openEditModal(${
+                  p.id
+                }, '${encodeURIComponent(JSON.stringify(p))}')">✏️ Edit</button>
+                <button class="btn-delete" onclick="deleteRecord(${
+                  p.id
+                }, 'Match von ${p.name}')">🗑️</button>
+              </td>`;
+            tbody.appendChild(tr);
+          });
+        } else if (currentMode === "rtw") {
+          thead.innerHTML =
+            "<tr><th>ID</th><th>Name</th><th>Treffer</th><th>Modus</th><th>Aktionen</th></tr>";
+          const { data, error } = await _supabase
+            .from("stats_rtw")
+            .select("*")
+            .order("id", { ascending: false });
+          if (error) return alert("Fehler: " + error.message);
+
+          tbody.innerHTML = "";
+          data.forEach((p) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${p.id}</td><td><b>${p.name}</b></td><td>${
+              p.total_points
+            }</td><td style="text-transform: capitalize;">${p.mode}</td>
+              <td>
+                <button class="btn-edit" onclick="openEditModal(${
+                  p.id
+                }, '${encodeURIComponent(JSON.stringify(p))}')">✏️ Edit</button>
+                <button class="btn-delete" onclick="deleteRecord(${
+                  p.id
+                }, 'Match von ${p.name}')">🗑️</button>
               </td>`;
             tbody.appendChild(tr);
           });
@@ -485,7 +544,7 @@
             "Geworfene Punkte Gesamt",
             data.total_points
           );
-        } else {
+        } else if (currentMode === "501") {
           fieldsContainer.innerHTML += createField(
             "name",
             "Spieler Name",
@@ -547,6 +606,42 @@
             "Doppel Getroffen",
             data.checkout_hits
           );
+        } else if (currentMode === "bobs") {
+          fieldsContainer.innerHTML += createField(
+            "name",
+            "Spieler Name",
+            data.name,
+            "text"
+          );
+          fieldsContainer.innerHTML += createField(
+            "final_score",
+            "Endstand",
+            data.final_score
+          );
+          fieldsContainer.innerHTML += createField(
+            "is_win",
+            "Sieg? (true oder false eingeben)",
+            data.is_win,
+            "text"
+          );
+        } else if (currentMode === "rtw") {
+          fieldsContainer.innerHTML += createField(
+            "name",
+            "Spieler Name",
+            data.name,
+            "text"
+          );
+          fieldsContainer.innerHTML += createField(
+            "total_points",
+            "Gesamt Treffer",
+            data.total_points
+          );
+          fieldsContainer.innerHTML += createField(
+            "mode",
+            "Modus (single/double/triple)",
+            data.mode,
+            "text"
+          );
         }
 
         document.getElementById("edit-modal").style.display = "flex";
@@ -559,10 +654,11 @@
 
       async function saveData() {
         if (!editingId) return;
-
         let updatePayload = {};
+        let tableName = "";
 
         if (currentMode === "littler") {
+          tableName = "highscores";
           updatePayload.name = document.getElementById("edit_name").value;
           updatePayload.wins =
             parseInt(document.getElementById("edit_wins").value) || 0;
@@ -572,7 +668,8 @@
             parseInt(document.getElementById("edit_games_played").value) || 0;
           updatePayload.total_points =
             parseInt(document.getElementById("edit_total_points").value) || 0;
-        } else {
+        } else if (currentMode === "501") {
+          tableName = "stats_501";
           updatePayload.name = document.getElementById("edit_name").value;
           updatePayload.wins =
             parseInt(document.getElementById("edit_wins").value) || 0;
@@ -601,10 +698,22 @@
             0;
           updatePayload.checkout_hits =
             parseInt(document.getElementById("edit_checkout_hits").value) || 0;
+        } else if (currentMode === "bobs") {
+          tableName = "stats_bobs";
+          updatePayload.name = document.getElementById("edit_name").value;
+          updatePayload.final_score =
+            parseInt(document.getElementById("edit_final_score").value) || 0;
+          updatePayload.is_win =
+            document.getElementById("edit_is_win").value.toLowerCase() ===
+            "true";
+        } else if (currentMode === "rtw") {
+          tableName = "stats_rtw";
+          updatePayload.name = document.getElementById("edit_name").value;
+          updatePayload.total_points =
+            parseInt(document.getElementById("edit_total_points").value) || 0;
+          updatePayload.mode = document.getElementById("edit_mode").value;
         }
 
-        const tableName =
-          currentMode === "littler" ? "highscores" : "stats_501";
         const { error } = await _supabase
           .from(tableName)
           .update(updatePayload)
@@ -619,10 +728,19 @@
       }
 
       async function deleteRecord(id, name) {
-        if (!confirm(`Willst du "${name}" wirklich unwiderruflich LÖSCHEN?`))
+        if (
+          !confirm(
+            `Willst du das Match von "${name}" wirklich unwiderruflich LÖSCHEN?`
+          )
+        )
           return;
-        const tableName =
-          currentMode === "littler" ? "highscores" : "stats_501";
+
+        let tableName = "";
+        if (currentMode === "littler") tableName = "highscores";
+        else if (currentMode === "501") tableName = "stats_501";
+        else if (currentMode === "bobs") tableName = "stats_bobs";
+        else if (currentMode === "rtw") tableName = "stats_rtw";
+
         const { error } = await _supabase.from(tableName).delete().eq("id", id);
 
         if (error) alert("Fehler beim Löschen: " + error.message);
