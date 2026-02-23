@@ -282,3 +282,30 @@ function renderDynamicDartboardRTW(activeTarget) {
 
   container.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 300 300" style="max-width: 350px; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));">${slicesHTML}</svg>`;
 }
+
+// ==========================================
+// TASTATUR-STEUERUNG FÜR ROUND THE WORLD
+// ==========================================
+document.addEventListener("keydown", function (event) {
+  // 1. Prüfen, ob wir uns im RTW-Spiel befinden
+  const rtwScreen = document.getElementById("game-rtw-screen");
+  if (!rtwScreen || rtwScreen.style.display !== "block") {
+    return; // Wenn nicht, brich ab
+  }
+
+  // 2. Verhindern, dass Tasten ausgelöst werden, wenn man gerade den Spielernamen eintippt
+  if (document.activeElement.tagName === "INPUT") {
+    return;
+  }
+
+  // 3. Tasten 0, 1, 2, 3 den entsprechenden Treffern zuordnen
+  if (event.key === "0") {
+    submitRtwScore(0);
+  } else if (event.key === "1") {
+    submitRtwScore(1);
+  } else if (event.key === "2") {
+    submitRtwScore(2);
+  } else if (event.key === "3") {
+    submitRtwScore(3);
+  }
+});
