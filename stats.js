@@ -621,9 +621,27 @@ async function open501Stats(encodedData, isSwitching = false) {
 
 function openBobsStats(data) {
   currentModalType = "bobs";
+
   let totalGames = data.length;
   let totalWins = data.filter((g) => g.is_win).length;
   let highscore = Math.max(...data.map((g) => g.final_score));
+  let avgScore =
+    totalGames > 0
+      ? Math.round(data.reduce((sum, g) => sum + g.final_score, 0) / totalGames)
+      : 0;
+  let winRate =
+    totalGames > 0 ? Math.round((totalWins / totalGames) * 100) + "%" : "0%";
+  let lastScore = totalGames > 0 ? data[0].final_score : 0; // Das neueste Spiel
+
+  // Alle 6 Standard-Boxen anzeigen
+  for (let i = 1; i <= 6; i++) {
+    let box = document.getElementById(`lbl-kpi-${i}`)?.parentElement;
+    if (box) box.style.display = "block";
+  }
+
+  // 501-Spezialboxen (7-10) wie bei Littler verstecken
+  for (let i = 7; i <= 10; i++)
+    document.getElementById(`box-kpi-${i}`).style.display = "none";
 
   // KPIs befüllen
   document.getElementById("lbl-kpi-1").innerText = "Gespielte Runden";
@@ -638,19 +656,71 @@ function openBobsStats(data) {
   document.getElementById("kpi-3").innerText = highscore;
   document.getElementById("kpi-3").style.color = "var(--accent-purple)";
 
-  // Nicht benötigte KPIs verstecken
-  for (let i = 4; i <= 6; i++) {
-    document.getElementById(`lbl-kpi-${i}`).parentElement.style.display =
-      "none";
-  }
-  document.getElementById("box-kpi-7").style.display = "none";
-  document.getElementById("box-kpi-8").style.display = "none";
-  document.getElementById("box-kpi-9").style.display = "none";
-  document.getElementById("box-kpi-10").style.display = "none";
+  document.getElementById("lbl-kpi-4").innerText = "Winrate";
+  document.getElementById("kpi-4").innerText = winRate;
+  document.getElementById("kpi-4").style.color = "white";
 
-  // Chart verstecken
-  document.querySelector(".chart-container").style.display = "none";
-  document.querySelector("#tab-overview h4").style.display = "none";
+  document.getElementById("lbl-kpi-5").innerText = "Ø Score";
+  document.getElementById("kpi-5").innerText = avgScore;
+  document.getElementById("kpi-5").style.color = "var(--accent-blue)";
+
+  document.getElementById("lbl-kpi-6").innerText = "Letztes Spiel";
+  document.getElementById("kpi-6").innerText = lastScore;
+  document.getElementById("kpi-6").style.color = "white";
+
+  // --- NEU: CHART EINBLENDEN ---
+  document.querySelector(".chart-container").style.display = "block";
+  const chartTitle = document.querySelector("#tab-overview h4");
+  chartTitle.style.display = "block";
+  chartTitle.innerText = "📊 PUNKTEVERLAUF (LETZTE 20 SPIELE)";
+
+  let chartGames = data.slice(0, 20).reverse(); // Älteste zuerst für den Graphen
+  let chartLabels = chartGames.map((_, i) => `Spiel ${i + 1}`);
+  let chartValues = chartGames.map((g) => g.final_score);
+
+  if (statsChart) statsChart.destroy();
+  const ctx = document.getElementById("statsChart").getContext("2d");
+  statsChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: chartLabels,
+      datasets: [
+        {
+          label: "Endstand",
+          data: chartValues,
+          borderColor: "rgba(255, 152, 0, 1)", // Bob's Orange
+          backgroundColor: "rgba(255, 152, 0, 0.2)",
+          borderWidth: 3,
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4,
+          pointHitRadius: 50,
+          pointHoverRadius: 10,
+          pointBackgroundColor: "rgba(255, 152, 0, 1)",
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        y: { grid: { color: "#333" }, ticks: { color: "#aaa" } },
+        x: { grid: { display: false }, ticks: { color: "#aaa" } },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: true,
+          backgroundColor: "rgba(0,0,0,0.8)",
+          titleFont: { size: 14 },
+          bodyFont: { size: 16, weight: "bold" },
+          displayColors: false,
+          padding: 10,
+        },
+      },
+    },
+  });
 
   // Historie befüllen
   let historyHtml = "";
@@ -666,15 +736,43 @@ function openBobsStats(data) {
     let winColor = game.is_win ? "var(--accent-green)" : "var(--accent-red)";
     let winText = game.is_win ? "SIEG" : "BUST";
 
+    // 1. Detailliste (Pfeile) zusammenbauen
+    let detailsHTML = `<div style="padding-top: 10px; border-top: 1px solid #444; margin-top: 10px;">`;
+    if (game.details && Array.isArray(game.details)) {
+      game.details.forEach((turn) => {
+        let fieldName = turn.target === 25 ? "BULL" : `D${turn.target}`;
+        let hitColor =
+          turn.hits > 0 ? "var(--accent-green)" : "var(--accent-red)";
+        let prefix = turn.points > 0 ? "+" : "";
+        detailsHTML += `
+          <div style="display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 4px;">
+            <span style="color: #888;">Feld <b style="color: white;">${fieldName}</b> (${turn.hits}x)</span>
+            <span style="color: ${hitColor}; font-weight: bold;">${prefix}${turn.points}</span>
+          </div>`;
+      });
+    } else {
+      detailsHTML += `<div style="color: #888; font-size: 0.85em;">Keine Wurf-Details verfügbar.</div>`;
+    }
+    detailsHTML += `</div>`;
+
+    // 2. Klickbaren Container aufbauen
     historyHtml += `
-      <div style="background: #2a2a2a; padding: 10px 15px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-        <div style="text-align: left;">
-          <span style="color: #aaa; font-size: 0.8em;">${dateStr}</span>
-          <div style="font-weight: bold; color: ${winColor};">${winText}</div>
+      <div style="background: #2a2a2a; border-radius: 8px; margin-bottom: 8px; overflow: hidden;">
+        
+        <div onclick="toggleHistoryDetails(this)" style="padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'">
+          <div style="text-align: left;">
+            <span style="color: #aaa; font-size: 0.8em;">${dateStr}</span>
+            <div style="font-weight: bold; color: ${winColor};">${winText}</div>
+          </div>
+          <div style="font-size: 1.5em; font-weight: bold; color: white;">
+            ${game.final_score} <span style="font-size: 0.5em; color: #888; font-weight: normal;">Pkt</span>
+          </div>
         </div>
-        <div style="font-size: 1.5em; font-weight: bold; color: white;">
-          ${game.final_score} <span style="font-size: 0.5em; color: #888; font-weight: normal;">Pkt</span>
+
+        <div class="history-details" style="display: none; padding: 0 15px 15px 15px; background: #222;">
+          ${detailsHTML}
         </div>
+
       </div>
     `;
   });
@@ -683,8 +781,29 @@ function openBobsStats(data) {
 
 function openRtwStats(data) {
   currentModalType = "rtw";
+
   let totalGames = data.length;
   let highscore = Math.max(...data.map((g) => g.total_points));
+  let avgScore =
+    totalGames > 0
+      ? Math.round(
+          data.reduce((sum, g) => sum + g.total_points, 0) / totalGames
+        )
+      : 0;
+  let lastScore = totalGames > 0 ? data[0].total_points : 0;
+  let singleGames = data.filter((g) => g.mode === "single").length;
+  let doubleGames = data.filter((g) => g.mode === "double").length;
+  let tripleGames = data.filter((g) => g.mode === "triple").length;
+
+  // Alle 6 Standard-Boxen anzeigen
+  for (let i = 1; i <= 6; i++) {
+    let box = document.getElementById(`lbl-kpi-${i}`)?.parentElement;
+    if (box) box.style.display = "block";
+  }
+
+  // 501-Spezialboxen (7-10) verstecken
+  for (let i = 7; i <= 10; i++)
+    document.getElementById(`box-kpi-${i}`).style.display = "none";
 
   // KPIs befüllen
   document.getElementById("lbl-kpi-1").innerText = "Gespielte Runden";
@@ -695,19 +814,75 @@ function openRtwStats(data) {
   document.getElementById("kpi-2").innerText = highscore;
   document.getElementById("kpi-2").style.color = "var(--accent-blue)";
 
-  // Nicht benötigte KPIs verstecken
-  for (let i = 3; i <= 6; i++) {
-    document.getElementById(`lbl-kpi-${i}`).parentElement.style.display =
-      "none";
-  }
-  document.getElementById("box-kpi-7").style.display = "none";
-  document.getElementById("box-kpi-8").style.display = "none";
-  document.getElementById("box-kpi-9").style.display = "none";
-  document.getElementById("box-kpi-10").style.display = "none";
+  document.getElementById("lbl-kpi-3").innerText = "Ø Treffer";
+  document.getElementById("kpi-3").innerText = avgScore;
+  document.getElementById("kpi-3").style.color = "white";
 
-  // Chart verstecken
-  document.querySelector(".chart-container").style.display = "none";
-  document.querySelector("#tab-overview h4").style.display = "none";
+  document.getElementById("lbl-kpi-4").innerText = "Single Modus";
+  document.getElementById("kpi-4").innerText = singleGames;
+  document.getElementById("kpi-4").style.color = "white";
+
+  document.getElementById("lbl-kpi-5").innerText = "Double Modus";
+  document.getElementById("kpi-5").innerText = doubleGames;
+  document.getElementById("kpi-5").style.color = "var(--accent-green)";
+
+  document.getElementById("lbl-kpi-6").innerText = "Triple Modus";
+  document.getElementById("kpi-6").innerText = tripleGames;
+  document.getElementById("kpi-6").style.color = "var(--accent-purple)";
+
+  // --- NEU: CHART EINBLENDEN ---
+  document.querySelector(".chart-container").style.display = "block";
+  const chartTitle = document.querySelector("#tab-overview h4");
+  chartTitle.style.display = "block";
+  chartTitle.innerText = "📊 TREFFERVERLAUF (LETZTE 20 SPIELE)";
+
+  let chartGames = data.slice(0, 20).reverse();
+  let chartLabels = chartGames.map((_, i) => `Spiel ${i + 1}`);
+  let chartValues = chartGames.map((g) => g.total_points);
+
+  if (statsChart) statsChart.destroy();
+  const ctx = document.getElementById("statsChart").getContext("2d");
+  statsChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: chartLabels,
+      datasets: [
+        {
+          label: "Punkte",
+          data: chartValues,
+          borderColor: "rgba(41, 121, 255, 1)", // Blau
+          backgroundColor: "rgba(41, 121, 255, 0.2)",
+          borderWidth: 3,
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4,
+          pointHitRadius: 50,
+          pointHoverRadius: 10,
+          pointBackgroundColor: "rgba(41, 121, 255, 1)",
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        y: { grid: { color: "#333" }, ticks: { color: "#aaa" } },
+        x: { grid: { display: false }, ticks: { color: "#aaa" } },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: true,
+          backgroundColor: "rgba(0,0,0,0.8)",
+          titleFont: { size: 14 },
+          bodyFont: { size: 16, weight: "bold" },
+          displayColors: false,
+          padding: 10,
+        },
+      },
+    },
+  });
 
   // Historie befüllen
   let historyHtml = "";
@@ -727,16 +902,42 @@ function openRtwStats(data) {
         ? "Double"
         : "Triple";
 
+    // 1. Detailliste zusammenbauen
+    let detailsHTML = `<div style="padding-top: 10px; border-top: 1px solid #444; margin-top: 10px;">`;
+    if (game.details && Array.isArray(game.details)) {
+      game.details.forEach((turn) => {
+        let fieldName = turn.target === 25 ? "BULL" : turn.target;
+        let hitColor = turn.hits > 0 ? "var(--accent-green)" : "#888";
+        detailsHTML += `
+          <div style="display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 4px;">
+            <span style="color: #888;">Feld <b style="color: white;">${fieldName}</b></span>
+            <span style="color: ${hitColor}; font-weight: bold;">${turn.hits} Treffer</span>
+          </div>`;
+      });
+    } else {
+      detailsHTML += `<div style="color: #888; font-size: 0.85em;">Keine Wurf-Details verfügbar.</div>`;
+    }
+    detailsHTML += `</div>`;
+
+    // 2. Klickbaren Container aufbauen
     historyHtml += `
-      <div style="background: #2a2a2a; padding: 10px 15px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-        <div style="text-align: left;">
-          <span style="color: #aaa; font-size: 0.8em;">${dateStr}</span>
-          <div style="color: var(--accent-blue); font-weight: bold;">Modus: ${modeText}</div>
+      <div style="background: #2a2a2a; border-radius: 8px; margin-bottom: 8px; overflow: hidden;">
+        
+        <div onclick="toggleHistoryDetails(this)" style="padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'">
+          <div style="text-align: left;">
+            <span style="color: #aaa; font-size: 0.8em;">${dateStr}</span>
+            <div style="color: var(--accent-blue); font-weight: bold;">Modus: ${modeText}</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 1.5em; font-weight: bold; color: white;">${game.total_points}</div>
+            <span style="color: #888; font-size: 0.8em;">Treffer</span>
+          </div>
         </div>
-        <div style="text-align: right;">
-          <div style="font-size: 1.5em; font-weight: bold; color: white;">${game.total_points}</div>
-          <span style="color: #888; font-size: 0.8em;">Treffer</span>
+
+        <div class="history-details" style="display: none; padding: 0 15px 15px 15px; background: #222;">
+          ${detailsHTML}
         </div>
+
       </div>
     `;
   });
