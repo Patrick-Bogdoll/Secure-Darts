@@ -304,6 +304,33 @@
     </div>
 
     <script>
+      async function verifyAdmin() {
+        const {
+          data: { session },
+        } = await _supabase.auth.getSession();
+
+        if (!session) {
+          window.location.href = "index.html";
+          return;
+        }
+
+        const { data } = await _supabase
+          .from("stats_501")
+          .select("is_admin")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+
+        if (!data || !data.is_admin) {
+          alert("Zugriff verweigert!");
+          window.location.href = "index.html";
+        } else {
+          // Falls Admin, darf das Login-Overlay für das Passwort erscheinen
+          document.getElementById("login-overlay").style.display = "flex";
+        }
+      }
+
+      verifyAdmin();
+
       // --- SUPABASE SETUP ---
       const SUPABASE_URL = "https://etzkulwnjhkoiklrohbt.supabase.co"; // Deine URL
       const SUPABASE_KEY = "sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy"; // Dein Key

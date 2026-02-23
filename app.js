@@ -164,6 +164,21 @@ async function showMainApp() {
     }
   }
 
+  const adminBtn = document.getElementById("admin-btn");
+  if (adminBtn && currentUser && !isGuest) {
+    const { data, error } = await _supabase
+      .from("stats_501")
+      .select("is_admin")
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+
+    if (data && data.is_admin) {
+      adminBtn.style.display = "block"; // Show button if DB says yes
+    } else {
+      adminBtn.style.display = "none";
+    }
+  }
+
   goHome();
 }
 
