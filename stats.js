@@ -511,7 +511,7 @@ async function open501Stats(encodedData, isSwitching = false) {
     .select("match_details, created_at")
     .eq("player_name", data.name)
     .order("created_at", { ascending: false })
-    .limit(5); // Get last 5 matches to show recent legs
+    .limit(15); // Get last 5 matches to show recent legs
 
   let chartLabels = [];
   let chartAverages = [];
@@ -537,6 +537,11 @@ async function open501Stats(encodedData, isSwitching = false) {
   if (chartAverages.length === 0) {
     chartLabels = ["Keine Daten"];
     chartAverages = [0];
+  }
+
+  if (chartAverages.length > 15) {
+    chartAverages = chartAverages.slice(-15);
+    cheatLaberls = chartLabels.slice(-15);
   }
 
   if (statsChart) statsChart.destroy();
