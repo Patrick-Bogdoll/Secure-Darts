@@ -5,6 +5,7 @@
 let bobsPlayer = null;
 let bobsTargetIndex = 1; // 1 bis 21 (21 = Bull)
 let bobsHistoryStack = [];
+let isBobsGameOver = false;
 
 const bobsTargets = [
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25,
@@ -24,6 +25,7 @@ function startBobsGame() {
   };
   bobsTargetIndex = 1;
   bobsHistoryStack = [];
+  isBobsGameOver = false;
 
   document.getElementById("btn-undo-bobs").style.display = "none";
   document.getElementById("bobs-setup-screen").style.display = "none";
@@ -55,6 +57,7 @@ function updateBobsUI() {
 }
 
 function submitBobsScore(hits) {
+  if (isBobsGameOver) return;
   // Snapshot für Undo speichern (+ tableLength)
   bobsHistoryStack.push({
     score: bobsPlayer.score,
@@ -84,6 +87,7 @@ function submitBobsScore(hits) {
 
   // Rausschmiss prüfen
   if (bobsPlayer.score < 0) {
+    isBobsGameOver = true;
     saveBobsStatsBackground(false);
 
     setTimeout(() => {
@@ -97,6 +101,7 @@ function submitBobsScore(hits) {
   bobsTargetIndex++;
 
   if (bobsTargetIndex > 21) {
+    isBobsGameOver = true;
     saveBobsStatsBackground(true);
 
     setTimeout(() => {

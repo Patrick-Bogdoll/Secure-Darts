@@ -271,25 +271,11 @@
         </button>
       </div>
       <button
-        class="nav-btn active"
-        id="tab-play"
-        onclick="showScreen('play'); toggleMenu();"
-      >
-        🎯 Spielen
-      </button>
-      <button
         class="nav-btn"
         id="tab-stats"
         onclick="showScreen('stats'); toggleMenu();"
       >
         📊 Statistiken
-      </button>
-      <button
-        class="nav-btn"
-        id="tab-rules"
-        onclick="showScreen('rules'); toggleMenu();"
-      >
-        📜 Regeln
       </button>
 
       <div style="flex: 1; min-height: 20px"></div>
@@ -402,7 +388,7 @@
           style="background-color: var(--accent-blue); color: black"
         >
           🌍 Round the World
-          <span>Doppel Trainings Modus</span>
+          <span>Aim Trainings Modus</span>
         </button>
       </div>
 
@@ -439,7 +425,20 @@
           <span>Trainings-Modus (Separat speichern)</span>
         </label>
         <button class="primary" onclick="startGame()">START</button>
-        <button class="reset" onclick="goHome()">🏠 Home</button>
+        <button class="reset" onclick="goHome()">🏠 Zurück</button>
+
+        <button
+          class="reset"
+          onclick="document.getElementById('setup-screen').style.display='none'; document.getElementById('rules-screen').style.display='block';"
+          style="
+            margin-top: 15px;
+            border: 1px dashed #555;
+            color: #aaa;
+            background: transparent;
+          "
+        >
+          📜 Spielregeln lesen
+        </button>
       </div>
 
       <div
@@ -641,7 +640,7 @@
                 style="width: 100%; padding: 10px; margin-top: 0"
                 onclick="joinOnlineGame()"
               >
-                Join
+                Beitreten
               </button>
             </div>
           </div>
@@ -993,7 +992,7 @@
         >
           Spiel Starten
         </button>
-        <button class="reset" onclick="goHome()">🏠 Home</button>
+        <button class="reset" onclick="goHome()">🏠 Zurück</button>
       </div>
 
       <div id="game-party-screen" class="screen" style="display: none">
@@ -1707,7 +1706,7 @@
             onclick="switchStatsMode('littler')"
             style="background: var(--accent-blue); color: white"
           >
-            🎯 Littler Stats
+            🎲 Secure Stats
           </button>
           <button
             class="nav-btn"
@@ -1715,11 +1714,11 @@
             onclick="switchStatsMode('501')"
             style="background: #333; color: #aaa"
           >
-            🌍 501 Stats
+            🎯 501 Stats
           </button>
         </div>
         <div id="loading-spinner" style="text-align: center; padding: 20px">
-          Lade Daten...
+          <!--Lade Daten...-->
         </div>
         <table id="lifetime-table">
           <thead>
@@ -1792,6 +1791,14 @@
           Wähle im Setup einen Bot aus. Bots werden <b>nicht</b> in der
           Statistik gespeichert.
         </p>
+
+        <button
+          class="primary"
+          onclick="document.getElementById('rules-screen').style.display='none'; document.getElementById('setup-screen').style.display='block';"
+          style="margin-top: 30px; background: #444; color: white"
+        >
+          🔙 Zurück zum Setup
+        </button>
       </div>
     </div>
 
@@ -1834,7 +1841,7 @@
           "
         >
           <button
-            class="nav-btn active"
+            class="nav-btn"
             id="modal-btn-501"
             onclick="switchModalMode('501')"
             style="
@@ -1846,7 +1853,7 @@
               font-size: 0.9em;
             "
           >
-            🌍 501 Stats
+            🎯 501 Stats
           </button>
           <button
             class="nav-btn"
@@ -1861,7 +1868,37 @@
               font-size: 0.9em;
             "
           >
-            🎯 Littler Stats
+            🎲 Secure Stats
+          </button>
+          <button
+            class="nav-btn"
+            id="modal-btn-bobs"
+            onclick="switchModalMode('bobs')"
+            style="
+              margin: 0;
+              padding: 8px 15px;
+              background: #333;
+              color: #aaa;
+              width: auto;
+              font-size: 0.9em;
+            "
+          >
+            ⭕️ Bob's Stats
+          </button>
+          <button
+            class="nav-btn"
+            id="modal-btn-rtw"
+            onclick="switchModalMode('rtw')"
+            style="
+              margin: 0;
+              padding: 8px 15px;
+              background: #333;
+              color: #aaa;
+              width: auto;
+              font-size: 0.9em;
+            "
+          >
+            🌎 RTW Stats
           </button>
         </div>
 

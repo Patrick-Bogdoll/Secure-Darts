@@ -22,12 +22,20 @@ function switchModalTab(tab) {
   document
     .querySelectorAll(".modal-content-area")
     .forEach((c) => (c.style.display = "none"));
+
   if (tab === "overview") {
     document.querySelector(".modal-tab:nth-child(1)").classList.add("active");
     document.getElementById("tab-overview").style.display = "block";
   } else {
     document.querySelector(".modal-tab:nth-child(2)").classList.add("active");
     document.getElementById("tab-history").style.display = "block";
-    loadMatchHistory();
+
+    // ---> NEU: Blockiert das Überschreiben bei Bob's und RTW <---
+    if (
+      typeof currentModalType !== "undefined" &&
+      (currentModalType === "501" || currentModalType === "littler")
+    ) {
+      if (typeof loadMatchHistory === "function") loadMatchHistory();
+    }
   }
 }

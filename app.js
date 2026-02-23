@@ -218,10 +218,8 @@ function enterMode(mode) {
   document.getElementById("hamburger-btn").style.display = "block"; // Zeigt den Hamburger-Button an
 
   if (mode === "501") {
-    document.getElementById("tab-rules").style.display = "none";
     document.getElementById("app-title").innerText = "🌍 501 DARTS";
   } else {
-    document.getElementById("tab-rules").style.display = "block";
     document.getElementById("app-title").innerText = "🎯 SECURE-DARTS";
   }
   showScreen("play");

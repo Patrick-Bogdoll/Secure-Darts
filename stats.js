@@ -4,34 +4,71 @@ let currentModalRawName = "";
 
 async function switchModalMode(mode) {
   if (!currentModalRawName) return;
+  currentModalType = mode;
   document.getElementById("tab-overview").style.opacity = "0.5"; // Kurzer Lade-Effekt
 
+  // 1. Buttons visuell updaten (ohne Glow)
+  document.querySelectorAll("#modal-mode-toggle .nav-btn").forEach((btn) => {
+    btn.style.background = "#333";
+    btn.style.color = "#aaa";
+    btn.style.boxShadow = "none";
+  });
+
+  let activeBtn = document.getElementById(`modal-btn-${mode}`);
+  if (activeBtn) {
+    activeBtn.style.background = "var(--accent-blue)";
+    activeBtn.style.color = "white";
+    activeBtn.style.boxShadow = "none";
+  }
+
+  // 2. Daten laden
   if (mode === "501") {
     let { data } = await _supabase
       .from("stats_501")
       .select("*")
       .eq("name", currentModalRawName)
       .maybeSingle();
-    if (data) {
-      open501Stats(encodeURIComponent(JSON.stringify(data)), true);
-    } else {
+    if (data) open501Stats(encodeURIComponent(JSON.stringify(data)), true);
+    else
       alert("Noch keine 501-Daten für " + currentModalRawName + " vorhanden.");
-    }
-  } else {
+  } else if (mode === "littler") {
     let { data } = await _supabase
       .from("highscores")
       .select("*")
       .eq("name", currentModalRawName)
       .maybeSingle();
-    if (data) {
-      openProStats(encodeURIComponent(JSON.stringify(data)), true);
-    } else {
+    if (data) openProStats(encodeURIComponent(JSON.stringify(data)), true);
+    else
       alert(
         "Noch keine Littler-Daten für " + currentModalRawName + " vorhanden."
       );
+  } else if (mode === "bobs") {
+    let { data } = await _supabase
+      .from("stats_bobs")
+      .select("*")
+      .eq("name", currentModalRawName)
+      .order("created_at", { ascending: false });
+    if (data && data.length > 0) openBobsStats(data);
+    else alert("Noch keine Bob's 27-Daten vorhanden.");
+  } else if (mode === "rtw") {
+    let { data } = await _supabase
+      .from("stats_rtw")
+      .select("*")
+      .eq("name", currentModalRawName)
+      .order("created_at", { ascending: false });
+    if (data && data.length > 0) openRtwStats(data);
+    else alert("Noch keine RTW-Daten vorhanden.");
+  }
+
+  document.getElementById("tab-overview").style.opacity = "1";
+
+  // ---> NEU: Historie sofort updaten, falls der Tab offen ist <---
+  // (Für Bob's und RTW passiert das Update bereits in ihren open...Stats Funktionen)
+  if (document.getElementById("tab-history").style.display === "block") {
+    if (mode === "501" || mode === "littler") {
+      if (typeof loadMatchHistory === "function") loadMatchHistory();
     }
   }
-  document.getElementById("tab-overview").style.opacity = "1";
 }
 
 async function save501Stats(
@@ -587,6 +624,130 @@ async function open501Stats(encodedData, isSwitching = false) {
     loadMatchHistory();
   }
   m.style.display = "flex";
+}
+
+function openBobsStats(data) {
+  currentModalType = "bobs";
+  let totalGames = data.length;
+  let totalWins = data.filter((g) => g.is_win).length;
+  let highscore = Math.max(...data.map((g) => g.final_score));
+
+  // KPIs befüllen
+  document.getElementById("lbl-kpi-1").innerText = "Gespielte Runden";
+  document.getElementById("kpi-1").innerText = totalGames;
+  document.getElementById("kpi-1").style.color = "white";
+
+  document.getElementById("lbl-kpi-2").innerText = "Siege";
+  document.getElementById("kpi-2").innerText = totalWins;
+  document.getElementById("kpi-2").style.color = "var(--accent-green)";
+
+  document.getElementById("lbl-kpi-3").innerText = "Highscore";
+  document.getElementById("kpi-3").innerText = highscore;
+  document.getElementById("kpi-3").style.color = "var(--accent-purple)";
+
+  // Nicht benötigte KPIs verstecken
+  for (let i = 4; i <= 6; i++) {
+    document.getElementById(`lbl-kpi-${i}`).parentElement.style.display =
+      "none";
+  }
+  document.getElementById("box-kpi-7").style.display = "none";
+  document.getElementById("box-kpi-8").style.display = "none";
+  document.getElementById("box-kpi-9").style.display = "none";
+  document.getElementById("box-kpi-10").style.display = "none";
+
+  // Chart verstecken
+  document.querySelector(".chart-container").style.display = "none";
+  document.querySelector("#tab-overview h4").style.display = "none";
+
+  // Historie befüllen
+  let historyHtml = "";
+  data.forEach((game) => {
+    let dateObj = new Date(game.created_at);
+    let dateStr =
+      dateObj.toLocaleDateString("de-DE") +
+      " " +
+      dateObj.toLocaleTimeString("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    let winColor = game.is_win ? "var(--accent-green)" : "var(--accent-red)";
+    let winText = game.is_win ? "SIEG" : "BUST";
+
+    historyHtml += `
+      <div style="background: #2a2a2a; padding: 10px 15px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="text-align: left;">
+          <span style="color: #aaa; font-size: 0.8em;">${dateStr}</span>
+          <div style="font-weight: bold; color: ${winColor};">${winText}</div>
+        </div>
+        <div style="font-size: 1.5em; font-weight: bold; color: white;">
+          ${game.final_score} <span style="font-size: 0.5em; color: #888; font-weight: normal;">Pkt</span>
+        </div>
+      </div>
+    `;
+  });
+  document.getElementById("history-list").innerHTML = historyHtml;
+}
+
+function openRtwStats(data) {
+  currentModalType = "rtw";
+  let totalGames = data.length;
+  let highscore = Math.max(...data.map((g) => g.total_points));
+
+  // KPIs befüllen
+  document.getElementById("lbl-kpi-1").innerText = "Gespielte Runden";
+  document.getElementById("kpi-1").innerText = totalGames;
+  document.getElementById("kpi-1").style.color = "white";
+
+  document.getElementById("lbl-kpi-2").innerText = "Highscore";
+  document.getElementById("kpi-2").innerText = highscore;
+  document.getElementById("kpi-2").style.color = "var(--accent-blue)";
+
+  // Nicht benötigte KPIs verstecken
+  for (let i = 3; i <= 6; i++) {
+    document.getElementById(`lbl-kpi-${i}`).parentElement.style.display =
+      "none";
+  }
+  document.getElementById("box-kpi-7").style.display = "none";
+  document.getElementById("box-kpi-8").style.display = "none";
+  document.getElementById("box-kpi-9").style.display = "none";
+  document.getElementById("box-kpi-10").style.display = "none";
+
+  // Chart verstecken
+  document.querySelector(".chart-container").style.display = "none";
+  document.querySelector("#tab-overview h4").style.display = "none";
+
+  // Historie befüllen
+  let historyHtml = "";
+  data.forEach((game) => {
+    let dateObj = new Date(game.created_at);
+    let dateStr =
+      dateObj.toLocaleDateString("de-DE") +
+      " " +
+      dateObj.toLocaleTimeString("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    let modeText =
+      game.mode === "single"
+        ? "Single"
+        : game.mode === "double"
+        ? "Double"
+        : "Triple";
+
+    historyHtml += `
+      <div style="background: #2a2a2a; padding: 10px 15px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="text-align: left;">
+          <span style="color: #aaa; font-size: 0.8em;">${dateStr}</span>
+          <div style="color: var(--accent-blue); font-weight: bold;">Modus: ${modeText}</div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 1.5em; font-weight: bold; color: white;">${game.total_points}</div>
+          <span style="color: #888; font-size: 0.8em;">Treffer</span>
+        </div>
+      </div>
+    `;
+  });
+  document.getElementById("history-list").innerHTML = historyHtml;
 }
 
 async function loadMatchHistory() {
