@@ -49,9 +49,9 @@ function updateRtwUI() {
   document.getElementById(
     "rtw-turn-indicator"
   ).innerText = `🎯 ${rtwPlayer.name} wirft...`;
-  document.getElementById("rtw-darts-count").innerText = `${
-    rtwPlayer.targetIndex + 1
-  } / 21`;
+  document.getElementById(
+    "rtw-points-count"
+  ).innerText = `${rtwPlayer.totalPoints}`;
 
   let targetDisplay = targetVal;
 
@@ -67,6 +67,38 @@ function updateRtwUI() {
 
   document.getElementById("rtw-target-display").innerText = targetDisplay;
   renderDynamicDartboardRTW(targetVal);
+
+  updateRtwHistoryUI();
+}
+
+function updateRtwHistoryUI() {
+  const container = document.getElementById("side-history-list-rtw");
+  const nameLabel = document.getElementById("history-rtw-name");
+
+  if (!container) return;
+
+  // Update the player name in the history header
+  if (nameLabel && rtwPlayer) {
+    nameLabel.innerText = rtwPlayer.name;
+  }
+
+  let html = "";
+  if (rtwPlayer && rtwPlayer.pointsTable) {
+    rtwPlayer.pointsTable.forEach((entry) => {
+      let fieldName = entry.target === 25 ? "BULL" : entry.target;
+      let hitColor = entry.hits > 0 ? "var(--accent-green)" : "#888";
+
+      html += `
+        <div style="display:flex; justify-content:space-between; padding:8px 10px; background:#2a2a2a; margin-bottom:5px; border-radius:6px; font-size: 0.9em; color:#ccc;">
+          <span>Feld <b style="color:white;">${fieldName}</b></span>
+          <span style="color:${hitColor}; font-weight:bold;">${entry.hits} Treffer</span>
+        </div>`;
+    });
+  }
+
+  container.innerHTML = html;
+  // Automatically scroll down to the newest throw
+  container.scrollTop = container.scrollHeight;
 }
 
 // NEU: Supabase Speicherfunktion (läuft leise im Hintergrund)

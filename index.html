@@ -1148,6 +1148,433 @@
         </div>
       </div>
 
+      <div
+        id="bobs-setup-screen"
+        style="display: none; width: 100%; max-width: 600px"
+      >
+        <h2 style="color: #ff9800; text-align: center">⭕️ Bob's 27 Setup</h2>
+        <p
+          style="
+            text-align: center;
+            color: #aaa;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+          "
+        >
+          Startpunktzahl: 27. Triff das vorgegebene Doppel. <br />
+          Verfehlst du mit allen 3 Darts, wird der Wert des Doppels abgezogen.
+          <br />Fällst du unter 0, bist du raus!
+        </p>
+
+        <div style="margin-bottom: 25px">
+          <input
+            type="text"
+            id="bobs-player-input"
+            placeholder="Spielername..."
+            style="
+              width: 100%;
+              box-sizing: border-box;
+              padding: 15px;
+              border-radius: 8px;
+              border: 1px solid #333;
+              background: #111;
+              color: white;
+              font-size: 1.1em;
+              text-align: center;
+            "
+          />
+        </div>
+
+        <button
+          class="primary"
+          onclick="startBobsGame()"
+          style="background-color: #ff9800; color: black"
+        >
+          Spiel Starten
+        </button>
+        <button class="reset" onclick="goHome()">🏠 Zurück</button>
+      </div>
+
+      <div
+        id="game-bobs-screen"
+        style="display: none; width: 100%; max-width: 600px"
+      >
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+          "
+        >
+          <div
+            id="side-history-panel-bobs"
+            class="side-history-panel right-panel"
+          >
+            <h3
+              style="
+                margin-top: 0;
+                color: #ff9800;
+                text-align: center;
+                font-size: 1.1em;
+                text-transform: uppercase;
+              "
+            >
+              Historie <br /><span id="history-bobs-name" style="color: white"
+                >Spieler</span
+              >
+            </h3>
+            <div id="side-history-list-bobs" class="side-history-list"></div>
+          </div>
+          <h2
+            id="bobs-turn-indicator"
+            style="color: #ff9800; margin: 0; font-size: 1.4em"
+          >
+            🎯 Spieler wirft...
+          </h2>
+          <div style="text-align: right">
+            <div
+              style="font-size: 0.8em; color: #888; text-transform: uppercase"
+            >
+              Score
+            </div>
+            <div
+              id="bobs-current-score"
+              style="
+                font-size: 2em;
+                font-weight: bold;
+                color: white;
+                line-height: 1;
+              "
+            >
+              27
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 15px">
+          <div
+            style="
+              font-size: 0.9em;
+              color: #aaa;
+              text-transform: uppercase;
+              letter-spacing: 2px;
+            "
+          >
+            Aktuelles Ziel
+          </div>
+          <div
+            id="bobs-target-display"
+            style="font-size: 3em; font-weight: 900; color: var(--accent-green)"
+          >
+            D1
+          </div>
+        </div>
+
+        <div
+          id="bobs-dartboard-container"
+          style="display: flex; justify-content: center; margin-bottom: 25px"
+        ></div>
+
+        <div
+          style="
+            font-size: 0.9em;
+            color: #aaa;
+            text-align: center;
+            margin-bottom: 10px;
+          "
+        >
+          Wie oft hast du das Doppel getroffen?
+        </div>
+
+        <div class="controls" style="grid-template-columns: repeat(4, 1fr)">
+          <button class="miss" onclick="submitBobsScore(0)">0x</button>
+          <button
+            onclick="submitBobsScore(1)"
+            style="background: #383838; border: 1px solid #555"
+          >
+            1x
+          </button>
+          <button
+            onclick="submitBobsScore(2)"
+            style="background: #383838; border: 1px solid #555"
+          >
+            2x
+          </button>
+          <button
+            onclick="submitBobsScore(3)"
+            style="background: var(--accent-green); color: black"
+          >
+            3x
+          </button>
+        </div>
+
+        <button
+          id="btn-undo-bobs"
+          onclick="undoBobsTurn()"
+          style="
+            display: none;
+            width: 100%;
+            margin-top: 15px;
+            background: #444;
+            color: #aaa;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+          "
+        >
+          ↩ Letzten Wurf rückgängig machen
+        </button>
+        <button
+          onclick="cancelBobsGame()"
+          style="
+            width: 100%;
+            margin-top: 10px;
+            background: none;
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+          "
+        >
+          Spiel abbrechen
+        </button>
+      </div>
+
+      <div
+        id="rtw-setup-screen"
+        style="display: none; width: 100%; max-width: 600px"
+      >
+        <h2 style="color: var(--accent-blue); text-align: center">
+          🌍 Round the World Setup
+        </h2>
+        <p
+          style="
+            text-align: center;
+            color: #aaa;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+          "
+        >
+          Triff alle Zahlen im Uhrzeigersinn (Start bei 20) und zum Schluss das
+          Bullseye.
+        </p>
+
+        <div style="margin-bottom: 20px">
+          <label
+            style="
+              color: #aaa;
+              font-size: 0.9em;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            "
+            >Ziel-Modus:</label
+          >
+          <select
+            id="rtw-target-mode"
+            style="
+              width: 100%;
+              padding: 12px;
+              background: #222;
+              color: white;
+              border: 1px solid #444;
+              border-radius: 8px;
+              font-size: 1.1em;
+              margin-top: 8px;
+              outline: none;
+            "
+          >
+            <option value="single">Zahl (Einfache Felder)</option>
+            <option value="double" selected>Double (Doppel-Felder)</option>
+            <option value="triple">Triple (Dreifach-Felder)</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 25px">
+          <input
+            type="text"
+            id="rtw-player-input"
+            placeholder="Spielername..."
+            style="
+              width: 100%;
+              box-sizing: border-box;
+              padding: 15px;
+              border-radius: 8px;
+              border: 1px solid #333;
+              background: #111;
+              color: white;
+              font-size: 1.1em;
+              text-align: center;
+            "
+          />
+        </div>
+
+        <button
+          class="primary"
+          onclick="startRtwGame()"
+          style="background-color: var(--accent-blue); color: white"
+        >
+          Spiel Starten
+        </button>
+        <button class="reset" onclick="goHome()">🏠 Zurück</button>
+      </div>
+
+      <div
+        id="game-rtw-screen"
+        style="display: none; width: 100%; max-width: 600px"
+      >
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+          "
+        >
+          <div
+            id="side-history-panel-rtw"
+            class="side-history-panel right-panel"
+          >
+            <h3
+              style="
+                margin-top: 0;
+                color: var(--accent-blue);
+                text-align: center;
+                font-size: 1.1em;
+                text-transform: uppercase;
+              "
+            >
+              Historie <br /><span id="history-rtw-name" style="color: white"
+                >Spieler</span
+              >
+            </h3>
+            <div id="side-history-list-rtw" class="side-history-list"></div>
+          </div>
+          <h2
+            id="rtw-turn-indicator"
+            style="color: var(--accent-blue); margin: 0; font-size: 1.4em"
+          >
+            🎯 Spieler wirft...
+          </h2>
+          <div style="text-align: right">
+            <div
+              style="font-size: 0.8em; color: #888; text-transform: uppercase"
+            >
+              Gesamtpunkte:
+            </div>
+            <div
+              id="rtw-points-count"
+              style="
+                font-size: 2em;
+                font-weight: bold;
+                color: white;
+                line-height: 1;
+              "
+            >
+              0
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 15px">
+          <div
+            style="
+              font-size: 0.9em;
+              color: #aaa;
+              text-transform: uppercase;
+              letter-spacing: 2px;
+            "
+          >
+            Aktuelles Ziel
+          </div>
+          <div
+            id="rtw-target-display"
+            style="font-size: 3em; font-weight: 900; color: var(--accent-green)"
+          >
+            1
+          </div>
+        </div>
+
+        <div
+          id="rtw-dartboard-container"
+          style="display: flex; justify-content: center; margin-bottom: 25px"
+        ></div>
+
+        <div
+          style="
+            font-size: 0.9em;
+            color: #aaa;
+            text-align: center;
+            margin-bottom: 10px;
+          "
+        >
+          Was oft hast du das Ziel getroffen?
+        </div>
+
+        <div class="controls" style="grid-template-columns: repeat(4, 1fr)">
+          <button class="miss" onclick="submitRtwScore(0)">0</button>
+          <button
+            onclick="submitRtwScore(1)"
+            style="background: #383838; border: 1px solid #555"
+          >
+            1
+          </button>
+          <button
+            onclick="submitRtwScore(2)"
+            style="background: #383838; border: 1px solid #555"
+          >
+            2
+          </button>
+          <button
+            onclick="submitRtwScore(3)"
+            style="background: var(--accent-green); color: black"
+          >
+            3
+          </button>
+        </div>
+
+        <button
+          id="btn-undo-rtw"
+          onclick="undoRtwTurn()"
+          style="
+            display: none;
+            width: 100%;
+            margin-top: 15px;
+            background: #444;
+            color: #aaa;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+          "
+        >
+          ↩ Letzten Wurf rückgängig machen
+        </button>
+        <button
+          onclick="cancelRtwGame()"
+          style="
+            width: 100%;
+            margin-top: 10px;
+            background: none;
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+          "
+        >
+          Spiel abbrechen
+        </button>
+      </div>
+
       <div id="game-screen" style="display: none">
         <button
           id="mic-btn"
@@ -1645,391 +2072,6 @@
           </button>
         </div>
       </div>
-    </div>
-
-    <div
-      id="bobs-setup-screen"
-      style="display: none; width: 100%; max-width: 600px"
-    >
-      <h2 style="color: #ff9800; text-align: center">⭕️ Bob's 27 Setup</h2>
-      <p
-        style="
-          text-align: center;
-          color: #aaa;
-          font-size: 0.9em;
-          margin-bottom: 20px;
-        "
-      >
-        Startpunktzahl: 27. Triff das vorgegebene Doppel. <br />
-        Verfehlst du mit allen 3 Darts, wird der Wert des Doppels abgezogen.
-        <br />Fällst du unter 0, bist du raus!
-      </p>
-
-      <div style="margin-bottom: 25px">
-        <input
-          type="text"
-          id="bobs-player-input"
-          placeholder="Spielername..."
-          style="
-            width: 100%;
-            box-sizing: border-box;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #333;
-            background: #111;
-            color: white;
-            font-size: 1.1em;
-            text-align: center;
-          "
-        />
-      </div>
-
-      <button
-        class="primary"
-        onclick="startBobsGame()"
-        style="background-color: #ff9800; color: black"
-      >
-        Spiel Starten
-      </button>
-      <button class="reset" onclick="goHome()">🏠 Zurück</button>
-    </div>
-
-    <div
-      id="game-bobs-screen"
-      style="display: none; width: 100%; max-width: 600px"
-    >
-      <div
-        style="
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 15px;
-          border-bottom: 1px solid #333;
-          padding-bottom: 10px;
-        "
-      >
-        <h2
-          id="bobs-turn-indicator"
-          style="color: #ff9800; margin: 0; font-size: 1.4em"
-        >
-          🎯 Spieler wirft...
-        </h2>
-        <div style="text-align: right">
-          <div style="font-size: 0.8em; color: #888; text-transform: uppercase">
-            Score
-          </div>
-          <div
-            id="bobs-current-score"
-            style="
-              font-size: 2em;
-              font-weight: bold;
-              color: white;
-              line-height: 1;
-            "
-          >
-            27
-          </div>
-        </div>
-      </div>
-
-      <div style="text-align: center; margin-bottom: 15px">
-        <div
-          style="
-            font-size: 0.9em;
-            color: #aaa;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-          "
-        >
-          Aktuelles Ziel
-        </div>
-        <div
-          id="bobs-target-display"
-          style="font-size: 3em; font-weight: 900; color: var(--accent-green)"
-        >
-          D1
-        </div>
-      </div>
-
-      <div
-        id="bobs-dartboard-container"
-        style="display: flex; justify-content: center; margin-bottom: 25px"
-      ></div>
-
-      <div
-        style="
-          font-size: 0.9em;
-          color: #aaa;
-          text-align: center;
-          margin-bottom: 10px;
-        "
-      >
-        Wie oft hast du das Doppel getroffen?
-      </div>
-
-      <div class="controls" style="grid-template-columns: repeat(4, 1fr)">
-        <button class="miss" onclick="submitBobsScore(0)">0x</button>
-        <button
-          onclick="submitBobsScore(1)"
-          style="background: #383838; border: 1px solid #555"
-        >
-          1x
-        </button>
-        <button
-          onclick="submitBobsScore(2)"
-          style="background: #383838; border: 1px solid #555"
-        >
-          2x
-        </button>
-        <button
-          onclick="submitBobsScore(3)"
-          style="background: var(--accent-green); color: black"
-        >
-          3x
-        </button>
-      </div>
-
-      <button
-        id="btn-undo-bobs"
-        onclick="undoBobsTurn()"
-        style="
-          display: none;
-          width: 100%;
-          margin-top: 15px;
-          background: #444;
-          color: #aaa;
-          padding: 12px;
-          border: none;
-          border-radius: 8px;
-          font-weight: bold;
-          cursor: pointer;
-        "
-      >
-        ↩ Letzten Wurf rückgängig machen
-      </button>
-      <button
-        onclick="cancelBobsGame()"
-        style="
-          width: 100%;
-          margin-top: 10px;
-          background: none;
-          color: var(--accent-red);
-          border: 1px solid var(--accent-red);
-          padding: 12px;
-          border-radius: 8px;
-          cursor: pointer;
-        "
-      >
-        Spiel abbrechen
-      </button>
-    </div>
-
-    <div
-      id="rtw-setup-screen"
-      style="display: none; width: 100%; max-width: 600px"
-    >
-      <h2 style="color: var(--accent-blue); text-align: center">
-        🌍 Round the World Setup
-      </h2>
-      <p
-        style="
-          text-align: center;
-          color: #aaa;
-          font-size: 0.9em;
-          margin-bottom: 20px;
-        "
-      >
-        Triff alle Zahlen im Uhrzeigersinn (Start bei 20) und zum Schluss das
-        Bullseye.
-      </p>
-
-      <div style="margin-bottom: 20px">
-        <label
-          style="
-            color: #aaa;
-            font-size: 0.9em;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-          "
-          >Ziel-Modus:</label
-        >
-        <select
-          id="rtw-target-mode"
-          style="
-            width: 100%;
-            padding: 12px;
-            background: #222;
-            color: white;
-            border: 1px solid #444;
-            border-radius: 8px;
-            font-size: 1.1em;
-            margin-top: 8px;
-            outline: none;
-          "
-        >
-          <option value="single">Zahl (Einfache Felder)</option>
-          <option value="double" selected>Double (Doppel-Felder)</option>
-          <option value="triple">Triple (Dreifach-Felder)</option>
-        </select>
-      </div>
-
-      <div style="margin-bottom: 25px">
-        <input
-          type="text"
-          id="rtw-player-input"
-          placeholder="Spielername..."
-          style="
-            width: 100%;
-            box-sizing: border-box;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #333;
-            background: #111;
-            color: white;
-            font-size: 1.1em;
-            text-align: center;
-          "
-        />
-      </div>
-
-      <button
-        class="primary"
-        onclick="startRtwGame()"
-        style="background-color: var(--accent-blue); color: white"
-      >
-        Spiel Starten
-      </button>
-      <button class="reset" onclick="goHome()">🏠 Zurück</button>
-    </div>
-
-    <div
-      id="game-rtw-screen"
-      style="display: none; width: 100%; max-width: 600px"
-    >
-      <div
-        style="
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 15px;
-          border-bottom: 1px solid #333;
-          padding-bottom: 10px;
-        "
-      >
-        <h2
-          id="rtw-turn-indicator"
-          style="color: var(--accent-blue); margin: 0; font-size: 1.4em"
-        >
-          🎯 Spieler wirft...
-        </h2>
-        <div style="text-align: right">
-          <div style="font-size: 0.8em; color: #888; text-transform: uppercase">
-            Geworfene Darts
-          </div>
-          <div
-            id="rtw-darts-count"
-            style="
-              font-size: 2em;
-              font-weight: bold;
-              color: white;
-              line-height: 1;
-            "
-          >
-            0
-          </div>
-        </div>
-      </div>
-
-      <div style="text-align: center; margin-bottom: 15px">
-        <div
-          style="
-            font-size: 0.9em;
-            color: #aaa;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-          "
-        >
-          Aktuelles Ziel
-        </div>
-        <div
-          id="rtw-target-display"
-          style="font-size: 3em; font-weight: 900; color: var(--accent-green)"
-        >
-          1
-        </div>
-      </div>
-
-      <div
-        id="rtw-dartboard-container"
-        style="display: flex; justify-content: center; margin-bottom: 25px"
-      ></div>
-
-      <div
-        style="
-          font-size: 0.9em;
-          color: #aaa;
-          text-align: center;
-          margin-bottom: 10px;
-        "
-      >
-        Was oft hast du das Ziel getroffen?
-      </div>
-
-      <div class="controls" style="grid-template-columns: repeat(4, 1fr)">
-        <button class="miss" onclick="submitRtwScore(0)">0</button>
-        <button
-          onclick="submitRtwScore(1)"
-          style="background: #383838; border: 1px solid #555"
-        >
-          1
-        </button>
-        <button
-          onclick="submitRtwScore(2)"
-          style="background: #383838; border: 1px solid #555"
-        >
-          2
-        </button>
-        <button
-          onclick="submitRtwScore(3)"
-          style="background: var(--accent-green); color: black"
-        >
-          3
-        </button>
-      </div>
-
-      <button
-        id="btn-undo-rtw"
-        onclick="undoRtwTurn()"
-        style="
-          display: none;
-          width: 100%;
-          margin-top: 15px;
-          background: #444;
-          color: #aaa;
-          padding: 12px;
-          border: none;
-          border-radius: 8px;
-          font-weight: bold;
-          cursor: pointer;
-        "
-      >
-        ↩ Letzten Wurf rückgängig machen
-      </button>
-      <button
-        onclick="cancelRtwGame()"
-        style="
-          width: 100%;
-          margin-top: 10px;
-          background: none;
-          color: var(--accent-red);
-          border: 1px solid var(--accent-red);
-          padding: 12px;
-          border-radius: 8px;
-          cursor: pointer;
-        "
-      >
-        Spiel abbrechen
-      </button>
     </div>
 
     <div id="cancel-modal" class="modal-overlay" style="display: none">

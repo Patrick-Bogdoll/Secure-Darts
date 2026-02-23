@@ -845,3 +845,20 @@ input[type="password"]:focus {
   width: 90%;
   box-shadow: 0 0 20px rgba(255, 23, 68, 0.3);
 }
+
+@keyframes flash-target {
+  0%,
+  100% {
+    fill: var(--accent-green) !important;
+    stroke: #ffffff !important;
+  }
+  50% {
+    fill: #ffffff !important;
+    stroke: var(--accent-green) !important;
+    stroke-width: 2px !important;
+  }
+}
+
+.blinking-target {
+  animation: flash-target 0.8s infinite ease-in-out !important;
+}
