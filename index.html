@@ -1039,17 +1039,39 @@
                 font-size: 0.7em;
                 text-align: center;
                 padding: 3px 0;
-                z-index: 2;
+                z-index: 3;
               "
             >
-              LIVE-CAM P1
+              KAMERA P1
             </div>
+
+            <img
+              id="avatar-p1"
+              src="https://api.dicebear.com/7.x/avataaars/svg?seed=P1"
+              style="
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                z-index: 1;
+                opacity: 0.5;
+              "
+            />
+
             <video
               id="video-p1"
               autoplay
               playsinline
               muted
-              style="width: 100%; height: 100%; object-fit: cover"
+              style="
+                position: relative;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                z-index: 2;
+              "
             ></video>
           </div>
           <div id="side-history-list-p1" class="side-history-list"></div>
@@ -1091,17 +1113,39 @@
                 font-size: 0.7em;
                 text-align: center;
                 padding: 3px 0;
-                z-index: 2;
+                z-index: 3;
               "
             >
-              LIVE-CAM P2
+              KAMERA P2
             </div>
+
+            <img
+              id="avatar-p2"
+              src="https://api.dicebear.com/7.x/avataaars/svg?seed=P2"
+              style="
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                z-index: 1;
+                opacity: 0.5;
+              "
+            />
+
             <video
               id="video-p2"
               autoplay
               playsinline
               muted
-              style="width: 100%; height: 100%; object-fit: cover"
+              style="
+                position: relative;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                z-index: 2;
+              "
             ></video>
           </div>
           <div id="side-history-list-p2" class="side-history-list"></div>
@@ -2019,6 +2063,56 @@
       <div class="stats-card">
         <div class="stats-header">
           <div style="display: flex; align-items: center; gap: 15px">
+            <div
+              style="
+                position: relative;
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                overflow: hidden;
+                border: 2px solid var(--accent-blue);
+                flex-shrink: 0;
+                box-shadow: 0 0 10px rgba(33, 150, 243, 0.3);
+              "
+            >
+              <img
+                id="modal-avatar-preview"
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Guest"
+                style="
+                  width: 100%;
+                  height: 100%;
+                  object-fit: cover;
+                  background: #222;
+                "
+              />
+              <input
+                type="file"
+                id="avatar-upload"
+                accept="image/*"
+                style="display: none"
+                onchange="handleAvatarUpload(event)"
+              />
+              <div
+                id="btn-edit-avatar"
+                onclick="document.getElementById('avatar-upload').click()"
+                style="
+                  display: none;
+                  position: absolute;
+                  bottom: 0;
+                  left: 0;
+                  width: 100%;
+                  background: rgba(0, 0, 0, 0.7);
+                  color: white;
+                  font-size: 0.65em;
+                  text-align: center;
+                  cursor: pointer;
+                  padding: 4px 0;
+                  font-weight: bold;
+                "
+              >
+                EDIT
+              </div>
+            </div>
             <h2 id="modal-name" class="stats-name" style="margin: 0">Name</h2>
             <button
               id="btn-edit-name"

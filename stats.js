@@ -324,6 +324,28 @@ function openProStats(encodedData, isSwitching = false) {
   currentModalRawName = data.name
     .replace(" (Training)", "")
     .replace(" (501)", "");
+
+  // ---> NEU: Avatar und Edit-Buttons steuern <---
+  let editBtn = document.getElementById("btn-edit-name");
+  let editAvatarBtn = document.getElementById("btn-edit-avatar");
+  let avatarImg = document.getElementById("modal-avatar-preview");
+
+  if (!isGuest && currentUser && data.user_id === currentUser.id) {
+    if (editBtn) editBtn.style.display = "block";
+    if (editAvatarBtn) editAvatarBtn.style.display = "block";
+    let myAvatar = currentUser.user_metadata?.avatar_url;
+    if (avatarImg)
+      avatarImg.src =
+        myAvatar ||
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.name}`;
+  } else {
+    if (editBtn) editBtn.style.display = "none";
+    if (editAvatarBtn) editAvatarBtn.style.display = "none";
+    if (avatarImg)
+      avatarImg.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.name}`;
+  }
+  // ---------------------------------------------
+
   let b1 = document.getElementById("modal-btn-501");
   let b2 = document.getElementById("modal-btn-littler");
   if (b1 && b2) {
@@ -456,13 +478,28 @@ async function open501Stats(encodedData, isSwitching = false) {
   }
 
   let editBtn = document.getElementById("btn-edit-name");
-  if (editBtn) {
-    // Prüft, ob das aufgerufene Profil DIR gehört
-    if (!isGuest && currentUser && data.user_id === currentUser.id) {
-      editBtn.style.display = "block";
-    } else {
-      editBtn.style.display = "none";
-    }
+  let editAvatarBtn = document.getElementById("btn-edit-avatar");
+  let avatarImg = document.getElementById("modal-avatar-preview");
+
+  if (!isGuest && currentUser && data.user_id === currentUser.id) {
+    // ES IST DEIN PROFIL
+    if (editBtn) editBtn.style.display = "block";
+    if (editAvatarBtn) editAvatarBtn.style.display = "block";
+
+    // Lade dein gespeichertes Profilbild (oder ein generisches, falls keins da ist)
+    let myAvatar = currentUser.user_metadata?.avatar_url;
+    if (avatarImg)
+      avatarImg.src =
+        myAvatar ||
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.name}`;
+  } else {
+    // ES IST EIN GAST ODER GEGNER
+    if (editBtn) editBtn.style.display = "none";
+    if (editAvatarBtn) editAvatarBtn.style.display = "none";
+
+    // Generisches Bild für andere
+    if (avatarImg)
+      avatarImg.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.name}`;
   }
   const m = document.getElementById("stats-modal");
 

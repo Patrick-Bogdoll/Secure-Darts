@@ -328,11 +328,16 @@ async function hostOnlineGame() {
   p2DartsAtLegStart = 0;
   currentMatchLog501 = [];
   resetStatsTracker();
+  let myAvatar = null;
+  if (!isGuest && currentUser && currentUser.user_metadata?.avatar_url) {
+    myAvatar = currentUser.user_metadata.avatar_url;
+  }
 
   const { error } = await _supabase.from("live_matches").insert([
     {
       room_code: currentRoomCode,
       player1_name: myOnlineName,
+      player1_avatar: myAvatar,
       status: "waiting",
       best_of_legs: bestOfLegs,
       player1_legs: 0,
@@ -377,11 +382,16 @@ async function joinOnlineGame() {
   p1DartsAtLegStart = 0;
   p2DartsAtLegStart = 0;
   currentMatchLog501 = [];
+  let myAvatar = null;
+  if (!isGuest && currentUser && currentUser.user_metadata?.avatar_url) {
+    myAvatar = currentUser.user_metadata.avatar_url;
+  }
 
   await _supabase
     .from("live_matches")
     .update({
       player2_name: myOnlineName,
+      player2_avatar: myAvatar,
       last_action: "Gast ist beigetreten!",
     })
     .eq("room_code", codeInput);
@@ -446,6 +456,21 @@ function sync501UI(dbData) {
 
   document.getElementById("p1-name").innerText = dbData.player1_name;
   document.getElementById("p2-name").innerText = dbData.player2_name;
+
+  let avatarP1 = document.getElementById("avatar-p1");
+  let avatarP2 = document.getElementById("avatar-p2");
+
+  if (avatarP1) {
+    avatarP1.src =
+      dbData.player1_avatar ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${dbData.player1_name}`;
+  }
+  if (avatarP2) {
+    avatarP2.src =
+      dbData.player2_avatar ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${dbData.player2_name}`;
+  }
+
   document.getElementById("p1-score").innerText = dbData.player1_score;
   document.getElementById("p2-score").innerText = dbData.player2_score;
 

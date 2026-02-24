@@ -722,3 +722,99 @@ function cleanupWebRTC() {
   if (v1) v1.srcObject = null;
   if (v2) v2.srcObject = null;
 }
+
+// ==========================================
+// AVATAR UPLOAD & COMPRESSION ENGINE
+// ==========================================
+
+async function handleAvatarUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // UI Feedback
+  document.getElementById("btn-edit-avatar").innerText = "LÄDT...";
+
+  try {
+    // 1. Bild komprimieren (Client-Side Resize auf 200x200px)
+    const compressedImageBlob = await compressImage(file, 200, 200);
+
+    // 2. Dateinamen generieren (Nutzer ID + Zeitstempel gegen Caching)
+    const fileName = `${currentUser.id}_${Date.now()}.jpg`;
+
+    // 3. In den Supabase "avatars" Bucket hochladen
+    const { data: uploadData, error: uploadError } = await _supabase.storage
+      .from("avatars")
+      .upload(fileName, compressedImageBlob, {
+        contentType: "image/jpeg",
+        upsert: true,
+      });
+
+    if (uploadError) throw uploadError;
+
+    // 4. Öffentliche URL abrufen
+    const {
+      data: { publicUrl },
+    } = _supabase.storage.from("avatars").getPublicUrl(fileName);
+
+    // 5. URL in den User Metadata speichern (Supabase Auth)
+    const { error: updateError } = await _supabase.auth.updateUser({
+      data: { avatar_url: publicUrl },
+    });
+
+    if (updateError) throw updateError;
+
+    // 6. UI sofort updaten
+    document.getElementById("modal-avatar-preview").src = publicUrl;
+    currentUser.user_metadata.avatar_url = publicUrl; // Lokal updaten
+    alert("Profilbild erfolgreich aktualisiert!");
+  } catch (error) {
+    alert("Fehler beim Upload: " + error.message);
+  } finally {
+    document.getElementById("btn-edit-avatar").innerText = "EDIT";
+  }
+}
+
+// Hilfsfunktion: Schrumpft das Bild per HTML5 Canvas auf Mini-Größe
+function compressImage(file, maxWidth, maxHeight) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        // Seitenverhältnis beibehalten und zuschneiden
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Gibt ein hochkomprimiertes JPEG (Qualität 80%) als Blob zurück
+        canvas.toBlob(
+          (blob) => {
+            resolve(blob);
+          },
+          "image/jpeg",
+          0.8
+        );
+      };
+    };
+    reader.onerror = (error) => reject(error);
+  });
+}
