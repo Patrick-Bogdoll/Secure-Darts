@@ -1272,63 +1272,61 @@ function toggleHistoryDetails(element) {
   }
 }
 
-async function deleteMatch501(matchId, dartsCount, wasWin, matchDetails) {
-  if (
-    !confirm(
-      "Möchtest du dieses Match wirklich löschen? Die Statistiken werden entsprechend korrigiert."
-    )
-  )
-    return;
+function deleteMatch501(matchId, dartsCount, wasWin, matchDetails) {
+  // NEU: Wir rufen unser schickes Custom-Modal auf!
+  showConfirmModal(
+    "Möchtest du dieses Match wirklich löschen? Die Statistiken werden entsprechend korrigiert.",
+    async () => {
+      // --- AB HIER STARTET DIE EIGENTLICHE LÖSCH-LOGIK ---
+      // 1. Berechnung der Punkte, die abgezogen werden müssen
+      let totalPointsInMatch = 0;
+      let legsCount = 0;
+      if (matchDetails && Array.isArray(matchDetails)) {
+        legsCount = matchDetails.length;
+        matchDetails.forEach((leg) => {
+          let isP1 = leg.p1_name === currentModalPlayer;
+          totalPointsInMatch += isP1 ? 501 - leg.p1_rest : 501 - leg.p2_rest;
+        });
+      }
 
-  // 1. Berechnung der Punkte, die abgezogen werden müssen
-  let totalPointsInMatch = 0;
-  let legsCount = 0;
-  if (matchDetails && Array.isArray(matchDetails)) {
-    legsCount = matchDetails.length;
-    matchDetails.forEach((leg) => {
-      let isP1 = leg.p1_name === currentModalPlayer;
-      totalPointsInMatch += isP1 ? 501 - leg.p1_rest : 501 - leg.p2_rest;
-    });
-  }
+      // 2. Gesamt-Statistiken in stats_501 korrigieren
+      const { data: currentStats } = await _supabase
+        .from("stats_501")
+        .select("*")
+        .eq("name", currentModalPlayer)
+        .maybeSingle();
 
-  // 2. Gesamt-Statistiken in stats_501 korrigieren (Werte abziehen)
-  const { data: currentStats } = await _supabase
-    .from("stats_501")
-    .select("*")
-    .eq("name", currentModalPlayer)
-    .maybeSingle();
+      if (currentStats) {
+        await _supabase
+          .from("stats_501")
+          .update({
+            wins: Math.max(0, currentStats.wins - wasWin),
+            games_played: Math.max(0, currentStats.games_played - legsCount),
+            total_darts_thrown: Math.max(
+              0,
+              currentStats.total_darts_thrown - dartsCount
+            ),
+            total_score_thrown: Math.max(
+              0,
+              currentStats.total_score_thrown - totalPointsInMatch
+            ),
+          })
+          .eq("name", currentModalPlayer);
+      }
 
-  if (currentStats) {
-    await _supabase
-      .from("stats_501")
-      .update({
-        wins: Math.max(0, currentStats.wins - wasWin),
-        games_played: Math.max(0, currentStats.games_played - legsCount),
-        total_darts_thrown: Math.max(
-          0,
-          currentStats.total_darts_thrown - dartsCount
-        ),
-        total_score_thrown: Math.max(
-          0,
-          currentStats.total_score_thrown - totalPointsInMatch
-        ),
-        // Hinweis: Best Leg und High Finish lassen wir aus Sicherheitsgründen stehen,
-        // da wir nicht wissen, ob sie aus diesem oder einem anderen Match stammen.
-      })
-      .eq("name", currentModalPlayer);
-  }
+      // 3. Den Eintrag aus der Historie löschen
+      const { error } = await _supabase
+        .from("match_history_501")
+        .delete()
+        .eq("id", matchId);
 
-  // 3. Den Eintrag aus der Historie löschen
-  const { error } = await _supabase
-    .from("match_history_501")
-    .delete()
-    .eq("id", matchId);
-
-  if (error) {
-    alert("Fehler beim Löschen: " + error.message);
-  } else {
-    alert("Match gelöscht und Statistik korrigiert!");
-    // Modal aktualisieren
-    switchModalMode("501");
-  }
+      if (error) {
+        showToast("Fehler beim Löschen: " + error.message, "error");
+      } else {
+        showToast("Match gelöscht und Statistik korrigiert!", "success");
+        // Modal aktualisieren
+        switchModalMode("501");
+      }
+    }
+  );
 }

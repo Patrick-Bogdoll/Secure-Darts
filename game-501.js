@@ -56,17 +56,39 @@ function resetLegLocal() {
   localP2Score = 501;
   p1LegThrows = [];
   p2LegThrows = [];
+
+  // 1. ZUERST DIE NAMEN UND AVATARE SETZEN!
+  document.getElementById("p1-name").innerText = localP1Name;
+  document.getElementById("p2-name").innerText = localP2Name;
+
+  let avatarP1 = document.getElementById("avatar-p1");
+  let avatarP2 = document.getElementById("avatar-p2");
+
+  if (avatarP1) {
+    let p1Img =
+      !isGuest && currentUser && localP1Name === myOnlineName
+        ? currentUser.user_metadata?.avatar_url
+        : null;
+    avatarP1.src =
+      p1Img || `https://api.dicebear.com/7.x/avataaars/svg?seed=${localP1Name}`;
+  }
+  if (avatarP2) {
+    avatarP2.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${localP2Name}`;
+  }
+
+  // 2. DANN ERST DIE HISTORIE LADEN!
   updateThrowHistoryUI();
+
   history501Stack = [];
   localCurrentTurn = (localP1Legs + localP2Legs) % 2 === 0 ? 1 : 2;
   isMyTurn = true;
   statsTracker.p1.dartsCurrentLeg = 0;
   statsTracker.p2.dartsCurrentLeg = 0;
   document.getElementById("win-overlay-501").style.display = "none";
-  document.getElementById("p1-name").innerText = localP1Name;
-  document.getElementById("p2-name").innerText = localP2Name;
+
   updateLocalTurnHighlight();
   update501QoL(localP1Score, localP2Score);
+
   // Wenn Spieler 2 ein Bot ist und er anfangen darf, spielt er automatisch los!
   if (localCurrentTurn === 2 && isP2Bot) {
     setTimeout(() => play501BotTurn(), 800);
@@ -422,8 +444,26 @@ async function cancelLobby() {
 }
 
 function sync501UI(dbData) {
+  // 1. ZUERST DIE NAMEN UND AVATARE SETZEN!
+  document.getElementById("p1-name").innerText = dbData.player1_name;
+  document.getElementById("p2-name").innerText = dbData.player2_name;
+
+  let avatarP1 = document.getElementById("avatar-p1");
+  let avatarP2 = document.getElementById("avatar-p2");
+
+  if (avatarP1) {
+    avatarP1.src =
+      dbData.player1_avatar ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${dbData.player1_name}`;
+  }
+  if (avatarP2) {
+    avatarP2.src =
+      dbData.player2_avatar ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${dbData.player2_name}`;
+  }
+
+  // 2. DANN WÜRFE BERECHNEN UND HISTORIE LADEN
   if (!isLocal501) {
-    // Wenn das Leg gerade frisch resettet wurde:
     if (
       dbData.player1_score === 501 &&
       dbData.player2_score === 501 &&
@@ -454,23 +494,7 @@ function sync501UI(dbData) {
     updateThrowHistoryUI();
   }
 
-  document.getElementById("p1-name").innerText = dbData.player1_name;
-  document.getElementById("p2-name").innerText = dbData.player2_name;
-
-  let avatarP1 = document.getElementById("avatar-p1");
-  let avatarP2 = document.getElementById("avatar-p2");
-
-  if (avatarP1) {
-    avatarP1.src =
-      dbData.player1_avatar ||
-      `https://api.dicebear.com/7.x/avataaars/svg?seed=${dbData.player1_name}`;
-  }
-  if (avatarP2) {
-    avatarP2.src =
-      dbData.player2_avatar ||
-      `https://api.dicebear.com/7.x/avataaars/svg?seed=${dbData.player2_name}`;
-  }
-
+  // 3. RESTLICHE WERTE UPDATEN
   document.getElementById("p1-score").innerText = dbData.player1_score;
   document.getElementById("p2-score").innerText = dbData.player2_score;
 
@@ -1160,19 +1184,26 @@ function listenForOpponent(roomCode) {
 }
 
 async function cancel501Game(force = false, broadcastToOpponent = true) {
-  // 1. Die eigentliche Abbruch-Logik als interne Funktion definiert
   const executeCancel = async () => {
     if (!isLocal501 && currentRoomCode && broadcastToOpponent) {
+      // 1. Signal "cancelled" an den Gegner senden
       await _supabase
         .from("live_matches")
         .update({ status: "cancelled" })
         .eq("room_code", currentRoomCode);
-      await _supabase
-        .from("live_matches")
-        .delete()
-        .eq("room_code", currentRoomCode);
+
+      // 2. Den Code merken und den Raum erst nach 2,5 Sekunden löschen.
+      // Das garantiert, dass das Abbruch-Signal 100% beim Gegner ankommt!
+      const codeToDelete = currentRoomCode;
+      setTimeout(async () => {
+        await _supabase
+          .from("live_matches")
+          .delete()
+          .eq("room_code", codeToDelete);
+      }, 2500);
     }
 
+    // 3. Eigene Variablen sofort aufräumen
     isLocal501 = false;
     currentRoomCode = "";
 
@@ -1181,16 +1212,12 @@ async function cancel501Game(force = false, broadcastToOpponent = true) {
       realtimeSubscription = null;
     }
 
-    // Geht direkt nach Hause - goHome() kümmert sich jetzt um alle HTML-Elemente!
     goHome();
   };
 
-  // 2. Entscheidung: Modal zeigen oder direkt ausführen
   if (force) {
-    // Wenn 'force' true ist (z.B. Gegner hat verlassen), direkt ohne Nachfrage abbrechen
     await executeCancel();
   } else {
-    // Ansonsten unser neues Modal nutzen
     showCancelModal(async () => {
       await executeCancel();
     });

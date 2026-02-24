@@ -14,6 +14,7 @@
         --accent-red: #f44336;
         --accent-blue: #2196f3;
         --accent-green: #4caf50;
+        --accent-purple: #9c27b0;
       }
 
       body {
@@ -29,7 +30,7 @@
 
       .container {
         width: 100%;
-        max-width: 1000px;
+        max-width: 1100px;
         background: var(--card-bg);
         padding: 20px;
         border-radius: 8px;
@@ -61,6 +62,10 @@
         color: white;
       }
 
+      #tab-contact.active {
+        background: var(--accent-purple);
+      }
+
       table {
         width: 100%;
         border-collapse: collapse;
@@ -69,13 +74,45 @@
 
       th,
       td {
-        padding: 12px;
-        text-align: left;
+        padding: 16px 15px; /* Etwas mehr Luft oben/unten und an den Seiten */
         border-bottom: 1px solid #444;
       }
 
       th {
         background-color: #222;
+        color: #bbb;
+        text-transform: uppercase;
+        font-size: 0.85em;
+        letter-spacing: 1px;
+      }
+
+      /* 1. Spalte (ID / Datum): Zentriert und dezent */
+      th:first-child,
+      td:first-child {
+        text-align: center;
+        width: 80px;
+        color: #888;
+      }
+
+      /* 2. Spalte (Name): Links ausgerichtet */
+      th:nth-child(2),
+      td:nth-child(2) {
+        text-align: left;
+      }
+
+      /* 3. & 4. Spalte (Statistiken): Zentriert für perfekte Balance */
+      th:nth-child(3),
+      td:nth-child(3),
+      th:nth-child(4),
+      td:nth-child(4) {
+        text-align: center;
+      }
+
+      /* 5. Spalte (Aktionen): Rechtsbündig an den Rand gepinnt */
+      th:last-child,
+      td:last-child {
+        text-align: right;
+        white-space: nowrap; /* Verhindert, dass Buttons untereinander rutschen */
       }
 
       .btn-edit,
@@ -109,6 +146,7 @@
         justify-content: center;
         align-items: center;
         z-index: 1000;
+        backdrop-filter: blur(5px);
       }
 
       .modal-content {
@@ -171,7 +209,6 @@
         color: white;
       }
 
-      /* --- HOME BUTTON --- */
       .btn-home {
         display: inline-flex;
         align-items: center;
@@ -190,7 +227,6 @@
         background-color: #555;
       }
 
-      /* --- LOGIN OVERLAY --- */
       #login-overlay {
         position: fixed;
         top: 0;
@@ -215,10 +251,73 @@
     </style>
   </head>
   <body>
+    <div
+      id="toast-container"
+      style="
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 999999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      "
+    ></div>
+
+    <div
+      id="generic-confirm-modal"
+      class="modal-overlay"
+      style="z-index: 100000"
+    >
+      <div
+        class="modal-content"
+        style="
+          border: 2px solid var(--accent-red);
+          text-align: center;
+          max-width: 350px;
+        "
+      >
+        <h2 style="color: var(--accent-red); margin-top: 0">Achtung!</h2>
+        <p id="generic-confirm-text" style="color: #ccc; margin-bottom: 25px">
+          Möchtest du das wirklich tun?
+        </p>
+
+        <div style="display: flex; gap: 10px; flex-direction: column">
+          <button
+            id="generic-confirm-yes-btn"
+            style="
+              background: var(--accent-red);
+              color: white;
+              padding: 12px;
+              border: none;
+              border-radius: 8px;
+              font-weight: bold;
+              cursor: pointer;
+            "
+          >
+            Ja, unwiderruflich löschen
+          </button>
+          <button
+            onclick="closeConfirmModal()"
+            style="
+              background: #333;
+              color: white;
+              padding: 12px;
+              border: none;
+              border-radius: 8px;
+              font-weight: bold;
+              cursor: pointer;
+            "
+          >
+            Abbrechen
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div id="login-overlay">
       <div class="login-box">
         <h2 style="color: var(--accent-blue); margin-top: 0">Admin Login</h2>
-
         <input
           type="password"
           id="admin-pw"
@@ -236,7 +335,6 @@
           "
           onkeydown="if(event.key==='Enter') checkPassword()"
         />
-
         <button
           onclick="checkPassword()"
           style="
@@ -253,7 +351,6 @@
         >
           Einloggen
         </button>
-
         <a
           href="index.html"
           class="btn-home"
@@ -270,7 +367,6 @@
 
     <div class="container" id="admin-container" style="display: none">
       <a href="index.html" class="btn-home">🏠 Zurück zur App</a>
-
       <h1 style="text-align: center; margin-top: 0">⚙️ Admin Panel</h1>
 
       <div class="header-tabs">
@@ -279,16 +375,19 @@
           class="tab-btn active"
           onclick="switchTab('littler')"
         >
-          🎯 Littler
+          🎲 Secure-Darts
         </button>
         <button id="tab-501" class="tab-btn" onclick="switchTab('501')">
-          🌍 501 Darts
+          🎯 501
         </button>
         <button id="tab-bobs" class="tab-btn" onclick="switchTab('bobs')">
           ⭕️ Bob's 27
         </button>
         <button id="tab-rtw" class="tab-btn" onclick="switchTab('rtw')">
           🌎 RTW
+        </button>
+        <button id="tab-contact" class="tab-btn" onclick="switchTab('contact')">
+          ✉️ Nachrichten
         </button>
       </div>
 
@@ -314,40 +413,69 @@
     </div>
 
     <script>
-      async function verifyAdmin() {
-        const {
-          data: { session },
-        } = await _supabase.auth.getSession();
+      // ==========================================
+      // TOAST NOTIFICATION & OVERRIDES
+      // ==========================================
+      function showToast(message, type = "success") {
+        const container = document.getElementById("toast-container");
+        if (!container) return;
 
-        if (!session) {
-          window.location.href = "index.html";
-          return;
-        }
+        const toast = document.createElement("div");
+        const bgColor =
+          type === "success" ? "var(--accent-green)" : "var(--accent-red)";
+        const color = type === "success" ? "black" : "white";
+        const icon = type === "success" ? "✅" : "⚠️";
 
-        const { data } = await _supabase
-          .from("stats_501")
-          .select("is_admin")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
+        toast.style.cssText = `
+          background: ${bgColor}; color: ${color}; padding: 12px 20px; border-radius: 8px;
+          box-shadow: 0 6px 20px rgba(0,0,0,0.6); font-weight: bold; font-size: 0.9em;
+          display: flex; align-items: center; gap: 10px; transform: translateX(120%);
+          transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        `;
+        toast.innerHTML = `<span style="font-size: 1.2em;">${icon}</span> <span>${message}</span>`;
+        container.appendChild(toast);
 
-        if (!data || !data.is_admin) {
-          alert("Zugriff verweigert!");
-          window.location.href = "index.html";
-        } else {
-          document.getElementById("login-overlay").style.display = "flex";
-        }
+        requestAnimationFrame(() => (toast.style.transform = "translateX(0)"));
+        setTimeout(() => {
+          toast.style.transform = "translateX(120%)";
+          setTimeout(() => toast.remove(), 400);
+        }, 2500);
       }
 
-      verifyAdmin();
+      window.alert = function (message) {
+        showToast(message, "error");
+      };
 
-      // --- SUPABASE SETUP ---
+      // ==========================================
+      // CUSTOM CONFIRM MODAL
+      // ==========================================
+      let pendingConfirmAction = null;
+
+      function showConfirmModal(message, confirmCallback) {
+        document.getElementById("generic-confirm-text").innerText = message;
+        pendingConfirmAction = confirmCallback;
+        document.getElementById("generic-confirm-modal").style.display = "flex";
+
+        document.getElementById("generic-confirm-yes-btn").onclick =
+          function () {
+            if (pendingConfirmAction) pendingConfirmAction();
+            closeConfirmModal();
+          };
+      }
+
+      function closeConfirmModal() {
+        document.getElementById("generic-confirm-modal").style.display = "none";
+        pendingConfirmAction = null;
+      }
+
+      // ==========================================
+      // APP LOGIK
+      // ==========================================
       const SUPABASE_URL = "https://etzkulwnjhkoiklrohbt.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy";
-
       const { createClient } = supabase;
       const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      // --- LOGIN LOGIK ---
       const ADMIN_HASH =
         "d9cafea78ff95cf59f6925e0707c266b19cffb85a31bbbffd146f38b1f119ba8";
 
@@ -358,10 +486,28 @@
         return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
       }
 
+      async function verifyAdmin() {
+        const {
+          data: { session },
+        } = await _supabase.auth.getSession();
+        if (!session) return (window.location.href = "index.html");
+        const { data } = await _supabase
+          .from("stats_501")
+          .select("is_admin")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        if (!data || !data.is_admin) {
+          alert("Zugriff verweigert!");
+          window.location.href = "index.html";
+        } else {
+          document.getElementById("login-overlay").style.display = "flex";
+        }
+      }
+      verifyAdmin();
+
       async function checkPassword() {
         const input = document.getElementById("admin-pw").value;
         const hash = await hashPassword(input);
-
         if (hash === ADMIN_HASH) {
           document.getElementById("login-overlay").style.display = "none";
           document.getElementById("admin-container").style.display = "block";
@@ -372,17 +518,15 @@
         }
       }
 
-      // --- ADMIN PANEL LOGIK ---
       let currentMode = "littler";
       let editingId = null;
 
       function switchTab(mode) {
         currentMode = mode;
-        const tabs = ["littler", "501", "bobs", "rtw"];
+        const tabs = ["littler", "501", "bobs", "rtw", "contact"];
         tabs.forEach((t) => {
-          document
-            .getElementById(`tab-${t}`)
-            .classList.toggle("active", mode === t);
+          let btn = document.getElementById(`tab-${t}`);
+          if (btn) btn.classList.toggle("active", mode === t);
         });
         loadData();
       }
@@ -391,7 +535,7 @@
         const tbody = document.querySelector("#data-table tbody");
         const thead = document.getElementById("table-head");
         tbody.innerHTML =
-          "<tr><td colspan='5' style='text-align:center;'>Lade Daten...</td></tr>";
+          "<tr><td colspan='6' style='text-align:center;'>Lade Daten...</td></tr>";
 
         if (currentMode === "littler") {
           thead.innerHTML =
@@ -405,17 +549,16 @@
           tbody.innerHTML = "";
           data.forEach((p) => {
             const tr = document.createElement("tr");
-            tr.innerHTML = `
-              <td>${p.id}</td><td><b>${p.name}</b></td><td>${p.wins}</td><td>${
-              p.highscore
-            }</td>
+            tr.innerHTML = `<td>${p.id}</td><td><b>${p.name}</b></td><td>${
+              p.wins
+            }</td><td>${p.highscore}</td>
               <td>
                 <button class="btn-edit" onclick="openEditModal(${
                   p.id
                 }, '${encodeURIComponent(JSON.stringify(p))}')">✏️ Edit</button>
                 <button class="btn-delete" onclick="deleteRecord(${p.id}, '${
               p.name
-            }')">🗑️</button>
+            }', 'highscores')">🗑️</button>
               </td>`;
             tbody.appendChild(tr);
           });
@@ -435,8 +578,7 @@
                 ? ((p.total_score_thrown / p.total_darts_thrown) * 3).toFixed(2)
                 : "0.00";
             const tr = document.createElement("tr");
-            tr.innerHTML = `
-              <td>${p.id}</td><td><b>${p.name}</b></td><td>${
+            tr.innerHTML = `<td>${p.id}</td><td><b>${p.name}</b></td><td>${
               p.wins
             }</td><td>${avg}</td>
               <td>
@@ -445,7 +587,7 @@
                 }, '${encodeURIComponent(JSON.stringify(p))}')">✏️ Edit</button>
                 <button class="btn-delete" onclick="deleteRecord(${p.id}, '${
               p.name
-            }')">🗑️</button>
+            }', 'stats_501')">🗑️</button>
               </td>`;
             tbody.appendChild(tr);
           });
@@ -455,14 +597,13 @@
           const { data, error } = await _supabase
             .from("stats_bobs")
             .select("*")
-            .order("id", { ascending: false });
+            .order("created_at", { ascending: false });
           if (error) return alert("Fehler: " + error.message);
 
           tbody.innerHTML = "";
           data.forEach((p) => {
             const tr = document.createElement("tr");
-            tr.innerHTML = `
-              <td>${p.id}</td><td><b>${p.name}</b></td><td>${
+            tr.innerHTML = `<td>${p.id}</td><td><b>${p.name}</b></td><td>${
               p.final_score
             }</td><td style="color:${
               p.is_win ? "var(--accent-green)" : "var(--accent-red)"
@@ -473,7 +614,7 @@
                 }, '${encodeURIComponent(JSON.stringify(p))}')">✏️ Edit</button>
                 <button class="btn-delete" onclick="deleteRecord(${
                   p.id
-                }, 'Match von ${p.name}')">🗑️</button>
+                }, 'Match von ${p.name}', 'stats_bobs')">🗑️</button>
               </td>`;
             tbody.appendChild(tr);
           });
@@ -483,14 +624,13 @@
           const { data, error } = await _supabase
             .from("stats_rtw")
             .select("*")
-            .order("id", { ascending: false });
+            .order("created_at", { ascending: false });
           if (error) return alert("Fehler: " + error.message);
 
           tbody.innerHTML = "";
           data.forEach((p) => {
             const tr = document.createElement("tr");
-            tr.innerHTML = `
-              <td>${p.id}</td><td><b>${p.name}</b></td><td>${
+            tr.innerHTML = `<td>${p.id}</td><td><b>${p.name}</b></td><td>${
               p.total_points
             }</td><td style="text-transform: capitalize;">${p.mode}</td>
               <td>
@@ -499,7 +639,58 @@
                 }, '${encodeURIComponent(JSON.stringify(p))}')">✏️ Edit</button>
                 <button class="btn-delete" onclick="deleteRecord(${
                   p.id
-                }, 'Match von ${p.name}')">🗑️</button>
+                }, 'Match von ${p.name}', 'stats_rtw')">🗑️</button>
+              </td>`;
+            tbody.appendChild(tr);
+          });
+        } else if (currentMode === "contact") {
+          tr.innerHTML = `
+              <td style="font-size: 0.8em; color: #888;">${date}</td>
+              <td style="text-align: left;"><b>${p.name || "-"}</b></td>
+              <td style="text-align: left;"><a href="mailto:${
+                p.email
+              }" style="color:var(--accent-blue)">${p.email || "-"}</a></td>
+              <td style="text-align: left; max-width:350px; white-space:pre-wrap; font-size: 0.9em; line-height: 1.4;">${
+                p.message || "-"
+              }</td>
+              <td>
+                <button class="btn-delete" onclick="deleteRecord(${
+                  p.id
+                }, 'Nachricht von ${p.name}', 'contact_messages')">🗑️</button>
+              </td>`;
+          const { data, error } = await _supabase
+            .from("contact_messages")
+            .select("*")
+            .order("created_at", { ascending: false });
+          if (error) return alert("Fehler: " + error.message);
+
+          tbody.innerHTML = "";
+          if (data.length === 0) {
+            tbody.innerHTML =
+              "<tr><td colspan='5' style='text-align:center; color:#888;'>Keine Nachrichten vorhanden.</td></tr>";
+          }
+          data.forEach((p) => {
+            let date = new Date(p.created_at).toLocaleDateString("de-DE", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td style="font-size: 0.8em; color: #888;">${date}</td>
+              <td><b>${p.name || "-"}</b></td>
+              <td><a href="mailto:${
+                p.email
+              }" style="color:var(--accent-blue)">${p.email || "-"}</a></td>
+              <td style="max-width:350px; white-space:pre-wrap; font-size: 0.9em; line-height: 1.4;">${
+                p.message || "-"
+              }</td>
+              <td>
+                <button class="btn-delete" onclick="deleteRecord(${
+                  p.id
+                }, 'Nachricht von ${p.name}', 'contact_messages')">🗑️</button>
               </td>`;
             tbody.appendChild(tr);
           });
@@ -513,12 +704,9 @@
         fieldsContainer.innerHTML = "";
 
         const createField = (key, label, value, type = "number") => {
-          return `<div class="form-group">
-                    <label>${label}</label>
-                    <input type="${type}" id="edit_${key}" value="${
+          return `<div class="form-group"><label>${label}</label><input type="${type}" id="edit_${key}" value="${
             value !== null ? value : ""
-          }">
-                  </div>`;
+          }"></div>`;
         };
 
         if (currentMode === "littler") {
@@ -553,22 +741,22 @@
           );
           fieldsContainer.innerHTML += createField(
             "wins",
-            "Legs Won (Siege)",
+            "Legs Won",
             data.wins
           );
           fieldsContainer.innerHTML += createField(
             "games_played",
-            "Legs Played (Gesamt)",
+            "Legs Played",
             data.games_played
           );
           fieldsContainer.innerHTML += createField(
             "total_darts_thrown",
-            "Geworfene Darts Gesamt",
+            "Geworfene Darts",
             data.total_darts_thrown
           );
           fieldsContainer.innerHTML += createField(
             "total_score_thrown",
-            "Erzielte Punkte Gesamt",
+            "Erzielte Punkte",
             data.total_score_thrown
           );
           fieldsContainer.innerHTML += createField(
@@ -578,22 +766,22 @@
           );
           fieldsContainer.innerHTML += createField(
             "best_leg",
-            "Best Leg (Darts)",
+            "Best Leg",
             data.best_leg
           );
           fieldsContainer.innerHTML += createField(
             "count_100",
-            "100+ Geworfen",
+            "100+",
             data.count_100
           );
           fieldsContainer.innerHTML += createField(
             "count_140",
-            "140+ Geworfen",
+            "140+",
             data.count_140
           );
           fieldsContainer.innerHTML += createField(
             "count_180",
-            "180s Geworfen",
+            "180s",
             data.count_180
           );
           fieldsContainer.innerHTML += createField(
@@ -620,7 +808,7 @@
           );
           fieldsContainer.innerHTML += createField(
             "is_win",
-            "Sieg? (true oder false eingeben)",
+            "Sieg? (true/false)",
             data.is_win,
             "text"
           );
@@ -718,33 +906,33 @@
           .from(tableName)
           .update(updatePayload)
           .eq("id", editingId);
-
         if (error) {
           alert("Fehler beim Speichern: " + error.message);
         } else {
+          showToast("Änderungen erfolgreich gespeichert!", "success");
           closeModal();
           loadData();
         }
       }
 
-      async function deleteRecord(id, name) {
-        if (
-          !confirm(
-            `Willst du das Match von "${name}" wirklich unwiderruflich LÖSCHEN?`
-          )
-        )
-          return;
+      // ---> NEU: Die aufgerüstete Delete-Funktion mit dem Custom Modal! <---
+      function deleteRecord(id, name, targetTable) {
+        showConfirmModal(
+          `Willst du den Datensatz "${name}" wirklich unwiderruflich löschen?`,
+          async () => {
+            const { error } = await _supabase
+              .from(targetTable)
+              .delete()
+              .eq("id", id);
 
-        let tableName = "";
-        if (currentMode === "littler") tableName = "highscores";
-        else if (currentMode === "501") tableName = "stats_501";
-        else if (currentMode === "bobs") tableName = "stats_bobs";
-        else if (currentMode === "rtw") tableName = "stats_rtw";
-
-        const { error } = await _supabase.from(tableName).delete().eq("id", id);
-
-        if (error) alert("Fehler beim Löschen: " + error.message);
-        else loadData();
+            if (error) {
+              showToast("Fehler beim Löschen: " + error.message, "error");
+            } else {
+              showToast("Erfolgreich gelöscht!", "success");
+              loadData();
+            }
+          }
+        );
       }
     </script>
   </body>
