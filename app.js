@@ -28,6 +28,7 @@ let currentAppMode = "";
 let currentUser = null;
 let isGuest = false;
 let pendingCancelAction = null;
+let isCompanionMode = false; // Blockiert das UI, wenn es eine Kamera ist
 
 let myOnlineName = "";
 let currentRoomCode = "";
@@ -91,6 +92,8 @@ async function initAuth() {
 }
 
 function showAuthScreen() {
+  if (isCompanionMode) return;
+
   document.getElementById("top-header").style.display = "none";
   document.getElementById("main-container").style.display = "none";
   const screens = [
@@ -116,6 +119,8 @@ function showAuthScreen() {
 }
 
 async function showMainApp() {
+  if (isCompanionMode) return;
+
   document.getElementById("auth-screen").style.display = "none";
   document.getElementById("top-header").style.display = "block";
   document.getElementById("main-container").style.display = "block";
@@ -184,6 +189,9 @@ async function showMainApp() {
 }
 
 function goHome() {
+  // ---> NEU: Kameras und WebRTC-Tunnel sauber beenden!
+  if (typeof cleanupWebRTC === "function") cleanupWebRTC();
+
   document.getElementById("hamburger-btn").style.display = "block";
 
   const screens = [
@@ -206,10 +214,25 @@ function goHome() {
     if (el) el.style.display = "none";
   });
 
-  // Only show the mode selection
+  // ---> NEU: Lobby-Container wieder auf "Setup" zurücksetzen
+  let lobbySetup = document.getElementById("lobby-setup");
+  if (lobbySetup) lobbySetup.style.display = "block";
+
+  let lobbyActive = document.getElementById("lobby-active");
+  if (lobbyActive) lobbyActive.style.display = "none";
+
+  // ---> NEU: Online-Match Variablen leeren
+  currentRoomCode = "";
+  isOnlineHost = false;
+
+  // Hauptmenü einblenden
   document.getElementById("home-screen").style.display = "block";
   document.getElementById("app-title").innerText = "🎯 SECURE-DARTS";
   document.body.classList.remove("training-active");
+
+  // ---> NEU: Sicherstellen, dass das Cancel-Modal WIRKLICH zu ist
+  let cancelModal = document.getElementById("cancel-modal");
+  if (cancelModal) cancelModal.style.display = "none";
 }
 
 function enterMode(mode) {
@@ -396,18 +419,306 @@ function closeCancelModal() {
   pendingCancelAction = null;
 }
 
-// NEU: In DOMContentLoaded verschoben, damit der Button sicher existiert
-window.addEventListener("DOMContentLoaded", (event) => {
+window.addEventListener("DOMContentLoaded", async (event) => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const cameraRoom = urlParams.get("camera");
+  const cameraRole = urlParams.get("role");
+
+  // === DER KUGELSICHERE KAMERA-CHECK ===
+  if (cameraRoom && cameraRole) {
+    isCompanionMode = true; // Sagt dem restlichen Code: HALT STOPP!
+    document.body.style.background = "black";
+    document.getElementById("top-header").style.display = "none";
+    document
+      .querySelectorAll(".container > div")
+      .forEach((s) => (s.style.display = "none"));
+
+    startCompanionMode(cameraRoom, cameraRole);
+    return; // Bricht hier sofort ab. Auth wird gar nicht erst geladen!
+  }
+
+  loadPlayerSuggestions();
   initAuth();
 
-  // Event-Listener für den "Ja"-Button im Abbruch-Modal
   const confirmBtn = document.getElementById("confirm-cancel-btn");
   if (confirmBtn) {
     confirmBtn.onclick = function () {
-      if (pendingCancelAction) {
-        pendingCancelAction();
-      }
+      if (pendingCancelAction) pendingCancelAction();
       closeCancelModal();
     };
   }
 });
+
+// ==========================================
+// LOBBY & WEBRTC ENGINE
+// ==========================================
+let isOnlineHost = false;
+const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+let peerConnection = null;
+let camChannel = null;
+let localDronePeer = null;
+let boardPeers = { host: null, guest: null };
+
+// 1. Lobby öffnen
+function openOnlineLobby(roomCode, hostName, guestName = null, isHost = false) {
+  isOnlineHost = isHost;
+  document
+    .querySelectorAll(".container > div")
+    .forEach((s) => (s.style.display = "none"));
+  document.getElementById("online-lobby-screen").style.display = "block";
+  document.getElementById("lobby-setup").style.display = "none";
+  document.getElementById("lobby-active").style.display = "block";
+  document.getElementById("lobby-room-code-display").innerText = roomCode;
+
+  const startBtn = document.getElementById("btn-start-online-match");
+  if (isHost) {
+    startBtn.style.display = "block";
+    startBtn.disabled = true;
+    startBtn.style.opacity = "0.5";
+  } else {
+    startBtn.style.display = "none";
+  }
+  updateLobbyPlayers(hostName, guestName);
+  initCameraReceiver(roomCode, isHost ? "host" : "guest");
+}
+
+function updateLobbyPlayers(hostName, guestName) {
+  document.getElementById("lobby-host-name").innerText = hostName || "Host";
+  const guestEl = document.getElementById("lobby-guest-name");
+  const startBtn = document.getElementById("btn-start-online-match");
+
+  if (guestName) {
+    guestEl.innerText = guestName;
+    guestEl.style.color = "white";
+    if (isOnlineHost) {
+      startBtn.disabled = false;
+      startBtn.style.opacity = "1";
+    }
+  } else {
+    guestEl.innerText = "Wartet...";
+    guestEl.style.color = "#888";
+  }
+}
+
+function updateLobbyCameraStatus(isHostCam, isConnected) {
+  const el = isHostCam
+    ? document.getElementById("lobby-host-cam")
+    : document.getElementById("lobby-guest-cam");
+  if (isConnected) {
+    el.innerHTML = "✅ Kamera Aktiv";
+    el.style.color = "var(--accent-green)";
+  }
+}
+
+function generateCameraQR() {
+  if (!currentRoomCode) return;
+  const role = isOnlineHost ? "host" : "guest";
+  const companionUrl = `${window.location.origin}${window.location.pathname}?camera=${currentRoomCode}&role=${role}`;
+  document.getElementById(
+    "qr-image"
+  ).src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+    companionUrl
+  )}`;
+  document.getElementById("qr-container").style.display = "block";
+}
+
+async function triggerOnlineMatchStart() {
+  if (!isOnlineHost) return;
+  document.getElementById("btn-start-online-match").innerText = "Starte...";
+  document.getElementById("btn-start-online-match").disabled = true;
+  await _supabase
+    .from("live_matches")
+    .update({ status: "playing", last_action: "Spiel gestartet!" })
+    .eq("room_code", currentRoomCode);
+}
+
+// 2. Kamera auf dem Handy starten
+async function startCompanionMode(roomCode, role) {
+  document.getElementById("companion-screen").style.display = "block";
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" },
+      audio: false,
+    });
+    document.getElementById("local-camera-preview").srcObject = stream;
+
+    camChannel = _supabase.channel(`camera-${roomCode}`, {
+      config: { broadcast: { self: true } },
+    });
+
+    camChannel
+      .on("broadcast", { event: "webrtc-signal" }, async (payload) => {
+        const data = payload.payload;
+        if (data.target !== role) return;
+
+        if (data.type === "request-offer") {
+          localDronePeer = new RTCPeerConnection(rtcConfig);
+          stream
+            .getTracks()
+            .forEach((track) => localDronePeer.addTrack(track, stream));
+
+          localDronePeer.onicecandidate = (e) => {
+            if (e.candidate)
+              camChannel.send({
+                type: "broadcast",
+                event: "webrtc-signal",
+                payload: {
+                  target: data.from,
+                  type: "ice-candidate",
+                  candidate: e.candidate,
+                  from: role,
+                },
+              });
+          };
+
+          const offer = await localDronePeer.createOffer();
+          await localDronePeer.setLocalDescription(offer);
+          camChannel.send({
+            type: "broadcast",
+            event: "webrtc-signal",
+            payload: {
+              target: data.from,
+              type: "offer",
+              offer: offer,
+              from: role,
+            },
+          });
+        } else if (data.type === "answer") {
+          await localDronePeer.setRemoteDescription(
+            new RTCSessionDescription(data.answer)
+          );
+        } else if (data.type === "ice-candidate" && localDronePeer) {
+          await localDronePeer.addIceCandidate(
+            new RTCIceCandidate(data.candidate)
+          );
+        }
+      })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          setInterval(() => {
+            camChannel.send({
+              type: "broadcast",
+              event: "cam-status",
+              payload: { role: role },
+            });
+          }, 3000);
+        }
+      });
+  } catch (err) {
+    alert("Kamera blockiert: " + err.message);
+  }
+}
+
+// 3. Receiver auf dem PC
+function initCameraReceiver(roomCode, myRole) {
+  if (camChannel) _supabase.removeChannel(camChannel);
+  boardPeers = { host: null, guest: null };
+
+  camChannel = _supabase.channel(`camera-${roomCode}`, {
+    config: { broadcast: { self: true } },
+  });
+
+  camChannel
+    .on("broadcast", { event: "cam-status" }, (payload) => {
+      const camRole = payload.payload.role; // Ist entweder 'host' oder 'guest'
+
+      if (camRole === "host") updateLobbyCameraStatus(true, true);
+      if (camRole === "guest") updateLobbyCameraStatus(false, true);
+
+      // Fordere das Bild von JEDER Kamera an, mit der wir noch nicht verbunden sind!
+      if (
+        !boardPeers[camRole] ||
+        boardPeers[camRole].connectionState !== "connected"
+      ) {
+        if (!boardPeers[camRole])
+          boardPeers[camRole] = { connectionState: "connecting" }; // Spam-Schutz
+        camChannel.send({
+          type: "broadcast",
+          event: "webrtc-signal",
+          payload: { target: camRole, type: "request-offer", from: myRole },
+        });
+      }
+    })
+    .on("broadcast", { event: "webrtc-signal" }, async (payload) => {
+      const data = payload.payload;
+      if (data.target !== myRole) return;
+
+      const fromCam = data.from; // Von wem kommt das Video? ('host' oder 'guest')
+
+      if (data.type === "offer") {
+        const peer = new RTCPeerConnection(rtcConfig);
+        boardPeers[fromCam] = peer;
+
+        peer.ontrack = (event) => {
+          // Zuweisung: Host = P1, Guest = P2
+          const videoId = fromCam === "host" ? "video-p1" : "video-p2";
+          const videoEl = document.getElementById(videoId);
+          if (videoEl) videoEl.srcObject = event.streams[0];
+        };
+
+        peer.onicecandidate = (e) => {
+          if (e.candidate)
+            camChannel.send({
+              type: "broadcast",
+              event: "webrtc-signal",
+              payload: {
+                target: fromCam,
+                type: "ice-candidate",
+                candidate: e.candidate,
+                from: myRole,
+              },
+            });
+        };
+
+        await peer.setRemoteDescription(new RTCSessionDescription(data.offer));
+        const answer = await peer.createAnswer();
+        await peer.setLocalDescription(answer);
+        camChannel.send({
+          type: "broadcast",
+          event: "webrtc-signal",
+          payload: {
+            target: fromCam,
+            type: "answer",
+            answer: answer,
+            from: myRole,
+          },
+        });
+      } else if (
+        data.type === "ice-candidate" &&
+        boardPeers[fromCam] &&
+        boardPeers[fromCam].addIceCandidate
+      ) {
+        await boardPeers[fromCam].addIceCandidate(
+          new RTCIceCandidate(data.candidate)
+        );
+      }
+    })
+    .subscribe();
+}
+
+function cleanupWebRTC() {
+  // 1. Supabase-Kanal verlassen
+  if (camChannel) {
+    _supabase.removeChannel(camChannel);
+    camChannel = null;
+  }
+
+  // 2. PC-Verbindungen (Board-Kameras) schließen
+  if (typeof boardPeers !== "undefined") {
+    if (boardPeers.host && boardPeers.host.close) boardPeers.host.close();
+    if (boardPeers.guest && boardPeers.guest.close) boardPeers.guest.close();
+    boardPeers = { host: null, guest: null };
+  }
+
+  // 3. Handy-Verbindung (Drohne) schließen
+  if (typeof localDronePeer !== "undefined" && localDronePeer) {
+    localDronePeer.close();
+    localDronePeer = null;
+  }
+
+  // 4. Video-Elemente schwarz schalten
+  let v1 = document.getElementById("video-p1");
+  let v2 = document.getElementById("video-p2");
+  if (v1) v1.srcObject = null;
+  if (v2) v2.srcObject = null;
+}

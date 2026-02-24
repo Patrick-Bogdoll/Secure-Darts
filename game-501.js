@@ -343,9 +343,8 @@ async function hostOnlineGame() {
   ]);
 
   if (error) return alert("Fehler:\n" + error.message);
-  document.getElementById("lobby-setup").style.display = "none";
-  document.getElementById("lobby-waiting").style.display = "block";
-  document.getElementById("display-room-code").innerText = currentRoomCode;
+
+  openOnlineLobby(currentRoomCode, myOnlineName, null, true);
   listenForOpponent(currentRoomCode);
 }
 
@@ -383,27 +382,31 @@ async function joinOnlineGame() {
     .from("live_matches")
     .update({
       player2_name: myOnlineName,
-      status: "playing",
-      last_action: "Spiel gestartet!",
+      last_action: "Gast ist beigetreten!",
     })
     .eq("room_code", codeInput);
-  room.player2_name = myOnlineName;
-  room.status = "playing";
-  document.getElementById("online-lobby-screen").style.display = "none";
-  document.getElementById("game-501-screen").style.display = "block";
-  sync501UI(room);
+
+  // ---> NEU: Setzt den Gast in die Lobby
+  openOnlineLobby(codeInput, room.player1_name, myOnlineName, false);
   listenForOpponent(currentRoomCode);
 }
 
 async function cancelLobby() {
-  if (currentRoomCode)
+  if (currentRoomCode) {
     await _supabase
       .from("live_matches")
       .delete()
       .eq("room_code", currentRoomCode);
+  }
   if (realtimeSubscription) _supabase.removeChannel(realtimeSubscription);
+
   document.getElementById("lobby-setup").style.display = "block";
-  document.getElementById("lobby-waiting").style.display = "none";
+  document.getElementById("lobby-active").style.display = "none"; // <-- NEU
+
+  // Falls noch existent, auch das alte verstecken
+  let lw = document.getElementById("lobby-waiting");
+  if (lw) lw.style.display = "none";
+
   currentRoomCode = "";
   goHome();
 }
@@ -608,9 +611,14 @@ function updateThrowHistoryUI() {
   document.getElementById("history-p2-name").innerText =
     document.getElementById("p2-name").innerText;
 
-  // Liste für Spieler 1 (Links) aufbauen
+  // --- HISTORIE P1 KÜRZEN AUF MAX. 5 ---
+  let displayP1 = p1LegThrows;
+  if (displayP1.length > 5) {
+    displayP1 = displayP1.slice(-5); // Schneidet alles bis auf die letzten 5 Würfe ab
+  }
+
   let html1 = "";
-  for (let t of p1LegThrows) {
+  for (let t of displayP1) {
     html1 += `<div style="display:flex; justify-content:space-between; padding:8px 10px; background:#2a2a2a; margin-bottom:5px; border-radius:6px; font-size: 0.9em; color:#ccc;">
                 <span>${t.old} &rarr; <b style="color:white;">${t.new}</b></span>
                 <span style="color:var(--accent-blue); font-weight:bold;">[${t.thrown}]</span>
@@ -618,9 +626,15 @@ function updateThrowHistoryUI() {
   }
   p1Container.innerHTML = html1;
 
+  // --- HISTORIE P2 KÜRZEN AUF MAX. 5 ---
+  let displayP2 = p2LegThrows;
+  if (displayP2.length > 5) {
+    displayP2 = displayP2.slice(-5);
+  }
+
   // Liste für Spieler 2 (Rechts) aufbauen
   let html2 = "";
-  for (let t of p2LegThrows) {
+  for (let t of displayP2) {
     html2 += `<div style="display:flex; justify-content:space-between; padding:8px 10px; background:#2a2a2a; margin-bottom:5px; border-radius:6px; font-size: 0.9em; color:#ccc;">
                 <span style="color:var(--accent-blue); font-weight:bold;">[${t.thrown}]</span>
                 <span><b style="color:white;">${t.new}</b> &larr; ${t.old}</span>
@@ -915,16 +929,34 @@ function listenForOpponent(roomCode) {
       (payload) => {
         const dbData = payload.new;
 
+        // ==========================================
+        // ---> NEU: LOBBY UPDATE (Warten auf Start)
+        // ==========================================
+        if (dbData.status === "waiting") {
+          if (typeof updateLobbyPlayers === "function") {
+            updateLobbyPlayers(dbData.player1_name, dbData.player2_name);
+          }
+        }
+
+        // ==========================================
+        // ---> ANGEPASST: WECHSEL INS SPIEL
+        // ==========================================
         if (
           dbData.status === "playing" &&
           document.getElementById("game-501-screen").style.display === "none"
         ) {
           document.getElementById("online-lobby-screen").style.display = "none";
+          let activeLobby = document.getElementById("lobby-active");
+          if (activeLobby) activeLobby.style.display = "none";
+
           document.getElementById("game-501-screen").style.display = "block";
         }
 
         if (dbData.status === "playing") sync501UI(dbData);
 
+        // ==========================================
+        // ALTE LOGIK FÜR SPIELENDE
+        // ==========================================
         if (dbData.status === "leg_won" || dbData.status === "match_won") {
           sync501UI(dbData);
           document.getElementById("win-overlay-501").style.display = "flex";
@@ -935,6 +967,7 @@ function listenForOpponent(roomCode) {
               ? dbData.player1_name
               : dbData.player2_name;
           let totalLegsDB = dbData.player1_legs + dbData.player2_legs;
+
           if (currentMatchLog501.length < totalLegsDB) {
             let p1Rest = dbData.player1_score;
             let p2Rest = dbData.player2_score;
@@ -984,7 +1017,6 @@ function listenForOpponent(roomCode) {
                 .eq("room_code", currentRoomCode);
             };
 
-            // --- EIGENE ONLINE STATS SPEICHERN ---
             let amIWinner =
               (dbData.player1_score === 0 && amIPlayer1) ||
               (dbData.player2_score === 0 && !amIPlayer1);
@@ -1011,9 +1043,11 @@ function listenForOpponent(roomCode) {
               myFinish,
               amIPlayer1 ? statsTracker.p1 : statsTracker.p2
             );
+
             let oppName = amIPlayer1
               ? dbData.player2_name
               : dbData.player1_name;
+
             save501MatchHistory(
               myOnlineName,
               oppName,
@@ -1047,14 +1081,13 @@ function listenForOpponent(roomCode) {
                 .eq("room_code", currentRoomCode);
             };
 
-            // NEU: Automatischer Start nach 5 Sekunden (Nur der Host darf den Befehl senden!)
             if (amIPlayer1) {
               setTimeout(() => {
                 if (
                   document.getElementById("win-overlay-501").style.display ===
                   "flex"
                 ) {
-                  btnNext.click(); // Simuliert den Klick auf den Button
+                  btnNext.click();
                 }
               }, 5000);
             }
@@ -1071,7 +1104,6 @@ function listenForOpponent(roomCode) {
             p2TotalScore = 0;
             p1Darts501 = 0;
             p2Darts501 = 0;
-            // NEU: Setzt die Leg-Averages und Pro-Stats beim Rematch auf 0!
             p1DartsAtLegStart = 0;
             p2DartsAtLegStart = 0;
             currentMatchLog501 = [];
@@ -1124,9 +1156,7 @@ async function cancel501Game(force = false, broadcastToOpponent = true) {
       realtimeSubscription = null;
     }
 
-    document.getElementById("game-501-screen").style.display = "none";
-    document.getElementById("lobby-waiting").style.display = "none";
-    document.getElementById("lobby-setup").style.display = "block";
+    // Geht direkt nach Hause - goHome() kümmert sich jetzt um alle HTML-Elemente!
     goHome();
   };
 
@@ -1423,6 +1453,22 @@ function calculateBotHit(target, avg) {
   let singleChance = Math.min(95, 20 + avg * 0.8);
   if (rnd < singleChance) return target;
   return Math.floor(Math.random() * 20) + 1;
+}
+
+async function triggerOnlineMatchStart() {
+  if (!isOnlineHost) return;
+
+  document.getElementById("btn-start-online-match").innerText = "Starte...";
+  document.getElementById("btn-start-online-match").disabled = true;
+
+  // Ändert den Status auf "playing", was bei beiden Spielern das Spiel öffnet
+  await _supabase
+    .from("live_matches")
+    .update({
+      status: "playing",
+      last_action: "Spiel gestartet!",
+    })
+    .eq("room_code", currentRoomCode);
 }
 
 document.addEventListener("keydown", function (event) {

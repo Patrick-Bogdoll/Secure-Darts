@@ -647,39 +647,178 @@
           <button class="reset" onclick="goHome()">🏠 Zurück</button>
         </div>
         <div
-          id="lobby-waiting"
+          id="lobby-active"
           style="
             display: none;
-            padding: 30px 20px;
+            padding: 20px;
             background: #222;
             border-radius: 8px;
-            border: 2px dashed var(--accent-blue);
+            border: 2px solid var(--accent-blue);
           "
         >
-          <h3 style="margin-top: 0; color: white">Warte auf Gegner... ⏳</h3>
-          <p style="color: #aaa">Dein Raumcode lautet:</p>
+          <h3 style="margin-top: 0; color: white; text-align: center">
+            Online Lobby
+          </h3>
+
           <div
             style="
-              font-size: 4em;
-              letter-spacing: 8px;
-              color: var(--accent-green);
-              font-weight: 900;
-              margin: 20px 0;
-              text-shadow: 0 0 15px rgba(0, 230, 118, 0.3);
+              background: #111;
+              padding: 15px;
+              border-radius: 8px;
+              margin-bottom: 20px;
+              text-align: center;
             "
-            id="display-room-code"
           >
-            ----
+            <p style="color: #aaa; margin: 0 0 5px 0; font-size: 0.9em">
+              Raumcode:
+            </p>
+            <div
+              id="lobby-room-code-display"
+              style="
+                color: var(--accent-green);
+                font-size: 2.5em;
+                letter-spacing: 5px;
+                font-weight: 900;
+                text-shadow: 0 0 10px rgba(0, 230, 118, 0.3);
+              "
+            >
+              ----
+            </div>
           </div>
-          <p style="color: #888; font-size: 0.9em">
-            Teile diesen Code mit deinem Mitspieler.
-          </p>
+
+          <div style="display: flex; gap: 10px; margin-bottom: 20px">
+            <div
+              style="
+                flex: 1;
+                background: #1a1a1a;
+                padding: 15px;
+                border-radius: 8px;
+                border: 1px solid #333;
+                text-align: center;
+              "
+            >
+              <h4
+                style="
+                  color: var(--accent-blue);
+                  margin: 0 0 10px 0;
+                  font-size: 0.8em;
+                  text-transform: uppercase;
+                "
+              >
+                Host
+              </h4>
+              <div
+                id="lobby-host-name"
+                style="font-weight: bold; font-size: 1.2em; color: white"
+              >
+                Wartet...
+              </div>
+              <div
+                id="lobby-host-cam"
+                style="margin-top: 10px; font-size: 0.9em; color: #888"
+              >
+                🚫 Keine Kamera
+              </div>
+            </div>
+            <div
+              style="
+                flex: 1;
+                background: #1a1a1a;
+                padding: 15px;
+                border-radius: 8px;
+                border: 1px solid #333;
+                text-align: center;
+              "
+            >
+              <h4
+                style="
+                  color: var(--accent-purple);
+                  margin: 0 0 10px 0;
+                  font-size: 0.8em;
+                  text-transform: uppercase;
+                "
+              >
+                Gast
+              </h4>
+              <div
+                id="lobby-guest-name"
+                style="font-weight: bold; font-size: 1.2em; color: #888"
+              >
+                Wartet...
+              </div>
+              <div
+                id="lobby-guest-cam"
+                style="margin-top: 10px; font-size: 0.9em; color: #888"
+              >
+                🚫 Keine Kamera
+              </div>
+            </div>
+          </div>
+
+          <button
+            class="primary"
+            onclick="generateCameraQR()"
+            style="
+              background: transparent;
+              border: 1px dashed var(--accent-blue);
+              color: var(--accent-blue);
+              width: 100%;
+              margin-bottom: 15px;
+              padding: 12px;
+            "
+          >
+            📱 Mein Handy als Kamera verbinden
+          </button>
+          <div
+            id="qr-container"
+            style="
+              display: none;
+              text-align: center;
+              margin-bottom: 20px;
+              background: white;
+              padding: 15px;
+              border-radius: 8px;
+            "
+          >
+            <img
+              id="qr-image"
+              src=""
+              alt="QR Code"
+              style="width: 150px; height: 150px; margin: 0 auto"
+            />
+            <div
+              style="
+                color: black;
+                font-size: 0.9em;
+                margin-top: 8px;
+                font-weight: bold;
+              "
+            >
+              Scannen, um Kamera zu starten
+            </div>
+          </div>
+
+          <button
+            id="btn-start-online-match"
+            class="primary"
+            onclick="triggerOnlineMatchStart()"
+            style="
+              display: none;
+              width: 100%;
+              background: var(--accent-green);
+              color: black;
+              font-size: 1.2em;
+              padding: 15px;
+            "
+          >
+            Spiel Starten
+          </button>
           <button
             class="reset"
-            style="margin-top: 25px"
+            style="margin-top: 10px; width: 100%; background: #333"
             onclick="cancelLobby()"
           >
-            Abbrechen
+            Lobby verlassen
           </button>
         </div>
       </div>
@@ -874,8 +1013,45 @@
               text-transform: uppercase;
             "
           >
-            Historie <span id="history-p1-name" style="color: white">S1</span>
+            <span id="history-p1-name" style="color: white">S1</span>
           </h3>
+          <div
+            style="
+              width: 100%;
+              height: 160px;
+              background: #111;
+              border-radius: 8px;
+              border: 1px solid #333;
+              margin-bottom: 10px;
+              overflow: hidden;
+              position: relative;
+              box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            "
+          >
+            <div
+              style="
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                background: rgba(0, 0, 0, 0.6);
+                color: white;
+                font-size: 0.7em;
+                text-align: center;
+                padding: 3px 0;
+                z-index: 2;
+              "
+            >
+              LIVE-CAM P1
+            </div>
+            <video
+              id="video-p1"
+              autoplay
+              playsinline
+              muted
+              style="width: 100%; height: 100%; object-fit: cover"
+            ></video>
+          </div>
           <div id="side-history-list-p1" class="side-history-list"></div>
         </div>
 
@@ -889,8 +1065,45 @@
               text-transform: uppercase;
             "
           >
-            Historie <span id="history-p2-name" style="color: white">S2</span>
+            <span id="history-p2-name" style="color: white">S2</span>
           </h3>
+          <div
+            style="
+              width: 100%;
+              height: 160px;
+              background: #111;
+              border-radius: 8px;
+              border: 1px solid #333;
+              margin-bottom: 10px;
+              overflow: hidden;
+              position: relative;
+              box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            "
+          >
+            <div
+              style="
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                background: rgba(0, 0, 0, 0.6);
+                color: white;
+                font-size: 0.7em;
+                text-align: center;
+                padding: 3px 0;
+                z-index: 2;
+              "
+            >
+              LIVE-CAM P2
+            </div>
+            <video
+              id="video-p2"
+              autoplay
+              playsinline
+              muted
+              style="width: 100%; height: 100%; object-fit: cover"
+            ></video>
+          </div>
           <div id="side-history-list-p2" class="side-history-list"></div>
         </div>
 
@@ -2108,6 +2321,52 @@
             Startklar!
           </button>
         </div>
+      </div>
+    </div>
+
+    <div
+      id="companion-screen"
+      style="
+        display: none;
+        text-align: center;
+        height: 100vh;
+        background: black;
+        padding-top: 20px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 99999;
+      "
+    >
+      <h2
+        style="
+          color: var(--accent-red);
+          margin-top: 0;
+          animation: blink 2s infinite;
+        "
+      >
+        🔴 LIVE BROADCAST
+      </h2>
+      <p style="color: #888; font-size: 0.9em; margin-bottom: 20px">
+        Dieses Gerät fungiert als reine Kamera-Drohne.
+      </p>
+      <div
+        style="
+          border: 2px solid var(--accent-red);
+          border-radius: 12px;
+          overflow: hidden;
+          display: inline-block;
+          max-width: 90%;
+        "
+      >
+        <video
+          id="local-camera-preview"
+          autoplay
+          playsinline
+          muted
+          style="width: 100%; max-width: 400px; display: block"
+        ></video>
       </div>
     </div>
 
