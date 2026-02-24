@@ -872,7 +872,6 @@ input[type="password"]:focus {
   animation: flash-target 0.8s infinite ease-in-out !important;
 }
 
-/* Falls du den "Glassmorphism" Effekt für die Container behalten willst: */
 .container,
 #game-501,
 .modal-content {
