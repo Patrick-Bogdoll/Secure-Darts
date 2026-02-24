@@ -1162,7 +1162,7 @@ function listenForOpponent(roomCode) {
         }
 
         if (dbData.status === "cancelled") {
-          alert("⚠️ Dein Gegner hat das Spiel abgebrochen!");
+          alert("Dein Gegner hat das Spiel abgebrochen!");
           cancel501Game(true, false);
         }
       }
@@ -1255,7 +1255,7 @@ async function requestUndo() {
       }
     }
     // Falls der Gegner in der Zwischenzeit schon geworfen hat:
-    alert("⚠️ Undo nicht mehr möglich! Dein Gegner hat bereits geworfen.");
+    alert("Undo nicht mehr möglich! Dein Gegner hat bereits geworfen.");
   }
 }
 

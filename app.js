@@ -458,6 +458,8 @@ let peerConnection = null;
 let camChannel = null;
 let localDronePeer = null;
 let boardPeers = { host: null, guest: null };
+let currentCameraStream = null;
+let camStatusInterval = null;
 
 // 1. Lobby öffnen
 function openOnlineLobby(roomCode, hostName, guestName = null, isHost = false) {
@@ -561,23 +563,26 @@ async function triggerOnlineMatchStart() {
 async function startCompanionMode(roomCode, role) {
   document.getElementById("companion-screen").style.display = "block";
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
+    // WICHTIG: Wir weisen den Stream der globalen Variable zu
+    currentCameraStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "environment" },
       audio: false,
     });
-    const videoTrack = stream.getVideoTracks()[0];
-    document.getElementById("local-camera-preview").srcObject = stream;
 
-    // --- NEU: ZOOM UI HINZUFÜGEN ---
+    const videoTrack = currentCameraStream.getVideoTracks()[0];
+    document.getElementById("local-camera-preview").srcObject =
+      currentCameraStream;
+
+    // Zoom UI
     const capabilities = videoTrack.getCapabilities();
     if (capabilities.zoom) {
-      // Erstelle einen Slider für den Zoom
       const zoomControl = document.createElement("input");
       zoomControl.type = "range";
       zoomControl.min = capabilities.zoom.min;
       zoomControl.max = capabilities.zoom.max;
       zoomControl.step = capabilities.zoom.step;
       zoomControl.value = capabilities.zoom.min;
+      zoomControl.id = "camera-zoom-slider"; // ID hinzufügen zum späteren Entfernen
       zoomControl.style.cssText = "width: 80%; margin-top: 20px; height: 30px;";
 
       zoomControl.oninput = async () => {
@@ -603,9 +608,10 @@ async function startCompanionMode(roomCode, role) {
 
         if (data.type === "request-offer") {
           localDronePeer = new RTCPeerConnection(rtcConfig);
-          stream
-            .getTracks()
-            .forEach((track) => localDronePeer.addTrack(track, stream));
+          // WICHTIG: Nutzt die globale Variable currentCameraStream
+          currentCameraStream.getTracks().forEach((track) => {
+            localDronePeer.addTrack(track, currentCameraStream);
+          });
 
           localDronePeer.onicecandidate = (e) => {
             if (e.candidate)
@@ -645,17 +651,20 @@ async function startCompanionMode(roomCode, role) {
       })
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
-          setInterval(() => {
-            camChannel.send({
-              type: "broadcast",
-              event: "cam-status",
-              payload: { role: role },
-            });
+          // WICHTIG: Intervall in Variable speichern
+          camStatusInterval = setInterval(() => {
+            if (camChannel) {
+              camChannel.send({
+                type: "broadcast",
+                event: "cam-status",
+                payload: { role: role },
+              });
+            }
           }, 3000);
         }
       });
   } catch (err) {
-    alert("Kamera blockiert: " + err.message);
+    showToast("Kamera blockiert: " + err.message, "error");
   }
 }
 
@@ -670,10 +679,41 @@ function initCameraReceiver(roomCode, myRole) {
 
   camChannel
     .on("broadcast", { event: "cam-status" }, (payload) => {
-      const camRole = payload.payload.role; // Ist entweder 'host' oder 'guest'
+      const data = payload.payload;
+      const camRole = data.role; // 'host' oder 'guest'
+
+      // --- NEU: LOGIK FÜR OFFLINE-STATUS / AVATAR-SWITCH ---
+      // Wir bestimmen, welcher Slot betroffen ist (Host = P1, Guest = P2)
+      // Falls data.role null ist (beim Stoppen), versuchen wir es über die Herkunft zu identifizieren
+      const pId = camRole === "host" ? "p1" : camRole === "guest" ? "p2" : null;
+
+      if (data.offline || !camRole) {
+        // Wenn das Handy "offline" meldet, blenden wir das Video aus und den Avatar ein
+        // Wir prüfen beide IDs, falls camRole im Payload nicht definiert war
+        ["p1", "p2"].forEach((id) => {
+          // Wenn wir wissen welche ID (pId) oder wenn wir aufräumen müssen
+          const videoEl = document.getElementById(`video-${id}`);
+          const avatarEl = document.getElementById(`avatar-${id}`);
+          if (videoEl) videoEl.style.display = "none";
+          if (avatarEl) avatarEl.style.display = "block";
+
+          // Lobby-Status ebenfalls auf "aus" setzen
+          updateLobbyCameraStatus(id === "p1", false);
+        });
+        return; // Keine weitere Verbindung nötig
+      }
+      // -------------------------------------------------------
 
       if (camRole === "host") updateLobbyCameraStatus(true, true);
       if (camRole === "guest") updateLobbyCameraStatus(false, true);
+
+      // Falls Kamera aktiv, Video-Container vorbereiten (Avatar verstecken)
+      const activeVideoId = camRole === "host" ? "video-p1" : "video-p2";
+      const activeAvatarId = camRole === "host" ? "avatar-p1" : "avatar-p2";
+      if (document.getElementById(activeVideoId))
+        document.getElementById(activeVideoId).style.display = "block";
+      if (document.getElementById(activeAvatarId))
+        document.getElementById(activeAvatarId).style.display = "none";
 
       // Fordere das Bild von JEDER Kamera an, mit der wir noch nicht verbunden sind!
       if (
@@ -703,7 +743,14 @@ function initCameraReceiver(roomCode, myRole) {
           // Zuweisung: Host = P1, Guest = P2
           const videoId = fromCam === "host" ? "video-p1" : "video-p2";
           const videoEl = document.getElementById(videoId);
-          if (videoEl) videoEl.srcObject = event.streams[0];
+          if (videoEl) {
+            videoEl.srcObject = event.streams[0];
+            videoEl.style.display = "block";
+            // Avatar zur Sicherheit hier nochmal verstecken
+            const avatarId = fromCam === "host" ? "avatar-p1" : "avatar-p2";
+            if (document.getElementById(avatarId))
+              document.getElementById(avatarId).style.display = "none";
+          }
         };
 
         peer.onicecandidate = (e) => {
@@ -867,4 +914,54 @@ function compressImage(file, maxWidth, maxHeight) {
     };
     reader.onerror = (error) => reject(error);
   });
+}
+
+async function stopCameraStream() {
+  // 1. Intervall stoppen (Wichtig, damit der PC merkt, dass wir weg sind)
+  if (camStatusInterval) {
+    clearInterval(camStatusInterval);
+    camStatusInterval = null;
+  }
+
+  // 2. WebRTC Verbindung schließen
+  if (localDronePeer) {
+    localDronePeer.close();
+    localDronePeer = null;
+  }
+
+  // 3. Hardware-Kamera physisch stoppen
+  if (currentCameraStream) {
+    currentCameraStream.getTracks().forEach((track) => track.stop());
+    currentCameraStream = null;
+  }
+
+  // 4. Video-Element leeren
+  const videoEl = document.getElementById("local-camera-preview");
+  if (videoEl) videoEl.srcObject = null;
+
+  // 5. Supabase Kanal trennen & Signal senden
+  if (camChannel) {
+    // Wir senden ein explizites "Offline"-Signal an den PC
+    await camChannel.send({
+      type: "broadcast",
+      event: "cam-status",
+      payload: { role: null, offline: true }, // 'offline: true' triggert den Avatar am PC
+    });
+
+    // Kurz warten, damit das Signal sicher rausgeht, dann Kanal löschen
+    setTimeout(async () => {
+      await _supabase.removeChannel(camChannel);
+      camChannel = null;
+    }, 500);
+  }
+
+  // 6. Handy-UI umschalten (Statt Tab schließen)
+  document.getElementById("companion-screen").innerHTML = `
+      <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #1a1a1a; color: white; font-family: sans-serif; text-align: center; padding: 20px;">
+          <div style="font-size: 50px; margin-bottom: 20px;">🔒</div>
+          <h2 style="color: var(--accent-red); margin-top:0;">Kamera geschlossen</h2>
+          <p style="color: #888; line-height: 1.5;">Die Verbindung wurde sicher getrennt.<br>Du kannst diesen Tab jetzt schließen oder zum Hauptmenü zurückkehren.</p>
+          <button onclick="window.location.href='index.html'" style="margin-top: 30px; background: #333; color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">🏠 Zum Hauptmenü</button>
+      </div>
+  `;
 }
