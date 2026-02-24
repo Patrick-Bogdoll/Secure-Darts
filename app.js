@@ -512,14 +512,39 @@ function updateLobbyCameraStatus(isHostCam, isConnected) {
 
 function generateCameraQR() {
   if (!currentRoomCode) return;
+
   const role = isOnlineHost ? "host" : "guest";
   const companionUrl = `${window.location.origin}${window.location.pathname}?camera=${currentRoomCode}&role=${role}`;
-  document.getElementById(
-    "qr-image"
-  ).src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-    companionUrl
-  )}`;
-  document.getElementById("qr-container").style.display = "block";
+
+  const qrContainer = document.getElementById("qr-container");
+  const qrImage = document.getElementById("qr-image");
+
+  // Da wir kein <img> Tag mehr brauchen, sondern ein <div> für die Library:
+  // Wir prüfen, ob qr-image ein <img> ist und tauschen es ggf. gegen ein <div> aus
+  let canvasContainer = document.getElementById("qrcode-canvas");
+  if (!canvasContainer) {
+    canvasContainer = document.createElement("div");
+    canvasContainer.id = "qrcode-canvas";
+    canvasContainer.style.display = "flex";
+    canvasContainer.style.justifyContent = "center";
+    // Ersetzt das alte img-Tag durch das neue div-Tag
+    qrImage.parentNode.replaceChild(canvasContainer, qrImage);
+  }
+
+  // Alten QR-Code Inhalt löschen
+  canvasContainer.innerHTML = "";
+
+  // QR-Code sofort lokal generieren
+  new QRCode(canvasContainer, {
+    text: companionUrl,
+    width: 150,
+    height: 150,
+    colorDark: "#ffffff", // Code Farbe: Weiß
+    colorLight: "#2d2d2d", // Hintergrund Farbe: Grau (passend zum Container)
+    correctLevel: QRCode.CorrectLevel.H,
+  });
+
+  qrContainer.style.display = "block";
 }
 
 async function triggerOnlineMatchStart() {

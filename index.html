@@ -775,23 +775,25 @@
               display: none;
               text-align: center;
               margin-bottom: 20px;
-              background: white;
-              padding: 15px;
-              border-radius: 8px;
+              background: #2d2d2d;
+              padding: 20px;
+              border-radius: 12px;
+              box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
             "
           >
-            <img
-              id="qr-image"
-              src=""
-              alt="QR Code"
-              style="width: 150px; height: 150px; margin: 0 auto"
-            />
+            <div
+              id="qrcode-canvas"
+              style="display: flex; justify-content: center"
+            ></div>
+
             <div
               style="
-                color: black;
-                font-size: 0.9em;
-                margin-top: 8px;
+                color: #e0e0e0;
+                font-size: 0.85em;
+                margin-top: 12px;
                 font-weight: bold;
+                text-transform: uppercase;
+                letter-spacing: 1px;
               "
             >
               Scannen, um Kamera zu starten
@@ -2555,5 +2557,6 @@
     <script src="game-bobs.js"></script>
     <script src="game-rtw.js"></script>
     <script src="stats.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   </body>
 </html>
