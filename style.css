@@ -756,6 +756,7 @@ input[type="password"]:focus {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  max-height: 85vh;
 }
 
 /* Heftet Box 1 an die linke Seite */
@@ -771,6 +772,7 @@ input[type="password"]:focus {
 .side-history-list {
   overflow-y: auto;
   flex: 1;
+  flex-grow: 1;
   margin-top: 10px;
   padding-right: 5px;
 }

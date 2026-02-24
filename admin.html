@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Secure-Darts Admin Panel</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <style>
       :root {
         --bg-color: #1a1a1a;
@@ -74,7 +73,7 @@
 
       th,
       td {
-        padding: 16px 15px; /* Etwas mehr Luft oben/unten und an den Seiten */
+        padding: 16px 15px;
         border-bottom: 1px solid #444;
       }
 
@@ -86,33 +85,16 @@
         letter-spacing: 1px;
       }
 
-      /* 1. Spalte (ID / Datum): Zentriert und dezent */
       th:first-child,
       td:first-child {
         text-align: center;
         width: 80px;
         color: #888;
       }
-
-      /* 2. Spalte (Name): Links ausgerichtet */
-      th:nth-child(2),
-      td:nth-child(2) {
-        text-align: left;
-      }
-
-      /* 3. & 4. Spalte (Statistiken): Zentriert für perfekte Balance */
-      th:nth-child(3),
-      td:nth-child(3),
-      th:nth-child(4),
-      td:nth-child(4) {
-        text-align: center;
-      }
-
-      /* 5. Spalte (Aktionen): Rechtsbündig an den Rand gepinnt */
       th:last-child,
       td:last-child {
         text-align: right;
-        white-space: nowrap; /* Verhindert, dass Buttons untereinander rutschen */
+        white-space: nowrap;
       }
 
       .btn-edit,
@@ -134,7 +116,6 @@
         color: white;
       }
 
-      /* --- DAS GROSSE BEARBEITUNGS-MODAL --- */
       .modal-overlay {
         position: fixed;
         top: 0;
@@ -183,10 +164,6 @@
         background: #111;
         color: white;
       }
-      .form-group input:focus {
-        outline: none;
-        border-color: var(--accent-blue);
-      }
 
       .modal-actions {
         display: flex;
@@ -223,9 +200,6 @@
         margin-bottom: 20px;
         cursor: pointer;
       }
-      .btn-home:hover {
-        background-color: #555;
-      }
 
       #login-overlay {
         position: fixed;
@@ -245,7 +219,6 @@
         padding: 40px;
         border-radius: 12px;
         text-align: center;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
         width: 300px;
       }
     </style>
@@ -281,7 +254,6 @@
         <p id="generic-confirm-text" style="color: #ccc; margin-bottom: 25px">
           Möchtest du das wirklich tun?
         </p>
-
         <div style="display: flex; gap: 10px; flex-direction: column">
           <button
             id="generic-confirm-yes-btn"
@@ -368,7 +340,6 @@
     <div class="container" id="admin-container" style="display: none">
       <a href="index.html" class="btn-home">🏠 Zurück zur App</a>
       <h1 style="text-align: center; margin-top: 0">⚙️ Admin Panel</h1>
-
       <div class="header-tabs">
         <button
           id="tab-littler"
@@ -390,7 +361,6 @@
           ✉️ Nachrichten
         </button>
       </div>
-
       <div style="overflow-x: auto">
         <table id="data-table">
           <thead id="table-head"></thead>
@@ -402,7 +372,7 @@
     <div id="edit-modal" class="modal-overlay">
       <div class="modal-content">
         <h2 id="modal-title" style="margin-top: 0; color: var(--accent-blue)">
-          Spieler/Match bearbeiten
+          Spieler bearbeiten
         </h2>
         <div id="edit-fields" class="form-grid"></div>
         <div class="modal-actions">
@@ -413,28 +383,27 @@
     </div>
 
     <script>
-      // ==========================================
-      // TOAST NOTIFICATION & OVERRIDES
-      // ==========================================
+      const SUPABASE_URL = "https://etzkulwnjhkoiklrohbt.supabase.co";
+      const SUPABASE_KEY = "sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy";
+      const { createClient } = supabase;
+      const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+      const ADMIN_HASH =
+        "d9cafea78ff95cf59f6925e0707c266b19cffb85a31bbbffd146f38b1f119ba8";
+
+      let currentMode = "littler";
+      let editingId = null;
+      let pendingConfirmAction = null;
+
       function showToast(message, type = "success") {
         const container = document.getElementById("toast-container");
-        if (!container) return;
-
         const toast = document.createElement("div");
         const bgColor =
           type === "success" ? "var(--accent-green)" : "var(--accent-red)";
-        const color = type === "success" ? "black" : "white";
-        const icon = type === "success" ? "✅" : "⚠️";
-
-        toast.style.cssText = `
-          background: ${bgColor}; color: ${color}; padding: 12px 20px; border-radius: 8px;
-          box-shadow: 0 6px 20px rgba(0,0,0,0.6); font-weight: bold; font-size: 0.9em;
-          display: flex; align-items: center; gap: 10px; transform: translateX(120%);
-          transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        `;
-        toast.innerHTML = `<span style="font-size: 1.2em;">${icon}</span> <span>${message}</span>`;
+        toast.style.cssText = `background: ${bgColor}; color: ${
+          type === "success" ? "black" : "white"
+        }; padding: 12px 20px; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.6); font-weight: bold; transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);`;
+        toast.innerHTML = message;
         container.appendChild(toast);
-
         requestAnimationFrame(() => (toast.style.transform = "translateX(0)"));
         setTimeout(() => {
           toast.style.transform = "translateX(120%)";
@@ -442,92 +411,32 @@
         }, 2500);
       }
 
-      window.alert = function (message) {
-        showToast(message, "error");
-      };
-
-      // ==========================================
-      // CUSTOM CONFIRM MODAL
-      // ==========================================
-      let pendingConfirmAction = null;
-
-      function showConfirmModal(message, confirmCallback) {
-        document.getElementById("generic-confirm-text").innerText = message;
-        pendingConfirmAction = confirmCallback;
-        document.getElementById("generic-confirm-modal").style.display = "flex";
-
-        document.getElementById("generic-confirm-yes-btn").onclick =
-          function () {
-            if (pendingConfirmAction) pendingConfirmAction();
-            closeConfirmModal();
-          };
-      }
-
-      function closeConfirmModal() {
-        document.getElementById("generic-confirm-modal").style.display = "none";
-        pendingConfirmAction = null;
-      }
-
-      // ==========================================
-      // APP LOGIK
-      // ==========================================
-      const SUPABASE_URL = "https://etzkulwnjhkoiklrohbt.supabase.co";
-      const SUPABASE_KEY = "sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy";
-      const { createClient } = supabase;
-      const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-      const ADMIN_HASH =
-        "d9cafea78ff95cf59f6925e0707c266b19cffb85a31bbbffd146f38b1f119ba8";
-
       async function hashPassword(password) {
         const msgBuffer = new TextEncoder().encode(password);
         const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+        return Array.from(new Uint8Array(hashBuffer))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
       }
-
-      async function verifyAdmin() {
-        const {
-          data: { session },
-        } = await _supabase.auth.getSession();
-        if (!session) return (window.location.href = "index.html");
-        const { data } = await _supabase
-          .from("stats_501")
-          .select("is_admin")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-        if (!data || !data.is_admin) {
-          alert("Zugriff verweigert!");
-          window.location.href = "index.html";
-        } else {
-          document.getElementById("login-overlay").style.display = "flex";
-        }
-      }
-      verifyAdmin();
 
       async function checkPassword() {
         const input = document.getElementById("admin-pw").value;
-        const hash = await hashPassword(input);
-        if (hash === ADMIN_HASH) {
+        if ((await hashPassword(input)) === ADMIN_HASH) {
           document.getElementById("login-overlay").style.display = "none";
           document.getElementById("admin-container").style.display = "block";
           loadData();
         } else {
           alert("Falsches Passwort!");
-          document.getElementById("admin-pw").value = "";
         }
       }
 
-      let currentMode = "littler";
-      let editingId = null;
-
       function switchTab(mode) {
         currentMode = mode;
-        const tabs = ["littler", "501", "bobs", "rtw", "contact"];
-        tabs.forEach((t) => {
-          let btn = document.getElementById(`tab-${t}`);
-          if (btn) btn.classList.toggle("active", mode === t);
-        });
+        document
+          .querySelectorAll(".tab-btn")
+          .forEach((btn) =>
+            btn.classList.toggle("active", btn.id === `tab-${mode}`)
+          );
         loadData();
       }
 
@@ -537,140 +446,32 @@
         tbody.innerHTML =
           "<tr><td colspan='6' style='text-align:center;'>Lade Daten...</td></tr>";
 
-        if (currentMode === "littler") {
-          thead.innerHTML =
-            "<tr><th>ID</th><th>Name</th><th>Siege</th><th>Highscore</th><th>Aktionen</th></tr>";
-          const { data, error } = await _supabase
-            .from("highscores")
-            .select("*")
-            .order("id", { ascending: true });
-          if (error) return alert("Fehler: " + error.message);
+        let tableName =
+          currentMode === "littler"
+            ? "highscores"
+            : currentMode === "501"
+            ? "stats_501"
+            : currentMode === "bobs"
+            ? "stats_bobs"
+            : currentMode === "rtw"
+            ? "stats_rtw"
+            : "contact_messages";
 
-          tbody.innerHTML = "";
-          data.forEach((p) => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `<td>${p.id}</td><td><b>${p.name}</b></td><td>${
-              p.wins
-            }</td><td>${p.highscore}</td>
-              <td>
-                <button class="btn-edit" onclick="openEditModal(${
-                  p.id
-                }, '${encodeURIComponent(JSON.stringify(p))}')">✏️ Edit</button>
-                <button class="btn-delete" onclick="deleteRecord(${p.id}, '${
-              p.name
-            }', 'highscores')">🗑️</button>
-              </td>`;
-            tbody.appendChild(tr);
+        const { data, error } = await _supabase
+          .from(tableName)
+          .select("*")
+          .order(currentMode === "contact" ? "created_at" : "id", {
+            ascending: currentMode !== "contact",
           });
-        } else if (currentMode === "501") {
+
+        if (error) return alert("Fehler: " + error.message);
+        tbody.innerHTML = "";
+
+        if (currentMode === "contact") {
           thead.innerHTML =
-            "<tr><th>ID</th><th>Name</th><th>Legs Won</th><th>Avg</th><th>Aktionen</th></tr>";
-          const { data, error } = await _supabase
-            .from("stats_501")
-            .select("*")
-            .order("id", { ascending: true });
-          if (error) return alert("Fehler: " + error.message);
-
-          tbody.innerHTML = "";
+            "<tr><th>Datum</th><th>Name</th><th>E-Mail</th><th>Nachricht</th><th>Aktionen</th></tr>";
           data.forEach((p) => {
-            let avg =
-              p.total_darts_thrown > 0
-                ? ((p.total_score_thrown / p.total_darts_thrown) * 3).toFixed(2)
-                : "0.00";
-            const tr = document.createElement("tr");
-            tr.innerHTML = `<td>${p.id}</td><td><b>${p.name}</b></td><td>${
-              p.wins
-            }</td><td>${avg}</td>
-              <td>
-                <button class="btn-edit" onclick="openEditModal(${
-                  p.id
-                }, '${encodeURIComponent(JSON.stringify(p))}')">✏️ Edit</button>
-                <button class="btn-delete" onclick="deleteRecord(${p.id}, '${
-              p.name
-            }', 'stats_501')">🗑️</button>
-              </td>`;
-            tbody.appendChild(tr);
-          });
-        } else if (currentMode === "bobs") {
-          thead.innerHTML =
-            "<tr><th>ID</th><th>Name</th><th>Endstand</th><th>Sieg</th><th>Aktionen</th></tr>";
-          const { data, error } = await _supabase
-            .from("stats_bobs")
-            .select("*")
-            .order("created_at", { ascending: false });
-          if (error) return alert("Fehler: " + error.message);
-
-          tbody.innerHTML = "";
-          data.forEach((p) => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `<td>${p.id}</td><td><b>${p.name}</b></td><td>${
-              p.final_score
-            }</td><td style="color:${
-              p.is_win ? "var(--accent-green)" : "var(--accent-red)"
-            }; font-weight:bold;">${p.is_win ? "Sieg" : "Bust"}</td>
-              <td>
-                <button class="btn-edit" onclick="openEditModal(${
-                  p.id
-                }, '${encodeURIComponent(JSON.stringify(p))}')">✏️ Edit</button>
-                <button class="btn-delete" onclick="deleteRecord(${
-                  p.id
-                }, 'Match von ${p.name}', 'stats_bobs')">🗑️</button>
-              </td>`;
-            tbody.appendChild(tr);
-          });
-        } else if (currentMode === "rtw") {
-          thead.innerHTML =
-            "<tr><th>ID</th><th>Name</th><th>Treffer</th><th>Modus</th><th>Aktionen</th></tr>";
-          const { data, error } = await _supabase
-            .from("stats_rtw")
-            .select("*")
-            .order("created_at", { ascending: false });
-          if (error) return alert("Fehler: " + error.message);
-
-          tbody.innerHTML = "";
-          data.forEach((p) => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `<td>${p.id}</td><td><b>${p.name}</b></td><td>${
-              p.total_points
-            }</td><td style="text-transform: capitalize;">${p.mode}</td>
-              <td>
-                <button class="btn-edit" onclick="openEditModal(${
-                  p.id
-                }, '${encodeURIComponent(JSON.stringify(p))}')">✏️ Edit</button>
-                <button class="btn-delete" onclick="deleteRecord(${
-                  p.id
-                }, 'Match von ${p.name}', 'stats_rtw')">🗑️</button>
-              </td>`;
-            tbody.appendChild(tr);
-          });
-        } else if (currentMode === "contact") {
-          tr.innerHTML = `
-              <td style="font-size: 0.8em; color: #888;">${date}</td>
-              <td style="text-align: left;"><b>${p.name || "-"}</b></td>
-              <td style="text-align: left;"><a href="mailto:${
-                p.email
-              }" style="color:var(--accent-blue)">${p.email || "-"}</a></td>
-              <td style="text-align: left; max-width:350px; white-space:pre-wrap; font-size: 0.9em; line-height: 1.4;">${
-                p.message || "-"
-              }</td>
-              <td>
-                <button class="btn-delete" onclick="deleteRecord(${
-                  p.id
-                }, 'Nachricht von ${p.name}', 'contact_messages')">🗑️</button>
-              </td>`;
-          const { data, error } = await _supabase
-            .from("contact_messages")
-            .select("*")
-            .order("created_at", { ascending: false });
-          if (error) return alert("Fehler: " + error.message);
-
-          tbody.innerHTML = "";
-          if (data.length === 0) {
-            tbody.innerHTML =
-              "<tr><td colspan='5' style='text-align:center; color:#888;'>Keine Nachrichten vorhanden.</td></tr>";
-          }
-          data.forEach((p) => {
-            let date = new Date(p.created_at).toLocaleDateString("de-DE", {
+            let date = new Date(p.created_at).toLocaleString("de-DE", {
               day: "2-digit",
               month: "2-digit",
               year: "numeric",
@@ -678,20 +479,59 @@
               minute: "2-digit",
             });
             const tr = document.createElement("tr");
-            tr.innerHTML = `
-              <td style="font-size: 0.8em; color: #888;">${date}</td>
-              <td><b>${p.name || "-"}</b></td>
-              <td><a href="mailto:${
-                p.email
-              }" style="color:var(--accent-blue)">${p.email || "-"}</a></td>
-              <td style="max-width:350px; white-space:pre-wrap; font-size: 0.9em; line-height: 1.4;">${
-                p.message || "-"
-              }</td>
-              <td>
-                <button class="btn-delete" onclick="deleteRecord(${
-                  p.id
-                }, 'Nachricht von ${p.name}', 'contact_messages')">🗑️</button>
-              </td>`;
+            tr.innerHTML = `<td style="font-size: 0.8em; color: #888;">${date}</td><td><b>${
+              p.name || "-"
+            }</b></td><td><a href="mailto:${
+              p.email
+            }" style="color:var(--accent-blue)">${
+              p.email
+            }</a></td><td style="max-width:350px; white-space:pre-wrap; font-size: 0.9em;">${
+              p.message
+            }</td><td><button class="btn-delete" onclick="deleteRecord(${
+              p.id
+            }, 'Nachricht von ${
+              p.name
+            }', 'contact_messages')">🗑️</button></td>`;
+            tbody.appendChild(tr);
+          });
+        } else {
+          const is501 = currentMode === "501";
+          thead.innerHTML = is501
+            ? "<tr><th>ID</th><th>Name</th><th>Legs Won</th><th>Avg</th><th>Aktionen</th></tr>"
+            : currentMode === "littler"
+            ? "<tr><th>ID</th><th>Name</th><th>Siege</th><th>Highscore</th><th>Aktionen</th></tr>"
+            : "<tr><th>ID</th><th>Name</th><th>Wert</th><th>Info</th><th>Aktionen</th></tr>";
+
+          data.forEach((p) => {
+            const tr = document.createElement("tr");
+            let col3 = is501
+              ? p.wins
+              : currentMode === "littler"
+              ? p.wins
+              : currentMode === "bobs"
+              ? p.final_score
+              : p.total_points;
+            let col4 = is501
+              ? p.total_darts_thrown > 0
+                ? ((p.total_score_thrown / p.total_darts_thrown) * 3).toFixed(2)
+                : "0.00"
+              : currentMode === "littler"
+              ? p.highscore
+              : currentMode === "bobs"
+              ? p.is_win
+                ? "Sieg"
+                : "Bust"
+              : p.mode;
+
+            tr.innerHTML = `<td>${p.id}</td><td><b>${
+              p.name
+            }</b></td><td>${col3}</td><td>${col4}</td><td><button class="btn-edit" onclick="openEditModal(${
+              p.id
+            }, '${encodeURIComponent(
+              JSON.stringify(p)
+            )}')">✏️ Edit</button><button class="btn-delete" onclick="deleteRecord(${
+              p.id
+            }, '${p.name}', '${tableName}')">🗑️</button></td>`;
             tbody.appendChild(tr);
           });
         }
@@ -700,240 +540,83 @@
       function openEditModal(id, encodedData) {
         editingId = id;
         const data = JSON.parse(decodeURIComponent(encodedData));
-        const fieldsContainer = document.getElementById("edit-fields");
-        fieldsContainer.innerHTML = "";
-
-        const createField = (key, label, value, type = "number") => {
-          return `<div class="form-group"><label>${label}</label><input type="${type}" id="edit_${key}" value="${
-            value !== null ? value : ""
+        const container = document.getElementById("edit-fields");
+        container.innerHTML = "";
+        Object.keys(data).forEach((key) => {
+          if (["id", "created_at", "user_id"].includes(key)) return;
+          container.innerHTML += `<div class="form-group"><label>${key}</label><input type="text" id="edit_${key}" value="${
+            data[key] || ""
           }"></div>`;
-        };
-
-        if (currentMode === "littler") {
-          fieldsContainer.innerHTML += createField(
-            "name",
-            "Spieler Name",
-            data.name,
-            "text"
-          );
-          fieldsContainer.innerHTML += createField("wins", "Siege", data.wins);
-          fieldsContainer.innerHTML += createField(
-            "highscore",
-            "Highscore",
-            data.highscore
-          );
-          fieldsContainer.innerHTML += createField(
-            "games_played",
-            "Gespielte Spiele",
-            data.games_played
-          );
-          fieldsContainer.innerHTML += createField(
-            "total_points",
-            "Geworfene Punkte Gesamt",
-            data.total_points
-          );
-        } else if (currentMode === "501") {
-          fieldsContainer.innerHTML += createField(
-            "name",
-            "Spieler Name",
-            data.name,
-            "text"
-          );
-          fieldsContainer.innerHTML += createField(
-            "wins",
-            "Legs Won",
-            data.wins
-          );
-          fieldsContainer.innerHTML += createField(
-            "games_played",
-            "Legs Played",
-            data.games_played
-          );
-          fieldsContainer.innerHTML += createField(
-            "total_darts_thrown",
-            "Geworfene Darts",
-            data.total_darts_thrown
-          );
-          fieldsContainer.innerHTML += createField(
-            "total_score_thrown",
-            "Erzielte Punkte",
-            data.total_score_thrown
-          );
-          fieldsContainer.innerHTML += createField(
-            "highest_finish",
-            "Highest Finish",
-            data.highest_finish
-          );
-          fieldsContainer.innerHTML += createField(
-            "best_leg",
-            "Best Leg",
-            data.best_leg
-          );
-          fieldsContainer.innerHTML += createField(
-            "count_100",
-            "100+",
-            data.count_100
-          );
-          fieldsContainer.innerHTML += createField(
-            "count_140",
-            "140+",
-            data.count_140
-          );
-          fieldsContainer.innerHTML += createField(
-            "count_180",
-            "180s",
-            data.count_180
-          );
-          fieldsContainer.innerHTML += createField(
-            "checkout_attempts",
-            "Darts aufs Doppel",
-            data.checkout_attempts
-          );
-          fieldsContainer.innerHTML += createField(
-            "checkout_hits",
-            "Doppel Getroffen",
-            data.checkout_hits
-          );
-        } else if (currentMode === "bobs") {
-          fieldsContainer.innerHTML += createField(
-            "name",
-            "Spieler Name",
-            data.name,
-            "text"
-          );
-          fieldsContainer.innerHTML += createField(
-            "final_score",
-            "Endstand",
-            data.final_score
-          );
-          fieldsContainer.innerHTML += createField(
-            "is_win",
-            "Sieg? (true/false)",
-            data.is_win,
-            "text"
-          );
-        } else if (currentMode === "rtw") {
-          fieldsContainer.innerHTML += createField(
-            "name",
-            "Spieler Name",
-            data.name,
-            "text"
-          );
-          fieldsContainer.innerHTML += createField(
-            "total_points",
-            "Gesamt Treffer",
-            data.total_points
-          );
-          fieldsContainer.innerHTML += createField(
-            "mode",
-            "Modus (single/double/triple)",
-            data.mode,
-            "text"
-          );
-        }
-
+        });
         document.getElementById("edit-modal").style.display = "flex";
       }
 
-      function closeModal() {
-        document.getElementById("edit-modal").style.display = "none";
-        editingId = null;
-      }
-
       async function saveData() {
-        if (!editingId) return;
-        let updatePayload = {};
-        let tableName = "";
-
-        if (currentMode === "littler") {
-          tableName = "highscores";
-          updatePayload.name = document.getElementById("edit_name").value;
-          updatePayload.wins =
-            parseInt(document.getElementById("edit_wins").value) || 0;
-          updatePayload.highscore =
-            parseInt(document.getElementById("edit_highscore").value) || 0;
-          updatePayload.games_played =
-            parseInt(document.getElementById("edit_games_played").value) || 0;
-          updatePayload.total_points =
-            parseInt(document.getElementById("edit_total_points").value) || 0;
-        } else if (currentMode === "501") {
-          tableName = "stats_501";
-          updatePayload.name = document.getElementById("edit_name").value;
-          updatePayload.wins =
-            parseInt(document.getElementById("edit_wins").value) || 0;
-          updatePayload.games_played =
-            parseInt(document.getElementById("edit_games_played").value) || 0;
-          updatePayload.total_darts_thrown =
-            parseInt(
-              document.getElementById("edit_total_darts_thrown").value
-            ) || 0;
-          updatePayload.total_score_thrown =
-            parseInt(
-              document.getElementById("edit_total_score_thrown").value
-            ) || 0;
-          updatePayload.highest_finish =
-            parseInt(document.getElementById("edit_highest_finish").value) || 0;
-          updatePayload.best_leg =
-            parseInt(document.getElementById("edit_best_leg").value) || 0;
-          updatePayload.count_100 =
-            parseInt(document.getElementById("edit_count_100").value) || 0;
-          updatePayload.count_140 =
-            parseInt(document.getElementById("edit_count_140").value) || 0;
-          updatePayload.count_180 =
-            parseInt(document.getElementById("edit_count_180").value) || 0;
-          updatePayload.checkout_attempts =
-            parseInt(document.getElementById("edit_checkout_attempts").value) ||
-            0;
-          updatePayload.checkout_hits =
-            parseInt(document.getElementById("edit_checkout_hits").value) || 0;
-        } else if (currentMode === "bobs") {
-          tableName = "stats_bobs";
-          updatePayload.name = document.getElementById("edit_name").value;
-          updatePayload.final_score =
-            parseInt(document.getElementById("edit_final_score").value) || 0;
-          updatePayload.is_win =
-            document.getElementById("edit_is_win").value.toLowerCase() ===
-            "true";
-        } else if (currentMode === "rtw") {
-          tableName = "stats_rtw";
-          updatePayload.name = document.getElementById("edit_name").value;
-          updatePayload.total_points =
-            parseInt(document.getElementById("edit_total_points").value) || 0;
-          updatePayload.mode = document.getElementById("edit_mode").value;
-        }
-
+        let tableName =
+          currentMode === "littler"
+            ? "highscores"
+            : currentMode === "501"
+            ? "stats_501"
+            : currentMode === "bobs"
+            ? "stats_bobs"
+            : "stats_rtw";
+        let payload = {};
+        document.querySelectorAll("#edit-fields input").forEach((input) => {
+          let key = input.id.replace("edit_", "");
+          payload[key] =
+            isNaN(input.value) || input.value === ""
+              ? input.value
+              : parseFloat(input.value);
+        });
         const { error } = await _supabase
           .from(tableName)
-          .update(updatePayload)
+          .update(payload)
           .eq("id", editingId);
-        if (error) {
-          alert("Fehler beim Speichern: " + error.message);
-        } else {
-          showToast("Änderungen erfolgreich gespeichert!", "success");
+        if (error) alert(error.message);
+        else {
+          showToast("Gespeichert!", "success");
           closeModal();
           loadData();
         }
       }
 
-      // ---> NEU: Die aufgerüstete Delete-Funktion mit dem Custom Modal! <---
-      function deleteRecord(id, name, targetTable) {
-        showConfirmModal(
-          `Willst du den Datensatz "${name}" wirklich unwiderruflich löschen?`,
-          async () => {
-            const { error } = await _supabase
-              .from(targetTable)
-              .delete()
-              .eq("id", id);
+      function closeModal() {
+        document.getElementById("edit-modal").style.display = "none";
+      }
+      function closeConfirmModal() {
+        document.getElementById("generic-confirm-modal").style.display = "none";
+      }
 
-            if (error) {
-              showToast("Fehler beim Löschen: " + error.message, "error");
-            } else {
-              showToast("Erfolgreich gelöscht!", "success");
+      function deleteRecord(id, name, table) {
+        document.getElementById(
+          "generic-confirm-text"
+        ).innerText = `"${name}" wirklich löschen?`;
+        document.getElementById("generic-confirm-modal").style.display = "flex";
+        document.getElementById("generic-confirm-yes-btn").onclick =
+          async () => {
+            const { error } = await _supabase.from(table).delete().eq("id", id);
+            if (error) showToast(error.message, "error");
+            else {
+              showToast("Gelöscht", "success");
+              closeConfirmModal();
               loadData();
             }
-          }
-        );
+          };
       }
+
+      async function verifyAdmin() {
+        const {
+          data: { session },
+        } = await _supabase.auth.getSession();
+        if (!session) window.location.href = "index.html";
+        const { data } = await _supabase
+          .from("stats_501")
+          .select("is_admin")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        if (!data?.is_admin) window.location.href = "index.html";
+      }
+      verifyAdmin();
     </script>
   </body>
 </html>

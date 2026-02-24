@@ -540,7 +540,32 @@ async function startCompanionMode(roomCode, role) {
       video: { facingMode: "environment" },
       audio: false,
     });
+    const videoTrack = stream.getVideoTracks()[0];
     document.getElementById("local-camera-preview").srcObject = stream;
+
+    // --- NEU: ZOOM UI HINZUFÜGEN ---
+    const capabilities = videoTrack.getCapabilities();
+    if (capabilities.zoom) {
+      // Erstelle einen Slider für den Zoom
+      const zoomControl = document.createElement("input");
+      zoomControl.type = "range";
+      zoomControl.min = capabilities.zoom.min;
+      zoomControl.max = capabilities.zoom.max;
+      zoomControl.step = capabilities.zoom.step;
+      zoomControl.value = capabilities.zoom.min;
+      zoomControl.style.cssText = "width: 80%; margin-top: 20px; height: 30px;";
+
+      zoomControl.oninput = async () => {
+        try {
+          await videoTrack.applyConstraints({
+            advanced: [{ zoom: zoomControl.value }],
+          });
+        } catch (e) {
+          console.error("Zoom nicht unterstützt", e);
+        }
+      };
+      document.getElementById("companion-screen").appendChild(zoomControl);
+    }
 
     camChannel = _supabase.channel(`camera-${roomCode}`, {
       config: { broadcast: { self: true } },
