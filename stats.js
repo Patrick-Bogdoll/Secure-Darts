@@ -466,7 +466,7 @@ async function open501Stats(encodedData, isSwitching = false) {
     .replace(" (Training)", "")
     .replace(" (501)", "");
   let b1 = document.getElementById("modal-btn-501");
-  let b2 = document.getElementById("modal-btn-littler");
+  let b2 = document.getElementById("modal-btn-secure");
   if (b1 && b2) {
     b1.style.background = "var(--accent-blue)";
     b1.style.color = "white";
@@ -1221,20 +1221,20 @@ async function openMyProfile() {
   if (data) {
     open501Stats(encodeURIComponent(JSON.stringify(data)));
   } else {
-    // 2. Try to fetch Littler data
+    // 2. Try to fetch Secure data
     let myName =
       currentUser.user_metadata?.display_name ||
       currentUser.user_metadata?.full_name ||
       currentUser.email.split("@")[0];
 
-    let { data: littlerData } = await _supabase
+    let { data: secureData } = await _supabase
       .from("highscores")
       .select("*")
       .eq("name", myName)
       .maybeSingle();
 
-    if (littlerData) {
-      openProStats(encodeURIComponent(JSON.stringify(littlerData)));
+    if (secureData) {
+      openProStats(encodeURIComponent(JSON.stringify(secureData)));
     } else {
       // --- NEW: FORCED PROFILE VIEW FOR NEW USERS ---
       // If no data exists yet, we pass a skeleton object so the modal opens
