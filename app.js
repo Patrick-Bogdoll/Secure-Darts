@@ -471,6 +471,13 @@ async function startCompanionMode(roomCode, role) {
   }
 
   try {
+    requestWakeLock();
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        requestWakeLock();
+      }
+    });
+
     currentCameraStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "environment" },
       audio: false,

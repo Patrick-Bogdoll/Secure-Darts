@@ -983,10 +983,10 @@ function listenForOpponent(roomCode) {
 
         // --- Abbruch-Check (Status-basiert) ---
         if (dbData.status === "cancelled") {
-          let opponentName = amIPlayer1
-            ? dbData.player2_name
-            : dbData.player1_name;
-          showToast(`${opponentName} hat das Spiel abgebrochen!`, "info");
+          let cancelerName = dbData.last_action || "Ein Spieler";
+          if (cancelerName !== myOnlineName) {
+            showToast(`${cancelerName} hat das Spiel abgebrochen!`, "info");
+          }
           // Wichtig: Wir rufen hier die UI-Löschung auf
           cancelCurrentGame("game-501-screen", true);
           return;
@@ -1055,7 +1055,10 @@ async function cancel501Game(skipConfirm = false) {
       // 1. Status auf "cancelled" setzen (Benachrichtigt den Gegner via UPDATE)
       await _supabase
         .from("live_matches")
-        .update({ status: "cancelled" })
+        .update({
+          status: "cancelled",
+          last_action: myOnlineName,
+        })
         .eq("room_code", roomToDelete);
 
       // 2. Kurz warten und dann erst ganz löschen
