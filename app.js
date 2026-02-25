@@ -456,25 +456,36 @@ async function startCompanionMode(roomCode, role) {
     videoPreview.style.transition = "transform 0.05s linear"; // Geschmeidige Bewegung
 
     // ==========================================
-    // 2. TOUCH & ZOOM LOGIK
+    // 2. TOUCH & ZOOM LOGIK (MIT GRENZEN)
     // ==========================================
     let isDragging = false;
     let startX, startY;
-    let translateX = 0;
-    let translateY = 0;
-    let currentDigitalZoom = 1; // Für CSS (digitales Reinschieben)
-    let currentHardwareZoom = 1; // Für die Linse (falls verfügbar)
+    let currentX = 0;
+    let currentY = 0;
+    let currentDigitalZoom = 1;
+    let currentHardwareZoom = 1;
 
-    // Zentrale Funktion: Sendet die Daten auch an den PC!
     function updateCameraView() {
-      // Berechnung in Prozent für nahtlose PC-Übertragung
-      let percentX = (translateX / videoPreview.clientWidth) * 100;
-      let percentY = (translateY / videoPreview.clientHeight) * 100;
+      // 1. GRENZEN BERECHNEN: Verhindert, dass man das Bild aus dem Rahmen schiebt!
+      // Wenn DigitalZoom = 1 ist, ist maxTranslate = 0 (Das Bild ist bombenfest fixiert).
+      let maxTranslateX =
+        (videoPreview.clientWidth * (currentDigitalZoom - 1)) / 2;
+      let maxTranslateY =
+        (videoPreview.clientHeight * (currentDigitalZoom - 1)) / 2;
 
-      // Lokales CSS Update auf dem Handy
-      videoPreview.style.transform = `translate(${percentX}%, ${percentY}%) scale(${currentDigitalZoom})`;
+      // 2. VERSCHIEBUNG LIMITIEREN (Lock to bounds)
+      // Das zwingt das Bild, am Rand stehen zu bleiben, auch wenn du weiter wischst.
+      currentX = Math.max(-maxTranslateX, Math.min(maxTranslateX, currentX));
+      currentY = Math.max(-maxTranslateY, Math.min(maxTranslateY, currentY));
 
-      // Live-Sync an den PC senden (falls Channel offen)
+      // 3. PROZENT BERECHNEN (für perfekten Sync zum PC)
+      let percentX = (currentX / videoPreview.clientWidth) * 100;
+      let percentY = (currentY / videoPreview.clientHeight) * 100;
+
+      // 4. ANWENDEN
+      videoPreview.style.transform = `translate(${currentX}px, ${currentY}px) scale(${currentDigitalZoom})`;
+
+      // 5. AN DEN PC SENDEN
       if (camChannel) {
         camChannel.send({
           type: "broadcast",
@@ -492,17 +503,20 @@ async function startCompanionMode(roomCode, role) {
     videoPreview.addEventListener("touchstart", (e) => {
       if (e.touches.length === 1) {
         isDragging = true;
-        startX = e.touches[0].clientX - translateX;
-        startY = e.touches[0].clientY - translateY;
+        // Wir merken uns den Startpunkt minus die bereits gemachte Verschiebung
+        startX = e.touches[0].clientX - currentX;
+        startY = e.touches[0].clientY - currentY;
       }
     });
 
     videoPreview.addEventListener("touchmove", (e) => {
       if (!isDragging || e.touches.length !== 1) return;
-      e.preventDefault(); // Blockiert Android/iOS Standard-Gesten
-      translateX = e.touches[0].clientX - startX;
-      translateY = e.touches[0].clientY - startY;
-      updateCameraView();
+      e.preventDefault(); // Verhindert das eklige "Gummiband"-Scrollen am Handy
+
+      currentX = e.touches[0].clientX - startX;
+      currentY = e.touches[0].clientY - startY;
+
+      updateCameraView(); // Hier greift jetzt automatisch unsere Sperre!
     });
 
     videoPreview.addEventListener("touchend", () => {
@@ -742,29 +756,25 @@ function initCameraReceiver(roomCode, myRole) {
         );
       }
     })
-    // ==========================================
-    // ---> NEU: LISTENER FÜR ZOOM & VERSCHIEBUNG
-    // ==========================================
     .on("broadcast", { event: "cam-transform" }, (payload) => {
       const data = payload.payload;
       const videoId = data.role === "host" ? "video-p1" : "video-p2";
       const videoEl = document.getElementById(videoId);
-
+      
       if (videoEl) {
-        // Sicherstellen, dass das Video den Container nicht überschreitet
+        // HIER IST DAS UPDATE:
         if (videoEl.parentElement) {
           videoEl.parentElement.style.overflow = "hidden";
+          videoEl.parentElement.style.position = "relative"; // Sichert den Rand ab
         }
-
+        
         videoEl.style.objectFit = "cover";
         videoEl.style.transformOrigin = "center center";
-
-        // Wendet den Zoom und die Verschiebung vom Handy an
+        
+        // CSS anwenden
         videoEl.style.transform = `translate(${data.px}%, ${data.py}%) scale(${data.zoom})`;
       }
     })
-    .subscribe();
-}
 
 function cleanupWebRTC() {
   if (camChannel) {
