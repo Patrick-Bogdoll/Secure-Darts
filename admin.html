@@ -343,9 +343,9 @@
       <h1 style="text-align: center; margin-top: 0">⚙️ Admin Panel</h1>
       <div class="header-tabs">
         <button
-          id="tab-littler"
+          id="tab-secure"
           class="tab-btn active"
-          onclick="switchTab('littler')"
+          onclick="switchTab('secure')"
         >
           🎲 Secure-Darts
         </button>
@@ -391,7 +391,7 @@
       const ADMIN_HASH =
         "d9cafea78ff95cf59f6925e0707c266b19cffb85a31bbbffd146f38b1f119ba8";
 
-      let currentMode = "littler";
+      let currentMode = "secure";
       let editingId = null;
       let pendingConfirmAction = null;
 
@@ -448,7 +448,7 @@
           "<tr><td colspan='6' style='text-align:center;'>Lade Daten...</td></tr>";
 
         let tableName =
-          currentMode === "littler"
+          currentMode === "secure"
             ? "highscores"
             : currentMode === "501"
             ? "stats_501"
@@ -499,7 +499,7 @@
           const is501 = currentMode === "501";
           thead.innerHTML = is501
             ? "<tr><th>ID</th><th>Name</th><th>Legs Won</th><th>Avg</th><th>Aktionen</th></tr>"
-            : currentMode === "littler"
+            : currentMode === "secure"
             ? "<tr><th>ID</th><th>Name</th><th>Siege</th><th>Highscore</th><th>Aktionen</th></tr>"
             : "<tr><th>ID</th><th>Name</th><th>Wert</th><th>Info</th><th>Aktionen</th></tr>";
 
@@ -507,7 +507,7 @@
             const tr = document.createElement("tr");
             let col3 = is501
               ? p.wins
-              : currentMode === "littler"
+              : currentMode === "secure"
               ? p.wins
               : currentMode === "bobs"
               ? p.final_score
@@ -516,7 +516,7 @@
               ? p.total_darts_thrown > 0
                 ? ((p.total_score_thrown / p.total_darts_thrown) * 3).toFixed(2)
                 : "0.00"
-              : currentMode === "littler"
+              : currentMode === "secure"
               ? p.highscore
               : currentMode === "bobs"
               ? p.is_win
@@ -554,7 +554,7 @@
 
       async function saveData() {
         let tableName =
-          currentMode === "littler"
+          currentMode === "secure"
             ? "highscores"
             : currentMode === "501"
             ? "stats_501"
