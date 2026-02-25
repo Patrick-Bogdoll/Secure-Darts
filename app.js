@@ -467,13 +467,15 @@ async function startCompanionMode(roomCode, role) {
     videoPreview.style.transformOrigin = "center center";
 
     // ==========================================
-    // 2. DIGITALE PAN & ZOOM LOGIK
+    // 2. DIGITALE PAN & ZOOM LOGIK (Prozent-basiert für 100% Sync)
     // ==========================================
     let isDragging = false;
-    let startX = 0,
-      startY = 0;
-    let translateX = 0,
-      translateY = 0;
+    let startPixelX = 0,
+      startPixelY = 0;
+    let startPercentX = 0,
+      startPercentY = 0;
+    let percentX = 0,
+      percentY = 0;
     let currentDigitalZoom = 1;
 
     const getBaseDims = () => ({
@@ -482,19 +484,17 @@ async function startCompanionMode(roomCode, role) {
     });
 
     function updateCameraView() {
-      const { w, h } = getBaseDims();
+      // Berechnung der Grenzen in Prozent:
+      // Bei 2x Zoom kann man das Bild um max 50% in jede Richtung schieben.
+      const maxPercent = (currentDigitalZoom - 1) * 50;
 
-      const maxTx = (w * (currentDigitalZoom - 1)) / 2;
-      const maxTy = (h * (currentDigitalZoom - 1)) / 2;
+      percentX = Math.max(-maxPercent, Math.min(maxPercent, percentX));
+      percentY = Math.max(-maxPercent, Math.min(maxPercent, percentY));
 
-      translateX = Math.max(-maxTx, Math.min(maxTx, translateX));
-      translateY = Math.max(-maxTy, Math.min(maxTy, translateY));
+      // Auf dem Handy anwenden
+      videoPreview.style.transform = `translate(${percentX}%, ${percentY}%) scale(${currentDigitalZoom})`;
 
-      videoPreview.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentDigitalZoom})`;
-
-      let percentX = (translateX / w) * 100;
-      let percentY = (translateY / h) * 100;
-
+      // An den PC senden (Er sendet exakt die gleichen Prozentwerte!)
       if (camChannel) {
         camChannel.send({
           type: "broadcast",
@@ -512,16 +512,25 @@ async function startCompanionMode(roomCode, role) {
     videoPreview.addEventListener("touchstart", (e) => {
       if (e.touches.length === 1) {
         isDragging = true;
-        startX = e.touches[0].clientX - translateX;
-        startY = e.touches[0].clientY - translateY;
+        startPixelX = e.touches[0].clientX;
+        startPixelY = e.touches[0].clientY;
+        startPercentX = percentX;
+        startPercentY = percentY;
       }
     });
 
     videoPreview.addEventListener("touchmove", (e) => {
       if (!isDragging || e.touches.length !== 1) return;
       e.preventDefault();
-      translateX = e.touches[0].clientX - startX;
-      translateY = e.touches[0].clientY - startY;
+      const { w, h } = getBaseDims();
+
+      let deltaPixelX = e.touches[0].clientX - startPixelX;
+      let deltaPixelY = e.touches[0].clientY - startPixelY;
+
+      // Umrechnung der Fingerbewegung in Prozent
+      percentX = startPercentX + (deltaPixelX / w) * 100;
+      percentY = startPercentY + (deltaPixelY / h) * 100;
+
       updateCameraView();
     });
 
@@ -530,17 +539,26 @@ async function startCompanionMode(roomCode, role) {
     });
 
     // ==========================================
-    // 3. REIN DIGITALER ZOOM SLIDER
+    // 3. GUT SICHTBARER ZOOM SLIDER
     // ==========================================
-    // Falls ein alter Slider da ist, löschen wir ihn zuerst
     const existingSlider = document.getElementById("camera-zoom-slider");
     if (existingSlider) existingSlider.remove();
 
     const zoomControl = document.createElement("input");
     zoomControl.type = "range";
     zoomControl.id = "camera-zoom-slider";
-    zoomControl.style.cssText =
-      "position: absolute; bottom: 50px; left: 10%; width: 80%; height: 30px; z-index: 100000;";
+
+    // HIER ANGEPASST: Deutlich höher (bottom: 150px) und visuell auffälliger
+    zoomControl.style.cssText = `
+      position: absolute; 
+      bottom: 150px; 
+      left: 10%; 
+      width: 80%; 
+      height: 40px; 
+      z-index: 100000;
+      opacity: 0.9;
+    `;
+
     zoomControl.min = 1;
     zoomControl.max = 4;
     zoomControl.step = 0.05;
@@ -749,13 +767,16 @@ function initCameraReceiver(roomCode, myRole) {
       if (videoEl) {
         if (videoEl.parentElement) {
           videoEl.parentElement.style.overflow = "hidden";
-          videoEl.parentElement.style.position = "relative"; // Sichert den Rand ab
+          videoEl.parentElement.style.position = "relative";
         }
 
+        // Zwingt das Video, die gleiche Struktur wie das Handy anzunehmen
+        videoEl.style.width = "100%";
+        videoEl.style.height = "100%";
         videoEl.style.objectFit = "cover";
         videoEl.style.transformOrigin = "center center";
 
-        // CSS anwenden
+        // Wendet die perfekten Prozentwerte an
         videoEl.style.transform = `translate(${data.px}%, ${data.py}%) scale(${data.zoom})`;
       }
     })
