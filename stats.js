@@ -259,7 +259,7 @@ async function loadHighscores() {
       " (Training)",
       ' <span style="color:#d500f9; font-size:0.8em;">(Training)</span>'
     );
-    tr.innerHTML = `<td style="color:#666">${rank}.</td><td><a href="#" class="clickable-name" onclick="openMatchStats('secure', '${safeData}')">${dName}</a></td><td>${entry.wins}</td><td>${entry.highscore}</td>`;
+    tr.innerHTML = `<td style="color:#666">${rank}.</td><td><a href="#" class="clickable-name" onclick="openProStats('${safeData}')">${dName}</a></td><td>${entry.wins}</td><td>${entry.highscore}</td>`;
     tbody.appendChild(tr);
     rank++;
   });
@@ -302,7 +302,7 @@ async function load501Stats() {
 }
 
 function openProStats(encodedData, isSwitching = false) {
-  currentModalType = "littler"; // Sagt dem Verlauf: Wir sind im Littler-Profil!
+  currentModalType = "secure"; // Sagt dem Verlauf: Wir sind im Secure-Profil!
 
   document.getElementById("lbl-kpi-1").innerText = "Siege";
   document.getElementById("lbl-kpi-2").innerText = "Highscore";
@@ -678,7 +678,7 @@ function openBobsStats(data) {
     if (box) box.style.display = "block";
   }
 
-  // 501-Spezialboxen (7-10) wie bei Littler verstecken
+  // 501-Spezialboxen (7-10) wie bei Secure verstecken
   for (let i = 7; i <= 10; i++)
     document.getElementById(`box-kpi-${i}`).style.display = "none";
 
