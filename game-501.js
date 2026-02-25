@@ -1017,7 +1017,107 @@ function listenForOpponent(roomCode) {
 
         // --- Sieg-Logik (Leg/Match) ---
         if (dbData.status === "leg_won" || dbData.status === "match_won") {
-          // ... (deine bestehende Win-Logik bleibt hier exakt gleich)
+          sync501UI(dbData); // Zwingt die UI, die 0 beim Gegner anzuzeigen!
+
+          let p1WonLeg = dbData.player1_score === 0;
+          let winnerName = p1WonLeg ? dbData.player1_name : dbData.player2_name;
+          let isMatchWon = dbData.status === "match_won";
+
+          const overlay = document.getElementById("win-overlay-501");
+          const btnNext = document.getElementById("btn-next-leg");
+          const btnRematch = document.getElementById("btn-rematch");
+
+          document.getElementById("win-subtitle-501").innerText = isMatchWon
+            ? `${winnerName} gewinnt das Match!`
+            : `${winnerName} gewinnt das Leg!`;
+
+          if (isMatchWon) {
+            btnNext.style.display = "none";
+
+            // Nur der Host darf das Rematch triggern
+            if (isOnlineHost) {
+              btnRematch.style.display = "inline-block";
+            } else {
+              btnRematch.style.display = "none";
+              document.getElementById("win-subtitle-501").innerText +=
+                "\n(Warte auf Host für Rematch...)";
+            }
+
+            // Stats nur 1x speichern, wenn sich das Overlay öffnet
+            if (overlay.style.display !== "flex" && !isGuest && currentUser) {
+              let totalLegs = dbData.player1_legs + dbData.player2_legs;
+              let myLegs = amIPlayer1
+                ? dbData.player1_legs
+                : dbData.player2_legs;
+              let myScore = amIPlayer1 ? p1TotalScore : p2TotalScore;
+              let myDarts = amIPlayer1
+                ? dbData.player1_darts
+                : dbData.player2_darts;
+              let myAvg =
+                myDarts > 0 ? ((myScore / myDarts) * 3).toFixed(2) : 0;
+              let finalScore =
+                (amIPlayer1 && p1WonLeg) || (!amIPlayer1 && !p1WonLeg)
+                  ? parseInt((dbData.last_action || "0").replace(/\D/g, ""))
+                  : 0;
+              let myStatsObj = amIPlayer1 ? statsTracker.p1 : statsTracker.p2;
+
+              save501Stats(
+                myOnlineName,
+                myLegs,
+                totalLegs,
+                myDarts,
+                myScore,
+                isNaN(finalScore) ? 0 : finalScore,
+                myStatsObj
+              );
+              save501MatchHistory(
+                myOnlineName,
+                amIPlayer1 ? dbData.player2_name : dbData.player1_name,
+                (amIPlayer1 && p1WonLeg) || (!amIPlayer1 && !p1WonLeg),
+                parseFloat(myAvg),
+                myDarts,
+                isNaN(finalScore) ? 0 : finalScore,
+                currentMatchLog501
+              );
+            }
+          } else {
+            btnRematch.style.display = "none";
+
+            // ---> NEU: Automatischer Start durch den Host <---
+            if (isOnlineHost) {
+              btnNext.style.display = "inline-block";
+              btnNext.innerText = "Nächstes Leg startet...";
+              btnNext.disabled = false; // Falls man manuell schneller klicken will
+
+              // Wartet 3 Sekunden und startet das nächste Leg
+              setTimeout(() => {
+                // Nur ausführen, falls das Overlay noch offen ist
+                if (overlay.style.display === "flex") {
+                  startNextLeg();
+                }
+              }, 3000);
+            } else {
+              btnNext.style.display = "inline-block";
+              btnNext.innerText = "Nächstes Leg startet...";
+              btnNext.disabled = true;
+            }
+          }
+
+          // Leg-Historie aufzeichnen (nur 1x)
+          if (overlay.style.display !== "flex") {
+            let finishPoints =
+              parseInt((dbData.last_action || "0").replace(/\D/g, "")) || 0;
+            recordLegStat501(
+              winnerName,
+              dbData.player1_name,
+              dbData.player2_name,
+              dbData.player1_score,
+              dbData.player2_score,
+              finishPoints
+            );
+          }
+
+          overlay.style.display = "flex";
         }
 
         // --- Reset bei neuem Leg/Rematch ---
@@ -1027,8 +1127,18 @@ function listenForOpponent(roomCode) {
         ) {
           document.getElementById("win-overlay-501").style.display = "none";
           if (dbData.player1_legs === 0 && dbData.player2_legs === 0) {
-            resetStatsTracker(); // Alles auf Null für neues Match
+            resetStatsTracker();
+            p1TotalScore = 0;
+            p2TotalScore = 0;
+            currentMatchLog501 = [];
           }
+
+          // Zwingend die Darts vom Leg-Start für die Berechnung des Averages merken
+          p1DartsAtLegStart = dbData.player1_darts;
+          p2DartsAtLegStart = dbData.player2_darts;
+          p1LegThrows = [];
+          p2LegThrows = [];
+
           sync501UI(dbData);
         }
       }
@@ -1235,12 +1345,57 @@ function handleLegWinLocal(winnerName, playerNum, finishScore) {
   overlay.style.display = "flex";
 }
 
-function startNextLeg() {
-  if (isLocal501) resetLegLocal();
+async function startNextLeg() {
+  if (isLocal501) {
+    resetLegLocal();
+  } else if (isOnlineHost) {
+    // Nächstes Leg für beide Spieler über die Datenbank einläuten
+    let totalLegs =
+      parseInt(document.getElementById("p1-legs-display").innerText) +
+      parseInt(document.getElementById("p2-legs-display").innerText);
+    let starter = totalLegs % 2 === 0 ? 1 : 2; // Wer das Leg beginnt, wechselt sich ab
+
+    await _supabase
+      .from("live_matches")
+      .update({
+        status: "playing",
+        player1_score: 501,
+        player2_score: 501,
+        player1_last_score: "-",
+        player2_last_score: "-",
+        current_turn: starter,
+        last_action: "Neues Leg gestartet!",
+        prev_state: null,
+      })
+      .eq("room_code", currentRoomCode);
+  }
 }
 
-function triggerRematch() {
-  if (isLocal501) startLocal501Game();
+async function triggerRematch() {
+  if (isLocal501) {
+    startLocal501Game();
+  } else if (isOnlineHost) {
+    // Komplettes Spiel resetten über die Datenbank
+    await _supabase
+      .from("live_matches")
+      .update({
+        status: "playing",
+        player1_score: 501,
+        player2_score: 501,
+        player1_darts: 0,
+        player2_darts: 0,
+        player1_legs: 0,
+        player2_legs: 0,
+        player1_last_score: "-",
+        player2_last_score: "-",
+        player1_avg: 0,
+        player2_avg: 0,
+        current_turn: 1,
+        last_action: "Neues Match gestartet!",
+        prev_state: null,
+      })
+      .eq("room_code", currentRoomCode);
+  }
 }
 
 // --- BOT VARIABLEN ---
