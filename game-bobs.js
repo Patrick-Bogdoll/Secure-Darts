@@ -10,9 +10,6 @@ let isBobsGameOver = false;
 const bobsTargets = [
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25,
 ];
-const boardOrder = [
-  20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5,
-];
 
 function startBobsGame() {
   const nameInput =
@@ -133,33 +130,14 @@ function undoBobsTurn() {
 }
 
 function updateBobsHistoryUI() {
-  const container = document.getElementById("side-history-list-bobs");
-  const nameLabel = document.getElementById("history-bobs-name");
-
-  if (!container) return;
-
-  if (nameLabel && bobsPlayer) {
-    nameLabel.innerText = bobsPlayer.name;
-  }
-
-  let html = "";
-  if (bobsPlayer && bobsPlayer.pointsTable) {
-    bobsPlayer.pointsTable.forEach((entry) => {
-      let fieldName = entry.target === 25 ? "BULL" : `D${entry.target}`;
-      let hitColor =
-        entry.hits > 0 ? "var(--accent-green)" : "var(--accent-red)";
-      let prefix = entry.points > 0 ? "+" : ""; // Fügt ein Pluszeichen bei positiven Punkten hinzu
-
-      html += `
-        <div style="display:flex; justify-content:space-between; padding:8px 10px; background:#2a2a2a; margin-bottom:5px; border-radius:6px; font-size: 0.9em; color:#ccc;">
-          <span>Feld <b style="color:white;">${fieldName}</b></span>
-          <span style="color:${hitColor}; font-weight:bold;">${prefix}${entry.points}</span>
-        </div>`;
-    });
-  }
-
-  container.innerHTML = html;
-  container.scrollTop = container.scrollHeight;
+  if (!bobsPlayer) return;
+  renderUniversalMiniGameHistory(
+    "side-history-list-bobs",
+    "history-bobs-name",
+    bobsPlayer.name,
+    bobsPlayer.pointsTable,
+    "bobs"
+  );
 }
 
 // NEU: Supabase Speicherfunktion für Bob's 27 (läuft leise im Hintergrund)

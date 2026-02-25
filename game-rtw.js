@@ -10,10 +10,6 @@ const rtwTargets = [
   20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5, 25,
 ];
 
-const rtwBoardOrder = [
-  20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5,
-];
-
 function startRtwGame() {
   const nameInput =
     document.getElementById("rtw-player-input").value.trim() || "Spieler";
@@ -69,33 +65,14 @@ function updateRtwUI() {
 }
 
 function updateRtwHistoryUI() {
-  const container = document.getElementById("side-history-list-rtw");
-  const nameLabel = document.getElementById("history-rtw-name");
-
-  if (!container) return;
-
-  // Update the player name in the history header
-  if (nameLabel && rtwPlayer) {
-    nameLabel.innerText = rtwPlayer.name;
-  }
-
-  let html = "";
-  if (rtwPlayer && rtwPlayer.pointsTable) {
-    rtwPlayer.pointsTable.forEach((entry) => {
-      let fieldName = entry.target === 25 ? "BULL" : entry.target;
-      let hitColor = entry.hits > 0 ? "var(--accent-green)" : "#888";
-
-      html += `
-        <div style="display:flex; justify-content:space-between; padding:8px 10px; background:#2a2a2a; margin-bottom:5px; border-radius:6px; font-size: 0.9em; color:#ccc;">
-          <span>Feld <b style="color:white;">${fieldName}</b></span>
-          <span style="color:${hitColor}; font-weight:bold;">${entry.hits} Treffer</span>
-        </div>`;
-    });
-  }
-
-  container.innerHTML = html;
-  // Automatically scroll down to the newest throw
-  container.scrollTop = container.scrollHeight;
+  if (!rtwPlayer) return;
+  renderUniversalMiniGameHistory(
+    "side-history-list-rtw",
+    "history-rtw-name",
+    rtwPlayer.name,
+    rtwPlayer.pointsTable,
+    "rtw"
+  );
 }
 
 // NEU: Supabase Speicherfunktion (läuft leise im Hintergrund)

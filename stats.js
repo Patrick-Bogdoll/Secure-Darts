@@ -6,19 +6,18 @@ async function loadProfileAvatar(playerName) {
   let avatarImg = document.getElementById("modal-avatar-preview");
   if (!avatarImg) return;
 
-  // 1. Lade-Platzhalter setzen (Der Würfel)
-  avatarImg.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${playerName}`;
-
-  // 2. In der neuen Supabase Tabelle nach dem Namen suchen
+  // 1. In der neuen Supabase Tabelle nach dem Namen suchen
   let { data: profile } = await _supabase
     .from("profiles")
     .select("avatar_url")
     .eq("name", playerName)
     .maybeSingle();
 
-  // 3. Wenn ein Bild existiert, den Platzhalter überschreiben
+  // 2. Direkt das richtige Bild setzen (Verhindert das Flackern)
   if (profile && profile.avatar_url) {
     avatarImg.src = profile.avatar_url;
+  } else {
+    avatarImg.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${playerName}`;
   }
 }
 
@@ -31,9 +30,9 @@ const STATS_CONFIG = {
     alertText: "Noch keine 501-Daten für {name} vorhanden.",
     fetchType: "single",
     kpiLabels: [
-      "Legs Won",
-      "Legs Played",
-      "Legs Win%",
+      "Geworfene Darts",
+      "Legs Gespielt",
+      "Legs Winrate%",
       "Lifetime Avg",
       "High Finish",
       "Double Rate",
@@ -54,7 +53,7 @@ const STATS_CONFIG = {
     kpiLabels: [
       "Siege",
       "Highscore",
-      "Winrate",
+      "Winrate%",
       "Ø Score",
       "Secure Rate",
       "Double Rate",
@@ -72,7 +71,7 @@ const STATS_CONFIG = {
       "Gespielte Runden",
       "Siege",
       "Highscore",
-      "Winrate",
+      "Winrate%",
       "Ø Score",
       "Letztes Spiel",
     ],
@@ -128,7 +127,7 @@ async function initUniversalModal(mode, encodedData, isSwitching = false) {
     extraChartData = mData;
   }
 
-  renderUniversalStats(mode, data, extraChartData, isSwitching);
+  await renderUniversalStats(mode, data, extraChartData, isSwitching);
 }
 
 // Wrapper für bestehende onclick-Aufrufe
@@ -182,7 +181,7 @@ async function switchModalMode(mode) {
         .limit(15);
       extraChartData = mData;
     }
-    renderUniversalStats(mode, data, extraChartData, true);
+    await renderUniversalStats(mode, data, extraChartData, true);
   } else {
     alert(conf.alertText.replace("{name}", currentModalRawName));
   }
@@ -192,7 +191,12 @@ async function switchModalMode(mode) {
 // ==========================================
 // 3. RENDER-ENGINE FÜR DAS MODAL
 // ==========================================
-function renderUniversalStats(mode, rawData, extraChartData, isSwitching) {
+async function renderUniversalStats(
+  mode,
+  rawData,
+  extraChartData,
+  isSwitching
+) {
   const conf = STATS_CONFIG[mode];
   const isArray = Array.isArray(rawData);
   const firstRecord = isArray ? rawData[0] : rawData;
@@ -213,7 +217,9 @@ function renderUniversalStats(mode, rawData, extraChartData, isSwitching) {
   document.getElementById("modal-name").innerText = currentModalRawName;
 
   // ---> Avatar für ALLE User aus der Datenbank laden
-  loadProfileAvatar(currentModalRawName);
+  if (!isSwitching) {
+    await loadProfileAvatar(currentModalRawName);
+  }
 
   // Buttons updaten (Falls wir nicht über switchModalMode kamen)
   document.querySelectorAll("#modal-mode-toggle .nav-btn").forEach((btn) => {
@@ -293,7 +299,7 @@ function parse501Data(data, extraChartData) {
       : "0%";
 
   let kpis = [
-    { val: data.wins, color: "white" },
+    { val: data.total_darts_thrown || 0, color: "white" },
     { val: gp, color: "white" },
     { val: winrate, color: "white" },
     { val: lifetimeAvg, color: "var(--accent-green)" },

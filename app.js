@@ -3,8 +3,16 @@ const SUPABASE_KEY = "sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy";
 const { createClient } = supabase;
 const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ==========================================
+// GLOBALE DART-KONSTANTEN
+// ==========================================
 const targets = [
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25, 50,
+];
+
+// Die echte Reihenfolge auf einem Dartboard (im Uhrzeigersinn, startend bei 20)
+const UNIVERSAL_BOARD_ORDER = [
+  20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5,
 ];
 let players = [];
 let currentPlayerIndex = 0;
@@ -689,13 +697,11 @@ async function handleAvatarUpload(event) {
     if (updateError)
       throw new Error("Auth Update Error: " + updateError.message);
 
-    const { error: profileError } = await _supabase
-      .from("profiles")
-      .upsert({
-        id: currentUser.id,
-        name: myOnlineName,
-        avatar_url: publicUrl,
-      });
+    const { error: profileError } = await _supabase.from("profiles").upsert({
+      id: currentUser.id,
+      name: myOnlineName,
+      avatar_url: publicUrl,
+    });
     if (profileError)
       throw new Error("Profile Update Error: " + profileError.message);
 

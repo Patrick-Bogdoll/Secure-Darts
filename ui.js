@@ -202,9 +202,6 @@ function renderUniversalDartboard(containerId, activeTarget, mode = "single") {
   const rOuterBull = 16,
     rInnerBull = 7,
     rText = 130;
-  const boardOrder = [
-    20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5,
-  ];
 
   let slicesHTML = `
     <style>
@@ -233,7 +230,7 @@ function renderUniversalDartboard(containerId, activeTarget, mode = "single") {
     return `M ${x1_in} ${y1_in} L ${x1_out} ${y1_out} A ${rOut} ${rOut} 0 0 1 ${x2_out} ${y2_out} L ${x2_in} ${y2_in} A ${rIn} ${rIn} 0 0 0 ${x1_in} ${y1_in} Z`;
   }
 
-  boardOrder.forEach((num, index) => {
+  UNIVERSAL_BOARD_ORDER.forEach((num, index) => {
     const startAngle = index * angleStep - angleStep / 2;
     const endAngle = startAngle + angleStep;
     const isRedBlack = index % 2 === 0;
@@ -443,3 +440,54 @@ document.addEventListener("keydown", function (event) {
     }
   }
 });
+
+// ==========================================
+// UNIVERSAL MINI-GAME HISTORY UI (Bob's & RTW)
+// ==========================================
+function renderUniversalMiniGameHistory(
+  containerId,
+  nameLabelId,
+  playerName,
+  pointsTable,
+  mode
+) {
+  const container = document.getElementById(containerId);
+  const nameLabel = document.getElementById(nameLabelId);
+  if (!container) return;
+
+  if (nameLabel && playerName) nameLabel.innerText = playerName;
+
+  let html = "";
+  if (pointsTable) {
+    pointsTable.forEach((entry) => {
+      // Unterscheidung der Beschriftung je nach Modus
+      let fieldName =
+        entry.target === 25
+          ? "BULL"
+          : mode === "bobs"
+          ? `D${entry.target}`
+          : entry.target;
+      let hitColor =
+        entry.hits > 0
+          ? "var(--accent-green)"
+          : mode === "bobs"
+          ? "var(--accent-red)"
+          : "#888";
+
+      // Bei Bob's zeigen wir die Punkte an (+40), bei RTW die Treffer (2 Treffer)
+      let suffix =
+        mode === "bobs"
+          ? `${entry.points > 0 ? "+" : ""}${entry.points}`
+          : `${entry.hits} Treffer`;
+
+      html += `
+        <div style="display:flex; justify-content:space-between; padding:8px 10px; background:#2a2a2a; margin-bottom:5px; border-radius:6px; font-size: 0.9em; color:#ccc;">
+          <span>Feld <b style="color:white;">${fieldName}</b></span>
+          <span style="color:${hitColor}; font-weight:bold;">${suffix}</span>
+        </div>`;
+    });
+  }
+
+  container.innerHTML = html;
+  container.scrollTop = container.scrollHeight;
+}

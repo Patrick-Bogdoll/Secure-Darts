@@ -340,6 +340,7 @@ td {
   background: var(--modal-bg);
   width: 95%;
   max-width: 600px;
+  height: 750px;
   max-height: 90vh;
   padding: 20px;
   border-radius: 16px;
@@ -780,12 +781,35 @@ input[type="password"]:focus {
   padding-right: 5px;
 }
 
-.side-history-list::-webkit-scrollbar {
-  width: 4px;
+/* ==========================================
+   CUSTOM SCROLLBARS (Global)
+   ========================================== */
+
+/* Firefox Standard */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #555 transparent;
 }
-.side-history-list::-webkit-scrollbar-thumb {
-  background: #555;
-  border-radius: 2px;
+
+/* Chrome, Edge, Safari (Webkit) */
+::-webkit-scrollbar {
+  width: 8px; /* Breite der vertikalen Scrollbar */
+  height: 8px; /* Höhe der horizontalen Scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1); /* Sehr dezenter, dunkler Hintergrund */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #444; /* Standardfarbe: Dunkelgrau */
+  border-radius: 10px;
+  border: 2px solid var(--card-bg); /* Erzeugt einen coolen "schwebenden" Effekt */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-blue); /* Leuchtet blau beim Drüberfahren! */
 }
 
 /* RESPONSIVE: Wenn der Bildschirm zu schmal wird (z.B. Tablet/Handy) */

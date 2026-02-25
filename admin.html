@@ -449,7 +449,7 @@
 
         let tableName =
           currentMode === "secure"
-            ? "highscores"
+            ? "stats_secure"
             : currentMode === "501"
             ? "stats_501"
             : currentMode === "bobs"
@@ -555,7 +555,7 @@
       async function saveData() {
         let tableName =
           currentMode === "secure"
-            ? "highscores"
+            ? "stats_secure"
             : currentMode === "501"
             ? "stats_501"
             : currentMode === "bobs"
