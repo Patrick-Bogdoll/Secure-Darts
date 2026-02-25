@@ -890,9 +890,15 @@ function cleanupWebRTC() {
 // AVATAR UPLOAD & COMPRESSION ENGINE
 // ==========================================
 
+let isUploadingAvatar = false; // Verhindert doppelte Uploads durch Klick-Spam
+
 async function handleAvatarUpload(event) {
+  if (isUploadingAvatar) return; // Blockiert, wenn schon ein Upload läuft
+
   const file = event.target.files[0];
   if (!file) return;
+
+  isUploadingAvatar = true;
   document.getElementById("btn-edit-avatar").innerText = "LÄDT...";
 
   try {
@@ -900,13 +906,16 @@ async function handleAvatarUpload(event) {
       data: { session },
       error: sessionError,
     } = await _supabase.auth.getSession();
+
     if (!session || sessionError)
       throw new Error(
         "Deine Login-Sitzung ist ungültig. Bitte logge dich einmal aus und wieder ein!"
       );
 
     const compressedImageBlob = await compressImage(file, 200, 200);
-    const fileName = `${currentUser.id}_${Date.now()}.jpg`;
+
+    // FIX 1: Fester Dateiname, damit 'upsert' das alte Bild überschreibt!
+    const fileName = `${currentUser.id}.jpg`;
 
     const { data: uploadData, error: uploadError } = await _supabase.storage
       .from("avatars")
@@ -914,14 +923,18 @@ async function handleAvatarUpload(event) {
         contentType: "image/jpeg",
         upsert: true,
       });
+
     if (uploadError) throw new Error("Storage Error: " + uploadError.message);
 
     const {
       data: { publicUrl },
     } = _supabase.storage.from("avatars").getPublicUrl(fileName);
 
+    // FIX 2: Cache-Buster an die URL hängen, damit das UI sofort updatet
+    const freshUrl = `${publicUrl}?t=${Date.now()}`;
+
     const { error: updateError } = await _supabase.auth.updateUser({
-      data: { avatar_url: publicUrl },
+      data: { avatar_url: freshUrl },
     });
     if (updateError)
       throw new Error("Auth Update Error: " + updateError.message);
@@ -929,13 +942,13 @@ async function handleAvatarUpload(event) {
     const { error: profileError } = await _supabase.from("profiles").upsert({
       id: currentUser.id,
       name: myOnlineName,
-      avatar_url: publicUrl,
+      avatar_url: freshUrl,
     });
     if (profileError)
       throw new Error("Profile Update Error: " + profileError.message);
 
-    document.getElementById("modal-avatar-preview").src = publicUrl;
-    currentUser.user_metadata.avatar_url = publicUrl;
+    document.getElementById("modal-avatar-preview").src = freshUrl;
+    currentUser.user_metadata.avatar_url = freshUrl;
 
     if (typeof showToast === "function")
       showToast("Profilbild erfolgreich aktualisiert!", "success");
@@ -945,6 +958,10 @@ async function handleAvatarUpload(event) {
     else alert(error.message);
   } finally {
     document.getElementById("btn-edit-avatar").innerText = "EDIT";
+
+    // FIX 3: Setzt das Input-Feld zurück, damit man dasselbe Bild nochmal wählen kann
+    event.target.value = "";
+    isUploadingAvatar = false;
   }
 }
 
