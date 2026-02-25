@@ -753,7 +753,7 @@ input[type="password"]:focus {
 .side-history-panel {
   position: absolute;
   top: 0;
-  width: 280px; /* Etwas schmaler, damit beides perfekt passt */
+  width: 500px; /* Etwas schmaler, damit beides perfekt passt */
   background: var(--card-bg);
   border: 2px solid #333;
   border-radius: 12px;
@@ -768,12 +768,12 @@ input[type="password"]:focus {
 
 /* Heftet Box 1 an die linke Seite */
 .left-panel {
-  left: -500px;
+  left: -550px;
 }
 
 /* Heftet Box 2 an die rechte Seite */
 .right-panel {
-  right: -500px;
+  right: -550px;
 }
 
 .side-history-list {

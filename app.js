@@ -472,17 +472,19 @@ async function startCompanionMode(roomCode, role) {
 
   try {
     // --- WAKELOCK ERZINGEN (Benötigt eine Berührung) ---
-    // Sobald du den Bildschirm 1x antippst oder wischst, bleibt er wach!
     document.addEventListener("touchstart", requestWakeLock, { once: true });
-
-    // Falls man das Handy kurz minimiert und wieder öffnet
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") requestWakeLock();
     });
     // ---------------------------------------------------
 
+    // 1. MAXIMALE AUFLÖSUNG ANFORDERN (Macht digitalen Zoom extrem scharf!)
     currentCameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" },
+      video: {
+        facingMode: "environment",
+        width: { ideal: 1920 }, // Zwingt den Browser zu Full-HD (oder höher)
+        height: { ideal: 1080 },
+      },
       audio: false,
     });
 
@@ -498,10 +500,20 @@ async function startCompanionMode(roomCode, role) {
     videoPreview.style.objectFit = "cover";
     videoPreview.style.touchAction = "none";
     videoPreview.style.transformOrigin = "center center";
-    videoPreview.style.zIndex = "1"; // Video liegt auf Ebene 1 (ganz hinten)
+    videoPreview.style.zIndex = "1";
+
+    // --- NEU: HARDWARE ZOOM CAPABILITIES AUSLESEN ---
+    const videoTrack = currentCameraStream.getVideoTracks()[0];
+    const capabilities =
+      typeof videoTrack.getCapabilities === "function"
+        ? videoTrack.getCapabilities()
+        : {};
+    const hasHwZoom = "zoom" in capabilities;
+    const hwZoomMin = hasHwZoom ? capabilities.zoom.min : 1;
+    const hwZoomMax = hasHwZoom ? capabilities.zoom.max : 1;
 
     // ==========================================
-    // 2. DIGITALE PAN & ZOOM LOGIK (Prozent-basiert für 100% Sync)
+    // 2. DIGITALE PAN & ZOOM LOGIK
     // ==========================================
     let isDragging = false;
     let startPixelX = 0,
@@ -518,17 +530,14 @@ async function startCompanionMode(roomCode, role) {
     });
 
     function updateCameraView() {
-      // Berechnung der Grenzen in Prozent:
-      // Bei 2x Zoom kann man das Bild um max 50% in jede Richtung schieben.
+      // Grenzen werden IMMER durch den digitalen Zoom definiert
       const maxPercent = (currentDigitalZoom - 1) * 50;
 
       percentX = Math.max(-maxPercent, Math.min(maxPercent, percentX));
       percentY = Math.max(-maxPercent, Math.min(maxPercent, percentY));
 
-      // Auf dem Handy anwenden
       videoPreview.style.transform = `translate(${percentX}%, ${percentY}%) scale(${currentDigitalZoom})`;
 
-      // An den PC senden (Er sendet exakt die gleichen Prozentwerte!)
       if (camChannel) {
         camChannel.send({
           type: "broadcast",
@@ -561,7 +570,6 @@ async function startCompanionMode(roomCode, role) {
       let deltaPixelX = e.touches[0].clientX - startPixelX;
       let deltaPixelY = e.touches[0].clientY - startPixelY;
 
-      // Umrechnung der Fingerbewegung in Prozent
       percentX = startPercentX + (deltaPixelX / w) * 100;
       percentY = startPercentY + (deltaPixelY / h) * 100;
 
@@ -573,7 +581,7 @@ async function startCompanionMode(roomCode, role) {
     });
 
     // ==========================================
-    // 3. GUT SICHTBARER ZOOM SLIDER
+    // 3. HYBRID ZOOM SLIDER (HW + DIGITAL)
     // ==========================================
     const existingSlider = document.getElementById("camera-zoom-slider");
     if (existingSlider) existingSlider.remove();
@@ -582,24 +590,48 @@ async function startCompanionMode(roomCode, role) {
     zoomControl.type = "range";
     zoomControl.id = "camera-zoom-slider";
 
-    // FIX: 15% Abstand von unten ist immer im sichtbaren Bereich!
     zoomControl.style.cssText = `
       position: absolute; 
       bottom: 15%; 
       left: 10%; 
       width: 80%; 
       height: 40px; 
-      z-index: 100000; /* GANZ nach vorne! */
+      z-index: 100000;
       opacity: 0.9;
     `;
 
+    const maxTotalZoom = Math.max(5, hwZoomMax * 2);
+
     zoomControl.min = 1;
-    zoomControl.max = 4;
+    zoomControl.max = maxTotalZoom;
     zoomControl.step = 0.05;
     zoomControl.value = 1;
 
-    zoomControl.oninput = (e) => {
-      currentDigitalZoom = parseFloat(e.target.value);
+    zoomControl.oninput = async (e) => {
+      let totalZoom = parseFloat(e.target.value);
+
+      // HYBRID-LOGIK:
+      // Wir lassen den digitalen Zoom bis max 2.5x laufen (garantiert perfekten Panning-Spielraum).
+      // Alles, was darüber hinausgeht, übernimmt die Hardware-Linse!
+      let desiredDigital = Math.min(totalZoom, 2);
+      let desiredHw = totalZoom / desiredDigital;
+
+      // Wenn das Handy Hardware-Zoom hat, wenden wir ihn an
+      if (hasHwZoom) {
+        desiredHw = Math.max(hwZoomMin, Math.min(desiredHw, hwZoomMax));
+        try {
+          await videoTrack.applyConstraints({
+            advanced: [{ zoom: desiredHw }],
+          });
+        } catch (err) {
+          console.warn("Hardware Zoom Limit erreicht", err);
+        }
+      } else {
+        desiredHw = 1; // Fallback für ältere Handys (reiner Digital-Zoom)
+      }
+
+      // Wir berechnen den echten digitalen Zoom-Wert für unser Panning und Senden an PC
+      currentDigitalZoom = totalZoom / desiredHw;
       updateCameraView();
     };
 
