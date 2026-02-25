@@ -760,178 +760,179 @@ function initCameraReceiver(roomCode, myRole) {
       const data = payload.payload;
       const videoId = data.role === "host" ? "video-p1" : "video-p2";
       const videoEl = document.getElementById(videoId);
-      
+
       if (videoEl) {
         // HIER IST DAS UPDATE:
         if (videoEl.parentElement) {
           videoEl.parentElement.style.overflow = "hidden";
           videoEl.parentElement.style.position = "relative"; // Sichert den Rand ab
         }
-        
+
         videoEl.style.objectFit = "cover";
         videoEl.style.transformOrigin = "center center";
-        
+
         // CSS anwenden
         videoEl.style.transform = `translate(${data.px}%, ${data.py}%) scale(${data.zoom})`;
       }
-    })
-
-function cleanupWebRTC() {
-  if (camChannel) {
-    _supabase.removeChannel(camChannel);
-    camChannel = null;
-  }
-  if (typeof boardPeers !== "undefined") {
-    if (boardPeers.host && boardPeers.host.close) boardPeers.host.close();
-    if (boardPeers.guest && boardPeers.guest.close) boardPeers.guest.close();
-    boardPeers = { host: null, guest: null };
-  }
-  if (typeof localDronePeer !== "undefined" && localDronePeer) {
-    localDronePeer.close();
-    localDronePeer = null;
-  }
-  let v1 = document.getElementById("video-p1");
-  let v2 = document.getElementById("video-p2");
-  if (v1) v1.srcObject = null;
-  if (v2) v2.srcObject = null;
-}
-
-// ==========================================
-// AVATAR UPLOAD & COMPRESSION ENGINE
-// ==========================================
-
-async function handleAvatarUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  document.getElementById("btn-edit-avatar").innerText = "LÄDT...";
-
-  try {
-    const {
-      data: { session },
-      error: sessionError,
-    } = await _supabase.auth.getSession();
-    if (!session || sessionError)
-      throw new Error(
-        "Deine Login-Sitzung ist ungültig. Bitte logge dich einmal aus und wieder ein!"
-      );
-
-    const compressedImageBlob = await compressImage(file, 200, 200);
-    const fileName = `${currentUser.id}_${Date.now()}.jpg`;
-
-    const { data: uploadData, error: uploadError } = await _supabase.storage
-      .from("avatars")
-      .upload(fileName, compressedImageBlob, {
-        contentType: "image/jpeg",
-        upsert: true,
-      });
-    if (uploadError) throw new Error("Storage Error: " + uploadError.message);
-
-    const {
-      data: { publicUrl },
-    } = _supabase.storage.from("avatars").getPublicUrl(fileName);
-
-    const { error: updateError } = await _supabase.auth.updateUser({
-      data: { avatar_url: publicUrl },
     });
-    if (updateError)
-      throw new Error("Auth Update Error: " + updateError.message);
 
-    const { error: profileError } = await _supabase.from("profiles").upsert({
-      id: currentUser.id,
-      name: myOnlineName,
-      avatar_url: publicUrl,
-    });
-    if (profileError)
-      throw new Error("Profile Update Error: " + profileError.message);
-
-    document.getElementById("modal-avatar-preview").src = publicUrl;
-    currentUser.user_metadata.avatar_url = publicUrl;
-
-    // Fallback auf alert, falls Toast hier nicht verfügbar ist
-    if (typeof showToast === "function")
-      showToast("Profilbild erfolgreich aktualisiert!", "success");
-    else alert("Profilbild erfolgreich aktualisiert!");
-  } catch (error) {
-    if (typeof showToast === "function") showToast(error.message, "error");
-    else alert(error.message);
-  } finally {
-    document.getElementById("btn-edit-avatar").innerText = "EDIT";
-  }
-}
-
-function compressImage(file, maxWidth, maxHeight) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let width = img.width,
-          height = img.height;
-        if (width > height) {
-          if (width > maxWidth) {
-            height *= maxWidth / width;
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width *= maxHeight / height;
-            height = maxHeight;
-          }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob(
-          (blob) => {
-            resolve(blob);
-          },
-          "image/jpeg",
-          0.8
-        );
-      };
-    };
-    reader.onerror = (error) => reject(error);
-  });
-}
-
-async function stopCameraStream() {
-  if (camStatusInterval) {
-    clearInterval(camStatusInterval);
-    camStatusInterval = null;
-  }
-  if (localDronePeer) {
-    localDronePeer.close();
-    localDronePeer = null;
-  }
-  if (currentCameraStream) {
-    currentCameraStream.getTracks().forEach((track) => track.stop());
-    currentCameraStream = null;
-  }
-
-  const videoEl = document.getElementById("local-camera-preview");
-  if (videoEl) videoEl.srcObject = null;
-
-  if (camChannel) {
-    await camChannel.send({
-      type: "broadcast",
-      event: "cam-status",
-      payload: { role: null, offline: true },
-    });
-    setTimeout(async () => {
-      await _supabase.removeChannel(camChannel);
+  function cleanupWebRTC() {
+    if (camChannel) {
+      _supabase.removeChannel(camChannel);
       camChannel = null;
-    }, 500);
+    }
+    if (typeof boardPeers !== "undefined") {
+      if (boardPeers.host && boardPeers.host.close) boardPeers.host.close();
+      if (boardPeers.guest && boardPeers.guest.close) boardPeers.guest.close();
+      boardPeers = { host: null, guest: null };
+    }
+    if (typeof localDronePeer !== "undefined" && localDronePeer) {
+      localDronePeer.close();
+      localDronePeer = null;
+    }
+    let v1 = document.getElementById("video-p1");
+    let v2 = document.getElementById("video-p2");
+    if (v1) v1.srcObject = null;
+    if (v2) v2.srcObject = null;
   }
 
-  document.getElementById("companion-screen").innerHTML = `
+  // ==========================================
+  // AVATAR UPLOAD & COMPRESSION ENGINE
+  // ==========================================
+
+  async function handleAvatarUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    document.getElementById("btn-edit-avatar").innerText = "LÄDT...";
+
+    try {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await _supabase.auth.getSession();
+      if (!session || sessionError)
+        throw new Error(
+          "Deine Login-Sitzung ist ungültig. Bitte logge dich einmal aus und wieder ein!"
+        );
+
+      const compressedImageBlob = await compressImage(file, 200, 200);
+      const fileName = `${currentUser.id}_${Date.now()}.jpg`;
+
+      const { data: uploadData, error: uploadError } = await _supabase.storage
+        .from("avatars")
+        .upload(fileName, compressedImageBlob, {
+          contentType: "image/jpeg",
+          upsert: true,
+        });
+      if (uploadError) throw new Error("Storage Error: " + uploadError.message);
+
+      const {
+        data: { publicUrl },
+      } = _supabase.storage.from("avatars").getPublicUrl(fileName);
+
+      const { error: updateError } = await _supabase.auth.updateUser({
+        data: { avatar_url: publicUrl },
+      });
+      if (updateError)
+        throw new Error("Auth Update Error: " + updateError.message);
+
+      const { error: profileError } = await _supabase.from("profiles").upsert({
+        id: currentUser.id,
+        name: myOnlineName,
+        avatar_url: publicUrl,
+      });
+      if (profileError)
+        throw new Error("Profile Update Error: " + profileError.message);
+
+      document.getElementById("modal-avatar-preview").src = publicUrl;
+      currentUser.user_metadata.avatar_url = publicUrl;
+
+      // Fallback auf alert, falls Toast hier nicht verfügbar ist
+      if (typeof showToast === "function")
+        showToast("Profilbild erfolgreich aktualisiert!", "success");
+      else alert("Profilbild erfolgreich aktualisiert!");
+    } catch (error) {
+      if (typeof showToast === "function") showToast(error.message, "error");
+      else alert(error.message);
+    } finally {
+      document.getElementById("btn-edit-avatar").innerText = "EDIT";
+    }
+  }
+
+  function compressImage(file, maxWidth, maxHeight) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width,
+            height = img.height;
+          if (width > height) {
+            if (width > maxWidth) {
+              height *= maxWidth / width;
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width *= maxHeight / height;
+              height = maxHeight;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              resolve(blob);
+            },
+            "image/jpeg",
+            0.8
+          );
+        };
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  }
+
+  async function stopCameraStream() {
+    if (camStatusInterval) {
+      clearInterval(camStatusInterval);
+      camStatusInterval = null;
+    }
+    if (localDronePeer) {
+      localDronePeer.close();
+      localDronePeer = null;
+    }
+    if (currentCameraStream) {
+      currentCameraStream.getTracks().forEach((track) => track.stop());
+      currentCameraStream = null;
+    }
+
+    const videoEl = document.getElementById("local-camera-preview");
+    if (videoEl) videoEl.srcObject = null;
+
+    if (camChannel) {
+      await camChannel.send({
+        type: "broadcast",
+        event: "cam-status",
+        payload: { role: null, offline: true },
+      });
+      setTimeout(async () => {
+        await _supabase.removeChannel(camChannel);
+        camChannel = null;
+      }, 500);
+    }
+
+    document.getElementById("companion-screen").innerHTML = `
       <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #1a1a1a; color: white; font-family: sans-serif; text-align: center; padding: 20px;">
           <div style="font-size: 50px; margin-bottom: 20px;">🔒</div>
           <h2 style="color: var(--accent-red); margin-top:0;">Kamera geschlossen</h2>
           <p style="color: #888; line-height: 1.5;">Die Verbindung wurde sicher getrennt.<br>Du kannst diesen Tab jetzt schließen.</p>
       </div>
   `;
+  }
 }
