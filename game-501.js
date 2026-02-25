@@ -12,6 +12,7 @@ function resetStatsTracker() {
       busts: 0,
       checkoutAttempts: 0,
       checkoutHits: 0,
+      scoreFrequencies: {},
     },
     p2: {
       dartsCurrentLeg: 0,
@@ -22,6 +23,7 @@ function resetStatsTracker() {
       busts: 0,
       checkoutAttempts: 0,
       checkoutHits: 0,
+      scoreFrequencies: {},
     },
   };
 }
@@ -800,6 +802,10 @@ async function submit501Score() {
     if (score === 180) pStats.t180++;
     else if (score >= 140) pStats.t140++;
     else if (score >= 100) pStats.t100++;
+
+    let thrownVal = isBust ? 0 : score;
+    pStats.scoreFrequencies[thrownVal] =
+      (pStats.scoreFrequencies[thrownVal] || 0) + 1;
 
     if (isOnFinish && score > 0) {
       let ans = isBotThrow

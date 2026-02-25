@@ -1,5 +1,6 @@
 let currentModalType = "secure";
 let currentModalRawName = "";
+let scoreDistChart = null;
 
 // --- NEU: Zieht das Bild für ALLE User aus der Profiles-Tabelle ---
 async function loadProfileAvatar(playerName) {
@@ -45,6 +46,7 @@ const STATS_CONFIG = {
     chartInteraction: "nearest",
     chartAxis: "x",
     chartTitle: null, // Wird bei 501 ausgeblendet
+    hasScoreDist: true,
   },
   secure: {
     table: "stats_secure",
@@ -272,6 +274,18 @@ async function renderUniversalStats(
   }
   renderChart(parsed.chart.labels, parsed.chart.values, conf);
 
+  // ---> NEU: SCORE DISTRIBUTION CHART STEUERUNG ÜBER CONFIG <---
+  const distCanvas = document.getElementById("score-dist-chart");
+  if (distCanvas && distCanvas.parentElement) {
+    if (conf.hasScoreDist && parsed.scoreFrequencies) {
+      distCanvas.parentElement.style.display = "block"; // Zeigt die Box
+      renderScoreDistributionChart(parsed.scoreFrequencies);
+    } else {
+      distCanvas.parentElement.style.display = "none"; // Versteckt sie bei anderen Modi
+    }
+  }
+  // -------------------------------------------------------------
+
   // --- Historie Rendern ---
   if (conf.fetchType === "multiple") {
     document.getElementById("history-list").innerHTML = parsed.historyHtml;
@@ -337,7 +351,11 @@ function parse501Data(data, extraChartData) {
     cLabels = cLabels.slice(-15);
   }
 
-  return { kpis, chart: { labels: cLabels, values: cValues } };
+  return {
+    kpis,
+    chart: { labels: cLabels, values: cValues },
+    scoreFrequencies: data.score_frequencies || {}, // <--- NEU
+  };
 }
 
 function parseSecureData(data) {
@@ -689,6 +707,7 @@ async function save501Stats(
     busts: 0,
     checkoutAttempts: 0,
     checkoutHits: 0,
+    scoreFrequencies: {}, // <-- Fallback hinzugefügt
   };
 
   if (!ex) {
@@ -706,6 +725,7 @@ async function save501Stats(
       count_busts: tr.busts || 0,
       checkout_attempts: tr.checkoutAttempts || 0,
       checkout_hits: tr.checkoutHits || 0,
+      score_frequencies: tr.scoreFrequencies || {}, // <-- Neu: Beim Insert speichern
     };
     if (isMe) payload.user_id = currentUser.id;
     const { error: insErr } = await _supabase
@@ -717,6 +737,16 @@ async function save501Stats(
     let newBestLeg = ex.best_leg > 0 ? ex.best_leg : 999;
     if (tr.bestLeg > 0) newBestLeg = Math.min(newBestLeg, tr.bestLeg);
     if (newBestLeg === 999) newBestLeg = 0;
+
+    // --- NEU: MERGE DER SCORE FREQUENCIES ---
+    let mergedFreq = { ...(ex.score_frequencies || {}) };
+    let newFreq = tr.scoreFrequencies || {};
+
+    // Wir iterieren über alle Scores, die im Match geworfen wurden, und addieren sie
+    for (let scoreKey in newFreq) {
+      mergedFreq[scoreKey] = (mergedFreq[scoreKey] || 0) + newFreq[scoreKey];
+    }
+    // ----------------------------------------
 
     let updatePayload = {
       wins: (ex.wins || 0) + legsWon,
@@ -732,6 +762,7 @@ async function save501Stats(
       checkout_attempts:
         (ex.checkout_attempts || 0) + (tr.checkoutAttempts || 0),
       checkout_hits: (ex.checkout_hits || 0) + (tr.checkoutHits || 0),
+      score_frequencies: mergedFreq, // <-- Neu: Gemergte Frequenzen updaten
     };
 
     if (isMe) {
@@ -1253,4 +1284,71 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
       }
     }
   );
+}
+
+function renderScoreDistributionChart(frequencies) {
+  const canvas = document.getElementById("score-dist-chart");
+  if (!canvas) return;
+
+  // 1. Altes Chart zerstören (verhindert Überlagerungs-Glitches)
+  if (scoreDistChart) {
+    scoreDistChart.destroy();
+  }
+
+  // 2. Prüfen, ob überhaupt Daten existieren
+  if (!frequencies || Object.keys(frequencies).length === 0) {
+    // Optional: Canvas verstecken oder Platzhalter-Text anzeigen
+    return;
+  }
+
+  // 3. Daten sortieren: Die am häufigsten geworfenen Scores nach oben!
+  // Object.entries macht aus {"26": 5, "60": 12} -> [["26", 5], ["60", 12]]
+  const sortedScores = Object.entries(frequencies)
+    .sort((a, b) => b[1] - a[1]) // Nach der Wurf-Anzahl absteigend sortieren
+    .slice(0, 10); // Wir nehmen nur die "Top 10" Scores für die Übersichtlichkeit
+
+  const labels = sortedScores.map((item) => item[0] + " Pkt");
+  const dataPoints = sortedScores.map((item) => item[1]);
+
+  // 4. Das Chart mit Chart.js zeichnen
+  scoreDistChart = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Häufigkeit",
+          data: dataPoints,
+          backgroundColor: "rgba(74, 222, 128, 0.7)", // Schönes accent-green
+          borderColor: "var(--accent-green)",
+          borderWidth: 1,
+          borderRadius: 4, // Abgerundete Balken
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }, // Legende ausblenden, ist selbsterklärend
+        title: {
+          display: true,
+          text: "Meistgeworfene Scores (Top 10)",
+          color: "white",
+          font: { size: 14, family: "sans-serif" },
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { color: "#ccc", stepSize: 1, precision: 0 },
+          grid: { color: "rgba(255,255,255,0.1)" },
+        },
+        x: {
+          ticks: { color: "white", font: { weight: "bold" } },
+          grid: { display: false },
+        },
+      },
+    },
+  });
 }

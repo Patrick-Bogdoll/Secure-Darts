@@ -165,6 +165,16 @@ async function showMainApp() {
       currentUser.user_metadata?.full_name ||
       currentUser.email.split("@")[0];
     myOnlineName = displayName;
+    let { data: myProfile } = await _supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", currentUser.id)
+      .maybeSingle();
+
+    if (myProfile && myProfile.avatar_url) {
+      if (!currentUser.user_metadata) currentUser.user_metadata = {};
+      currentUser.user_metadata.avatar_url = myProfile.avatar_url;
+    }
     let p1Input = document.getElementById("local-p1-name");
     let onlineInput = document.getElementById("online-player-name");
     if (p1Input) p1Input.value = displayName;
