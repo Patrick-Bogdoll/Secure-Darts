@@ -666,18 +666,32 @@ function toggleVideoAvatar(playerId, showVideo) {
 }
 
 // Receiver auf dem PC
+let camWatchdogs = { host: null, guest: null };
+
+// Receiver auf dem PC
 function initCameraReceiver(roomCode, myRole) {
   if (camChannel) _supabase.removeChannel(camChannel);
   boardPeers = { host: null, guest: null };
 
+  // Alte Timer zurücksetzen
+  if (camWatchdogs.host) clearTimeout(camWatchdogs.host);
+  if (camWatchdogs.guest) clearTimeout(camWatchdogs.guest);
+
   camChannel = _supabase.channel(`camera-${roomCode}`, {
     config: { broadcast: { self: true } },
   });
+
   camChannel
     .on("broadcast", { event: "cam-status" }, (payload) => {
       const data = payload.payload;
       const camRole = data.role;
 
+      // --- WATCHDOG: Timer zurücksetzen, da das Handy sich gemeldet hat! ---
+      if (camRole && camWatchdogs[camRole]) {
+        clearTimeout(camWatchdogs[camRole]);
+      }
+
+      // Regulläres Beenden (über Button)
       if (data.offline || !camRole) {
         ["p1", "p2"].forEach((id) => {
           toggleVideoAvatar(id, false);
@@ -690,6 +704,17 @@ function initCameraReceiver(roomCode, myRole) {
       const activeId = isHost ? "p1" : "p2";
       updateLobbyCameraStatus(isHost, true);
       toggleVideoAvatar(activeId, true);
+
+      // --- WATCHDOG STARTEN: Wenn in 10s kein Ping kommt -> Avatar zeigen! ---
+      camWatchdogs[camRole] = setTimeout(() => {
+        console.log(`Verbindung zu ${camRole} Kamera abgerissen (Timeout).`);
+        toggleVideoAvatar(activeId, false);
+        updateLobbyCameraStatus(isHost, false);
+        if (boardPeers[camRole]) {
+          boardPeers[camRole].close();
+          boardPeers[camRole] = null;
+        }
+      }, 10000);
 
       if (
         !boardPeers[camRole] ||
@@ -712,6 +737,19 @@ function initCameraReceiver(roomCode, myRole) {
       if (data.type === "offer") {
         const peer = new RTCPeerConnection(rtcConfig);
         boardPeers[fromCam] = peer;
+
+        // --- SOFORT-ABBRUCH BEI WEBRTC VERBINDUNGSVERLUST ---
+        peer.onconnectionstatechange = () => {
+          if (
+            peer.connectionState === "disconnected" ||
+            peer.connectionState === "failed" ||
+            peer.connectionState === "closed"
+          ) {
+            const activeId = fromCam === "host" ? "p1" : "p2";
+            toggleVideoAvatar(activeId, false);
+            updateLobbyCameraStatus(fromCam === "host", false);
+          }
+        };
 
         peer.ontrack = (event) => {
           const videoId = fromCam === "host" ? "video-p1" : "video-p2";
@@ -770,13 +808,13 @@ function initCameraReceiver(roomCode, myRole) {
           videoEl.parentElement.style.position = "relative";
         }
 
-        // Zwingt das Video, die gleiche Struktur wie das Handy anzunehmen
+        // Zwingt das Video in den perfekten Rahmen für 100% Sync
         videoEl.style.width = "100%";
         videoEl.style.height = "100%";
         videoEl.style.objectFit = "cover";
         videoEl.style.transformOrigin = "center center";
 
-        // Wendet die perfekten Prozentwerte an
+        // Prozentuale Verschiebung vom Handy anwenden
         videoEl.style.transform = `translate(${data.px}%, ${data.py}%) scale(${data.zoom})`;
       }
     })
