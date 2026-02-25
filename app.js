@@ -442,17 +442,35 @@ async function startCompanionMode(roomCode, role) {
 
   const companionScreen = document.getElementById("companion-screen");
   companionScreen.style.display = "block";
-  companionScreen.style.position = "fixed"; // Zwingt es über ALLES andere
+  companionScreen.style.position = "fixed";
   companionScreen.style.top = "0";
   companionScreen.style.left = "0";
   companionScreen.style.width = "100vw";
-  companionScreen.style.height = "100vh";
-  companionScreen.style.zIndex = "99999"; // Höchste Priorität
+  // FIX: Wir nehmen die ECHTE, sichtbare Höhe des Handys, nicht 100vh!
+  companionScreen.style.height = window.innerHeight + "px";
+  companionScreen.style.zIndex = "99999";
   companionScreen.style.backgroundColor = "black";
   companionScreen.style.overflow = "hidden";
 
+  // --- DEN SCHLIESSEN-BUTTON IMMER SICHTBAR MACHEN ---
+  const closeBtn = companionScreen.querySelector("button");
+  if (closeBtn) {
+    closeBtn.style.position = "absolute";
+    closeBtn.style.top = "30px"; // 30px von ganz oben
+    closeBtn.style.left = "50%";
+    closeBtn.style.transform = "translateX(-50%)"; // Perfekt zentriert
+    closeBtn.style.zIndex = "100000"; // GANZ nach vorne!
+    // Optional: Ein bisschen hübscher machen, damit man ihn gut sieht
+    closeBtn.style.padding = "12px 24px";
+    closeBtn.style.backgroundColor = "#ff4a4a";
+    closeBtn.style.color = "white";
+    closeBtn.style.border = "none";
+    closeBtn.style.borderRadius = "20px";
+    closeBtn.style.fontWeight = "bold";
+    closeBtn.style.boxShadow = "0px 4px 10px rgba(0,0,0,0.6)";
+  }
+
   try {
-    // Kamera anfordern
     currentCameraStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "environment" },
       audio: false,
@@ -460,11 +478,17 @@ async function startCompanionMode(roomCode, role) {
 
     const videoPreview = document.getElementById("local-camera-preview");
     videoPreview.srcObject = currentCameraStream;
+
+    // --- VIDEO STRIKT IN DEN HINTERGRUND LEGEN ---
+    videoPreview.style.position = "absolute";
+    videoPreview.style.top = "0";
+    videoPreview.style.left = "0";
     videoPreview.style.width = "100%";
     videoPreview.style.height = "100%";
     videoPreview.style.objectFit = "cover";
     videoPreview.style.touchAction = "none";
     videoPreview.style.transformOrigin = "center center";
+    videoPreview.style.zIndex = "1"; // Video liegt auf Ebene 1 (ganz hinten)
 
     // ==========================================
     // 2. DIGITALE PAN & ZOOM LOGIK (Prozent-basiert für 100% Sync)
@@ -548,14 +572,14 @@ async function startCompanionMode(roomCode, role) {
     zoomControl.type = "range";
     zoomControl.id = "camera-zoom-slider";
 
-    // HIER ANGEPASST: Deutlich höher (bottom: 150px) und visuell auffälliger
+    // FIX: 15% Abstand von unten ist immer im sichtbaren Bereich!
     zoomControl.style.cssText = `
       position: absolute; 
-      bottom: 150px; 
+      bottom: 15%; 
       left: 10%; 
       width: 80%; 
       height: 40px; 
-      z-index: 100000;
+      z-index: 100000; /* GANZ nach vorne! */
       opacity: 0.9;
     `;
 
