@@ -96,6 +96,9 @@ function resetLegLocal() {
 }
 
 function update501QoL(p1Score, p2Score) {
+  document.getElementById("p1-score").innerText = p1Score;
+  document.getElementById("p2-score").innerText = p2Score;
+
   let p1MatchAvg =
     p1Darts501 > 0 ? ((p1TotalScore / p1Darts501) * 3).toFixed(2) : "0.00";
   let p2MatchAvg =
@@ -576,7 +579,12 @@ function append501Input(num) {
   if (!isLocal501 && !isMyTurn) return;
   if (current501Input.length >= 3) return;
   current501Input += num;
-  if (parseInt(current501Input) > 180) current501Input = "180";
+  if (parseInt(current501Input) > 180) {
+    showToast("Ungültige Eingabe!", "error");
+    current501Input = "";
+    update501Display();
+    return;
+  }
   update501Display();
 }
 
@@ -704,9 +712,24 @@ function updateThrowHistoryUI() {
 }
 
 async function submit501Score() {
-  if (!isLocal501 && !isMyTurn) if (current501Input === "") return;
+  if (!isLocal501 && !isMyTurn)
+    if (current501Input === "" || current501Input === null) return;
 
   let score = parseInt(current501Input);
+
+  if (isNaN(score)) {
+    showToast("Ungültige Eingabe!", "error");
+    current501Input = "";
+    update501Display();
+    return;
+  }
+
+  if (score < 0 || score > 180) {
+    showToast("Score muss zwischen 0 und 180 liegen!", "error");
+    current501Input = "";
+    update501Display();
+    return;
+  }
 
   const impossibleScores = [163, 166, 169, 172, 173, 175, 176, 178, 179];
   if (impossibleScores.includes(score)) {

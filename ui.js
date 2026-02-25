@@ -425,6 +425,22 @@ document.addEventListener("keydown", function (event) {
   // MODUS: 501 & PARTY X01 (Numpad: 0-9, Backspace, Enter)
   // ---------------------------------------------------------
   if (is501 || isParty) {
+    const key = event.key;
+    const checkoutOverlay = document.getElementById("checkout-overlay");
+    if (checkoutOverlay && checkoutOverlay.style.display === "flex") {
+      if (["0", "1", "2", "3"].includes(key)) {
+        const buttons = document.querySelectorAll("#checkout-buttons .num-btn");
+
+        buttons.forEach((btn) => {
+          if (btn.innerText === key) {
+            btn.click();
+          }
+        });
+
+        event.preventDefault();
+        return;
+      }
+    }
     if (/^[0-9]$/.test(key)) {
       // Zahlen tippen
       if (is501) append501Input(key);
