@@ -33,7 +33,7 @@ function switchModalTab(tab) {
     // ---> NEU: Blockiert das Überschreiben bei Bob's und RTW <---
     if (
       typeof currentModalType !== "undefined" &&
-      (currentModalType === "501" || currentModalType === "littler")
+      (currentModalType === "501" || currentModalType === "secure")
     ) {
       if (typeof loadMatchHistory === "function") loadMatchHistory();
     }
@@ -129,7 +129,7 @@ async function saveInlineName() {
     });
     if (authErr) throw authErr;
 
-    // 2. Datenbanken updaten (501 und Littler)
+    // 2. Datenbanken updaten (501 und Secure)
     await _supabase
       .from("stats_501")
       .update({ name: newName })
@@ -179,3 +179,262 @@ function closeConfirmModal() {
   document.getElementById("generic-confirm-modal").style.display = "none";
   pendingConfirmAction = null;
 }
+
+// ==========================================
+// UNIVERSAL DARTBOARD RENDERER
+// ==========================================
+function renderUniversalDartboard(containerId, activeTarget, mode = "single") {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const cx = 150,
+    cy = 150;
+  const rBoard = 145,
+    rDoubleOuter = 115,
+    rDoubleInner = 105;
+  const rTripleOuter = 65,
+    rTripleInner = 55;
+  const rOuterBull = 16,
+    rInnerBull = 7,
+    rText = 130;
+  const boardOrder = [
+    20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5,
+  ];
+
+  let slicesHTML = `
+    <style>
+      @keyframes flash-target {
+        0%, 100% { fill: var(--accent-green) !important; stroke: #ffffff !important; }
+        50% { fill: #ffffff !important; stroke: var(--accent-green) !important; stroke-width: 2px !important; }
+      }
+      .blinking-target { animation: flash-target 0.8s infinite ease-in-out; }
+    </style>
+    <circle cx="${cx}" cy="${cy}" r="${rBoard}" fill="#1c1c1c" />
+  `;
+
+  const angleStep = 360 / 20;
+
+  function createArc(rIn, rOut, startA, endA) {
+    const sRad = ((startA - 90) * Math.PI) / 180;
+    const eRad = ((endA - 90) * Math.PI) / 180;
+    const x1_in = cx + rIn * Math.cos(sRad),
+      y1_in = cy + rIn * Math.sin(sRad);
+    const x2_in = cx + rIn * Math.cos(eRad),
+      y2_in = cy + rIn * Math.sin(eRad);
+    const x1_out = cx + rOut * Math.cos(sRad),
+      y1_out = cy + rOut * Math.sin(sRad);
+    const x2_out = cx + rOut * Math.cos(eRad),
+      y2_out = cy + rOut * Math.sin(eRad);
+    return `M ${x1_in} ${y1_in} L ${x1_out} ${y1_out} A ${rOut} ${rOut} 0 0 1 ${x2_out} ${y2_out} L ${x2_in} ${y2_in} A ${rIn} ${rIn} 0 0 0 ${x1_in} ${y1_in} Z`;
+  }
+
+  boardOrder.forEach((num, index) => {
+    const startAngle = index * angleStep - angleStep / 2;
+    const endAngle = startAngle + angleStep;
+    const isRedBlack = index % 2 === 0;
+
+    const colorSingle = isRedBlack ? "#222222" : "#5d554a";
+    const colorDoubleTriple = isRedBlack ? "#a82b2b" : "#1a5d38";
+
+    let innerSingleClass = "",
+      tripleClass = "",
+      outerSingleClass = "",
+      doubleClass = "";
+
+    if (num === activeTarget) {
+      if (mode === "single") {
+        innerSingleClass = ' class="blinking-target"';
+        outerSingleClass = ' class="blinking-target"';
+      } else if (mode === "double" || mode === "bobs") {
+        doubleClass = ' class="blinking-target"';
+      } else if (mode === "triple") {
+        tripleClass = ' class="blinking-target"';
+      }
+    }
+
+    slicesHTML += `<path${innerSingleClass} d="${createArc(
+      rOuterBull,
+      rTripleInner,
+      startAngle,
+      endAngle
+    )}" fill="${colorSingle}" stroke="#aaa" stroke-width="0.5" />`;
+    slicesHTML += `<path${tripleClass} d="${createArc(
+      rTripleInner,
+      rTripleOuter,
+      startAngle,
+      endAngle
+    )}" fill="${colorDoubleTriple}" stroke="#aaa" stroke-width="0.5" />`;
+    slicesHTML += `<path${outerSingleClass} d="${createArc(
+      rTripleOuter,
+      rDoubleInner,
+      startAngle,
+      endAngle
+    )}" fill="${colorSingle}" stroke="#aaa" stroke-width="0.5" />`;
+    slicesHTML += `<path${doubleClass} d="${createArc(
+      rDoubleInner,
+      rDoubleOuter,
+      startAngle,
+      endAngle
+    )}" fill="${colorDoubleTriple}" stroke="#aaa" stroke-width="0.5" />`;
+
+    const textRad = ((startAngle + angleStep / 2 - 90) * Math.PI) / 180;
+    const tx = cx + rText * Math.cos(textRad);
+    const ty = cy + rText * Math.sin(textRad);
+    slicesHTML += `<text x="${tx}" y="${ty}" fill="white" font-size="14" font-weight="bold" font-family="sans-serif" text-anchor="middle" dominant-baseline="central">${num}</text>`;
+  });
+
+  // Bullseye Logic
+  let outerBullClass = "",
+    innerBullClass = "";
+  if (activeTarget === 25 || activeTarget === 50) {
+    if (mode === "single") {
+      outerBullClass = ' class="blinking-target"';
+    } else if (mode === "double" || mode === "triple") {
+      innerBullClass = ' class="blinking-target"';
+    } else if (mode === "bobs") {
+      // Bei Bob's blinkt der gesamte Bull-Bereich
+      outerBullClass = ' class="blinking-target"';
+      innerBullClass = ' class="blinking-target"';
+    }
+  }
+
+  slicesHTML += `<circle${outerBullClass} cx="${cx}" cy="${cy}" r="${rOuterBull}" fill="#1a5d38" stroke="#aaa" stroke-width="0.5" />`;
+  slicesHTML += `<circle${innerBullClass} cx="${cx}" cy="${cy}" r="${rInnerBull}" fill="#a82b2b" stroke="#aaa" stroke-width="0.5" />`;
+
+  container.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 300 300" style="max-width: 350px; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));">${slicesHTML}</svg>`;
+}
+
+// ==========================================
+// UNIVERSAL CANCEL GAME (Für ALLE Modi)
+// ==========================================
+function cancelCurrentGame(screenIdToHide, skipConfirm = false) {
+  const executeCancel = () => {
+    // 1. Bildschirm verstecken
+    if (screenIdToHide) {
+      document.getElementById(screenIdToHide).style.display = "none";
+    }
+
+    // 2. Variablen für RTW & Bob's zurücksetzen
+    if (typeof rtwPlayer !== "undefined") rtwPlayer = null;
+    if (typeof bobsPlayer !== "undefined") bobsPlayer = null;
+
+    // 3. Variablen für Party X01 zurücksetzen
+    if (typeof partyPlayers !== "undefined") partyPlayers = [];
+    if (typeof partyHistoryStack !== "undefined") partyHistoryStack = [];
+
+    // 4. Variablen für Secure-Darts zurücksetzen
+    if (typeof players !== "undefined") players = [];
+    if (typeof isTrainingMode !== "undefined") isTrainingMode = false;
+    if (typeof botTimer !== "undefined" && botTimer) clearTimeout(botTimer);
+
+    // 5. Spezifische 501 UI-Elemente aufräumen (Overlays)
+    const winOverlay501 = document.getElementById("win-overlay-501");
+    if (winOverlay501) winOverlay501.style.display = "none";
+
+    // 6. Online-Lobby und Kamera (falls vorhanden) aufräumen
+    if (typeof stopCameraStream === "function") stopCameraStream();
+    if (
+      typeof isVoiceActive !== "undefined" &&
+      isVoiceActive &&
+      typeof toggleVoice === "function"
+    ) {
+      toggleVoice(); // Mikrofon ausschalten
+    }
+
+    // Zurück ins Hauptmenü
+    goHome();
+  };
+
+  // Wenn skipConfirm "true" ist (z.B. Klick auf "Zum Hauptmenü" NACH einem Sieg),
+  // beenden wir sofort ohne lästige "Bist du sicher?"-Nachfrage.
+  if (skipConfirm) {
+    executeCancel();
+  } else {
+    showCancelModal(executeCancel);
+  }
+}
+
+// ==========================================
+// GLOBALE TASTATUR-STEUERUNG (KEYSTROKES)
+// ==========================================
+document.addEventListener("keydown", function (event) {
+  // 1. Ignoriere Tasten, wenn der User gerade in ein Textfeld tippt (z.B. Spielernamen)
+  if (
+    document.activeElement.tagName === "INPUT" ||
+    document.activeElement.tagName === "TEXTAREA"
+  ) {
+    return;
+  }
+
+  // 2. Welcher Bildschirm ist gerade aktiv?
+  const isRtw =
+    document.getElementById("game-rtw-screen")?.style.display === "block";
+  const isBobs =
+    document.getElementById("game-bobs-screen")?.style.display === "block";
+  const isSecure =
+    document.getElementById("game-secure-screen")?.style.display === "block";
+  const is501 =
+    document.getElementById("game-501-screen")?.style.display === "block";
+  const isParty =
+    document.getElementById("game-party-screen")?.style.display === "block";
+
+  const key = event.key;
+
+  // ---------------------------------------------------------
+  // MODUS: RTW & BOB'S 27 (Tasten: 0, 1, 2, 3)
+  // ---------------------------------------------------------
+  if (isRtw || isBobs) {
+    if (["0", "1", "2", "3"].includes(key)) {
+      const hits = parseInt(key);
+      if (isRtw) submitRtwScore(hits);
+      if (isBobs) submitBobsScore(hits);
+    }
+  }
+
+  // ---------------------------------------------------------
+  // MODUS: SECURE-DARTS (Tasten: 0, 1, 2, 3, Enter, Backspace)
+  // ---------------------------------------------------------
+  if (isSecure) {
+    if (["0", "1", "2", "3"].includes(key)) {
+      const val = parseInt(key);
+      // Phase 1: Punkte werfen (3 Darts)
+      if (typeof thrownScore !== "undefined" && thrownScore < 3) {
+        addRawScore(val);
+      }
+      // Phase 2: Sichern auf Bull (nur 0, 1, 2 erlaubt)
+      else if (
+        typeof thrownSecure !== "undefined" &&
+        thrownSecure < 3 &&
+        currentRawScore > 0 &&
+        val <= 2
+      ) {
+        addSecure(val);
+      }
+    } else if (key === "Enter") {
+      // Enter = Bestätigen (nächster Zug)
+      nextTurn();
+    } else if (key === "Backspace") {
+      // Backspace = Aktuelle Eingabe zurücksetzen (Reset)
+      resetTurnInputs();
+    }
+  }
+
+  // ---------------------------------------------------------
+  // MODUS: 501 & PARTY X01 (Numpad: 0-9, Backspace, Enter)
+  // ---------------------------------------------------------
+  if (is501 || isParty) {
+    if (/^[0-9]$/.test(key)) {
+      // Zahlen tippen
+      if (is501) append501Input(key);
+      if (isParty) appendPartyInput(key);
+    } else if (key === "Backspace") {
+      // Letzte Ziffer löschen
+      if (is501) delete501Input();
+      if (isParty) deletePartyInput();
+    } else if (key === "Enter") {
+      // Score bestätigen
+      if (is501) submit501Score();
+      if (isParty) submitPartyScore(null);
+    }
+  }
+});

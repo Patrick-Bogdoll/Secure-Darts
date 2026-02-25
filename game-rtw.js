@@ -37,10 +37,7 @@ function startRtwGame() {
 }
 
 function cancelRtwGame() {
-  showCancelModal(() => {
-    document.getElementById("game-rtw-screen").style.display = "none";
-    goHome();
-  });
+  cancelCurrentGame("game-rtw-screen");
 }
 
 function updateRtwUI() {
@@ -66,7 +63,7 @@ function updateRtwUI() {
   }
 
   document.getElementById("rtw-target-display").innerText = targetDisplay;
-  renderDynamicDartboardRTW(targetVal);
+  renderUniversalDartboard("rtw-dartboard-container", targetVal, rtwTargetMode);
 
   updateRtwHistoryUI();
 }
@@ -191,153 +188,3 @@ function undoRtwTurn() {
 
   updateRtwUI();
 }
-
-// --- SVG DARTBOARD GENERATOR ---
-function renderDynamicDartboardRTW(activeTarget) {
-  const container = document.getElementById("rtw-dartboard-container");
-
-  const cx = 150,
-    cy = 150;
-  const rBoard = 145;
-  const rDoubleOuter = 115,
-    rDoubleInner = 105;
-  const rTripleOuter = 65,
-    rTripleInner = 55;
-  const rOuterBull = 16,
-    rInnerBull = 7;
-  const rText = 130;
-
-  let slicesHTML = `
-    <style>
-      @keyframes flash-target {
-        0%, 100% { fill: var(--accent-green) !important; stroke: #ffffff !important; }
-        50% { fill: #ffffff !important; stroke: var(--accent-green) !important; stroke-width: 2px !important; }
-      }
-      .blinking-target {
-        animation: flash-target 0.8s infinite ease-in-out;
-      }
-    </style>
-  `;
-
-  slicesHTML += `<circle cx="${cx}" cy="${cy}" r="${rBoard}" fill="#1c1c1c" />`;
-
-  const angleStep = 360 / 20;
-
-  function createArc(rIn, rOut, startA, endA) {
-    const sRad = ((startA - 90) * Math.PI) / 180;
-    const eRad = ((endA - 90) * Math.PI) / 180;
-
-    const x1_in = cx + rIn * Math.cos(sRad),
-      y1_in = cy + rIn * Math.sin(sRad);
-    const x2_in = cx + rIn * Math.cos(eRad),
-      y2_in = cy + rIn * Math.sin(eRad);
-
-    const x1_out = cx + rOut * Math.cos(sRad),
-      y1_out = cy + rOut * Math.sin(sRad);
-    const x2_out = cx + rOut * Math.cos(eRad),
-      y2_out = cy + rOut * Math.sin(eRad);
-
-    return `M ${x1_in} ${y1_in} L ${x1_out} ${y1_out} A ${rOut} ${rOut} 0 0 1 ${x2_out} ${y2_out} L ${x2_in} ${y2_in} A ${rIn} ${rIn} 0 0 0 ${x1_in} ${y1_in} Z`;
-  }
-
-  rtwBoardOrder.forEach((num, index) => {
-    const startAngle = index * angleStep - angleStep / 2;
-    const endAngle = startAngle + angleStep;
-
-    const isRedBlack = index % 2 === 0;
-    const isActive = num === activeTarget;
-
-    const colorSingle = isRedBlack ? "#222222" : "#5d554a";
-    const colorDoubleTriple = isRedBlack ? "#a82b2b" : "#1a5d38";
-
-    let innerSingleClass = "";
-    let tripleClass = "";
-    let outerSingleClass = "";
-    let doubleClass = "";
-
-    if (isActive) {
-      if (rtwTargetMode === "single") {
-        innerSingleClass = ' class="blinking-target"';
-        outerSingleClass = ' class="blinking-target"';
-      } else if (rtwTargetMode === "double") {
-        doubleClass = ' class="blinking-target"';
-      } else if (rtwTargetMode === "triple") {
-        tripleClass = ' class="blinking-target"';
-      }
-    }
-
-    slicesHTML += `<path${innerSingleClass} d="${createArc(
-      rOuterBull,
-      rTripleInner,
-      startAngle,
-      endAngle
-    )}" fill="${colorSingle}" stroke="#aaa" stroke-width="0.5" />`;
-    slicesHTML += `<path${tripleClass} d="${createArc(
-      rTripleInner,
-      rTripleOuter,
-      startAngle,
-      endAngle
-    )}" fill="${colorDoubleTriple}" stroke="#aaa" stroke-width="0.5" />`;
-    slicesHTML += `<path${outerSingleClass} d="${createArc(
-      rTripleOuter,
-      rDoubleInner,
-      startAngle,
-      endAngle
-    )}" fill="${colorSingle}" stroke="#aaa" stroke-width="0.5" />`;
-    slicesHTML += `<path${doubleClass} d="${createArc(
-      rDoubleInner,
-      rDoubleOuter,
-      startAngle,
-      endAngle
-    )}" fill="${colorDoubleTriple}" stroke="#aaa" stroke-width="0.5" />`;
-
-    const textRad = ((startAngle + angleStep / 2 - 90) * Math.PI) / 180;
-    const tx = cx + rText * Math.cos(textRad);
-    const ty = cy + rText * Math.sin(textRad);
-    slicesHTML += `<text x="${tx}" y="${ty}" fill="white" font-size="14" font-weight="bold" font-family="sans-serif" text-anchor="middle" dominant-baseline="central">${num}</text>`;
-  });
-
-  const isBullTarget = activeTarget === 25;
-  let outerBullClass = "";
-  let innerBullClass = "";
-
-  if (isBullTarget) {
-    if (rtwTargetMode === "single") {
-      outerBullClass = ' class="blinking-target"';
-    } else {
-      innerBullClass = ' class="blinking-target"';
-    }
-  }
-
-  slicesHTML += `<circle${outerBullClass} cx="${cx}" cy="${cy}" r="${rOuterBull}" fill="#1a5d38" stroke="#aaa" stroke-width="0.5" />`;
-  slicesHTML += `<circle${innerBullClass} cx="${cx}" cy="${cy}" r="${rInnerBull}" fill="#a82b2b" stroke="#aaa" stroke-width="0.5" />`;
-
-  container.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 300 300" style="max-width: 350px; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));">${slicesHTML}</svg>`;
-}
-
-// ==========================================
-// TASTATUR-STEUERUNG FÜR ROUND THE WORLD
-// ==========================================
-document.addEventListener("keydown", function (event) {
-  // 1. Prüfen, ob wir uns im RTW-Spiel befinden
-  const rtwScreen = document.getElementById("game-rtw-screen");
-  if (!rtwScreen || rtwScreen.style.display !== "block") {
-    return; // Wenn nicht, brich ab
-  }
-
-  // 2. Verhindern, dass Tasten ausgelöst werden, wenn man gerade den Spielernamen eintippt
-  if (document.activeElement.tagName === "INPUT") {
-    return;
-  }
-
-  // 3. Tasten 0, 1, 2, 3 den entsprechenden Treffern zuordnen
-  if (event.key === "0") {
-    submitRtwScore(0);
-  } else if (event.key === "1") {
-    submitRtwScore(1);
-  } else if (event.key === "2") {
-    submitRtwScore(2);
-  } else if (event.key === "3") {
-    submitRtwScore(3);
-  }
-});

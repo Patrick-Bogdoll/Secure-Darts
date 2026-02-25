@@ -14,7 +14,7 @@ let statsChart = null;
 let currentModalPlayer = "";
 let gameHistoryStack = [];
 let botTimer = null;
-let currentStatsMode = "littler";
+let currentStatsMode = "secure";
 
 let currentRawScore = 0;
 let secureMultiplier = 0;
@@ -98,12 +98,12 @@ function showAuthScreen() {
   document.getElementById("main-container").style.display = "none";
   const screens = [
     "home-screen",
-    "setup-screen",
-    "game-screen",
+    "secure-setup-screen",
+    "game-secure-screen",
     "online-lobby-screen",
     "game-501-screen",
     "highscore-screen",
-    "rules-screen",
+    "secure-rules-screen",
     "party-setup-screen",
     "game-party-screen",
     "bobs-setup-screen",
@@ -126,7 +126,7 @@ async function showMainApp() {
   document.getElementById("main-container").style.display = "block";
 
   // Hide the setup screen by default to ensure it doesn't overlap the home menu
-  document.getElementById("setup-screen").style.display = "none";
+  document.getElementById("secure-setup-screen").style.display = "none";
 
   let displayName = "";
   if (!isGuest && currentUser) {
@@ -196,12 +196,12 @@ function goHome() {
 
   const screens = [
     "home-screen",
-    "setup-screen",
-    "game-screen",
+    "secure-setup-screen",
+    "game-secure-screen",
     "online-lobby-screen",
     "game-501-screen",
     "highscore-screen",
-    "rules-screen",
+    "secure-rules-screen",
     "party-setup-screen",
     "game-party-screen",
     "bobs-setup-screen",
@@ -251,12 +251,12 @@ function enterMode(mode) {
 function showScreen(screenType) {
   const screens = [
     "home-screen",
-    "setup-screen",
-    "game-screen",
+    "secure-setup-screen",
+    "game-secure-screen",
     "online-lobby-screen",
     "game-501-screen",
     "highscore-screen",
-    "rules-screen",
+    "secure-rules-screen",
     "party-setup-screen",
     "game-party-screen",
     "bobs-setup-screen",
@@ -274,15 +274,15 @@ function showScreen(screenType) {
 
   if (screenType === "play") {
     document.getElementById("tab-play")?.classList.add("active");
-    if (currentAppMode === "littler") {
+    if (currentAppMode === "secure") {
       if (players.length > 0) {
         // Safely check if the game screen exists before displaying it
         const gameScreen =
-          document.getElementById("game-screen") ||
-          document.getElementById("game-littler-screen");
+          document.getElementById("game-secure-screen") ||
+          document.getElementById("game-secure-screen");
         if (gameScreen) gameScreen.style.display = "block";
       } else {
-        const setupScreen = document.getElementById("setup-screen");
+        const setupScreen = document.getElementById("secure-setup-screen");
         if (setupScreen) setupScreen.style.display = "block";
       }
     } else {
@@ -299,7 +299,7 @@ function showScreen(screenType) {
     switchStatsMode(currentAppMode);
   } else if (screenType === "rules") {
     document.getElementById("tab-rules").classList.add("active");
-    document.getElementById("rules-screen").style.display = "block";
+    document.getElementById("secure-rules-screen").style.display = "block";
   }
 }
 
@@ -318,12 +318,12 @@ function openPartySetup() {
   // 1. Hide all screens (using the array you just updated!)
   const screens = [
     "home-screen",
-    "setup-screen",
-    "game-screen",
+    "secure-setup-screen",
+    "game-secure-screen",
     "online-lobby-screen",
     "game-501-screen",
     "highscore-screen",
-    "rules-screen",
+    "secure-rules-screen",
     "party-setup-screen",
     "game-party-screen",
     "bobs-setup-screen",
@@ -350,12 +350,12 @@ function openPartySetup() {
 function openBobsSetup() {
   const screens = [
     "home-screen",
-    "setup-screen",
-    "game-screen",
+    "secure-setup-screen",
+    "game-secure-screen",
     "online-lobby-screen",
     "game-501-screen",
     "highscore-screen",
-    "rules-screen",
+    "secure-rules-screen",
     "party-setup-screen",
     "game-party-screen",
     "bobs-setup-screen",
@@ -381,12 +381,12 @@ function openBobsSetup() {
 function openRtwSetup() {
   const screens = [
     "home-screen",
-    "setup-screen",
-    "game-screen",
+    "secure-setup-screen",
+    "game-secure-screen",
     "online-lobby-screen",
     "game-501-screen",
     "highscore-screen",
-    "rules-screen",
+    "secure-rules-screen",
     "party-setup-screen",
     "game-party-screen",
     "bobs-setup-screen",

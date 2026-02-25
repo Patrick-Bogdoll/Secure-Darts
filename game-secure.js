@@ -18,7 +18,7 @@ function addPlayer() {
 
 function addBot() {
   let choice = prompt(
-    "Wähle Bot-Stärke:\n1 = Kneipen-Held\n2 = Liga-Spieler\n3 = THE LITTLER"
+    "Wähle Bot-Stärke:\n1 = Kneipen-Held\n2 = Liga-Spieler\n3 = THE NUKE"
   );
   let name = "Bot";
   let diff = 1;
@@ -29,7 +29,7 @@ function addBot() {
     name = "🤖 Liga-Spieler";
     diff = 2;
   } else if (choice === "3") {
-    name = "🔥 THE LITTLER";
+    name = "🔥 THE NUKE";
     diff = 3;
   } else return;
   players.push({
@@ -51,11 +51,11 @@ function startGame() {
 
   if (players.length === 0) return alert("Bitte füge einen Spieler hinzu!");
   if (!isTrainingMode && players.length < 2) {
-    return alert("⚠️ Ein gewertetes Spiel benötigt mindestens 2 Teilnehmer!");
+    return alert("Ein gewertetes Spiel benötigt mindestens 2 Teilnehmer!");
   }
 
   // 1. Reset variables safely
-  currentAppMode = "littler";
+  currentAppMode = "secure";
   currentPlayerIndex = 0;
   globalTargetIndex = 0;
 
@@ -66,7 +66,7 @@ function startGame() {
   } else {
     document.body.classList.remove("training-active");
     const titleEl = document.getElementById("app-title");
-    if (titleEl) titleEl.innerText = "🎯 Schlag den Littler";
+    if (titleEl) titleEl.innerText = "Secure-Darts";
   }
 
   // 2. Prevent WakeLock crashes (often fails on local/HTTP testing)
@@ -81,19 +81,18 @@ function startGame() {
   // 3. THE FIX: Manually hide all screens to bypass the 'showScreen("play")' ID crash!
   const allScreens = [
     "auth-screen",
-    "setup-screen",
+    "secure-setup-screen",
     "online-lobby-screen",
     "game-501-screen",
     "highscore-screen",
-    "rules-screen",
+    "secure-rules-screen",
     "party-setup-screen",
     "game-party-screen",
     "bobs-setup-screen",
     "game-bobs-screen",
     "rtw-setup-screen",
     "game-rtw-screen",
-    "game-screen",
-    "game-littler-screen",
+    "game-secure-screen",
   ];
 
   for (let i = 0; i < allScreens.length; i++) {
@@ -101,14 +100,12 @@ function startGame() {
     if (el) el.style.display = "none";
   }
 
-  // 4. Forcefully display the Littler game screen
-  const littlerScreen =
-    document.getElementById("game-screen") ||
-    document.getElementById("game-littler-screen");
-  if (littlerScreen) {
-    littlerScreen.style.display = "block";
+  // 4. Forcefully display the Secure game screen
+  const secureScreen = document.getElementById("game-secure-screen");
+  if (secureScreen) {
+    secureScreen.style.display = "block";
   } else {
-    console.error("Critical: The Game-Screen HTML element is missing!");
+    console.error("Critical: The Game-Secure-Screen HTML element is missing!");
   }
 
   // 5. Safely load the UI
@@ -392,13 +389,20 @@ async function saveMatchHistory(name, pObj, isWin) {
   const { error } = await _supabase.from("match_history").insert([payload]);
 
   if (error) {
-    console.error("Fehler beim Speichern der Littler-History:", error.message);
+    console.error("Fehler beim Speichern der Secure-History:", error.message);
   }
 }
 
 function addRawScore(m) {
+  const currentTarget = targets[globalTargetIndex];
+
+  // --- NEU: Sicherheits-Check für Bull (25) und Bullseye (50) ---
+  // Blockiert ungültige Multiplikatoren von Tastatur oder Sprachsteuerung
+  if (currentTarget === 25 && m > 2) return; // Kein Triple Single-Bull (max 2)
+  if (currentTarget === 50 && m > 1) return; // Kein Double/Triple Bullseye (max 1)
+
   if (thrownScore < MAX_DARTS) {
-    currentRawScore += targets[globalTargetIndex] * m;
+    currentRawScore += currentTarget * m;
     thrownScore++;
     updateTurnDisplay();
   }
@@ -656,12 +660,6 @@ if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
   document.getElementById("mic-btn").disabled = true;
 }
 
-function cancelMatch() {
-  showCancelModal(() => {
-    isTrainingMode = false;
-    players = [];
-    if (botTimer) clearTimeout(botTimer);
-    showScreen("main-menu");
-    goHome();
-  });
+function cancelSecureGame() {
+  cancelCurrentGame("game-secure-screen");
 }

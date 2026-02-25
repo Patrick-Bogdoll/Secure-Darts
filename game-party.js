@@ -90,17 +90,7 @@ function startPartyGame() {
 }
 
 function cancelPartyGame() {
-  // Wir rufen unser neues Modal auf und übergeben die Abbruch-Logik
-  showCancelModal(() => {
-    // Dieser Teil wird erst ausgeführt, wenn im Modal auf "Ja" geklickt wird
-    document.getElementById("game-party-screen").style.display = "none";
-
-    // Falls du Variablen zurücksetzen möchtest (optional, aber sauberer):
-    partyPlayers = [];
-    partyHistory = [];
-
-    goHome();
-  });
+  cancelCurrentGame("game-party-screen");
 }
 
 // --- NEU: UNDO LOGIK ---

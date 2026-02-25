@@ -1,4 +1,4 @@
-let currentModalType = "littler";
+let currentModalType = "secure";
 
 let currentModalRawName = "";
 
@@ -32,7 +32,7 @@ async function switchModalMode(mode) {
     if (data) open501Stats(encodeURIComponent(JSON.stringify(data)), true);
     else
       alert("Noch keine 501-Daten für " + currentModalRawName + " vorhanden.");
-  } else if (mode === "littler") {
+  } else if (mode === "secure") {
     let { data } = await _supabase
       .from("highscores")
       .select("*")
@@ -41,7 +41,7 @@ async function switchModalMode(mode) {
     if (data) openProStats(encodeURIComponent(JSON.stringify(data)), true);
     else
       alert(
-        "Noch keine Littler-Daten für " + currentModalRawName + " vorhanden."
+        "Noch keine Secure-Daten für " + currentModalRawName + " vorhanden."
       );
   } else if (mode === "bobs") {
     let { data } = await _supabase
@@ -218,15 +218,15 @@ async function save501MatchHistory(
 }
 function switchStatsMode(mode) {
   currentStatsMode = mode;
-  document.getElementById("btn-stats-littler").style.background =
-    mode === "littler" ? "var(--accent-blue)" : "#333";
-  document.getElementById("btn-stats-littler").style.color =
-    mode === "littler" ? "white" : "#aaa";
+  document.getElementById("btn-stats-secure").style.background =
+    mode === "secure" ? "var(--accent-blue)" : "#333";
+  document.getElementById("btn-stats-secure").style.color =
+    mode === "secure" ? "white" : "#aaa";
   document.getElementById("btn-stats-501").style.background =
     mode === "501" ? "var(--accent-blue)" : "#333";
   document.getElementById("btn-stats-501").style.color =
     mode === "501" ? "white" : "#aaa";
-  if (mode === "littler")
+  if (mode === "secure")
     document.getElementById("stats-table-header").innerHTML =
       "<th>#</th><th>Name</th><th>Siege</th><th>Highscore</th>";
   else
@@ -235,7 +235,7 @@ function switchStatsMode(mode) {
   loadCurrentStats();
 }
 function loadCurrentStats() {
-  if (currentStatsMode === "littler") loadHighscores();
+  if (currentStatsMode === "secure") loadHighscores();
   else load501Stats();
 }
 
@@ -259,7 +259,7 @@ async function loadHighscores() {
       " (Training)",
       ' <span style="color:#d500f9; font-size:0.8em;">(Training)</span>'
     );
-    tr.innerHTML = `<td style="color:#666">${rank}.</td><td><a href="#" class="clickable-name" onclick="openProStats('${safeData}')">${dName}</a></td><td>${entry.wins}</td><td>${entry.highscore}</td>`;
+    tr.innerHTML = `<td style="color:#666">${rank}.</td><td><a href="#" class="clickable-name" onclick="openMatchStats('secure', '${safeData}')">${dName}</a></td><td>${entry.wins}</td><td>${entry.highscore}</td>`;
     tbody.appendChild(tr);
     rank++;
   });
@@ -987,8 +987,8 @@ async function loadMatchHistory() {
   const container = document.getElementById("history-list");
   container.innerHTML = "Lade Daten...";
 
-  if (currentModalType === "littler") {
-    // --- TRAINING HISTORY (LITTLER) ---
+  if (currentModalType === "secure") {
+    // --- TRAINING HISTORY (Secure) ---
     let { data: matches, error } = await _supabase
       .from("match_history")
       .select("*")

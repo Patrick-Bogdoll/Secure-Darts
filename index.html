@@ -348,7 +348,7 @@
 
         <button
           class="primary"
-          onclick="enterMode('littler')"
+          onclick="enterMode('secure')"
           style="background-color: var(--accent-green); color: black"
         >
           🎲 Secure-Darts
@@ -392,7 +392,7 @@
         </button>
       </div>
 
-      <div id="setup-screen">
+      <div id="secure-setup-screen">
         <h3 style="text-align: center; color: #888">Setup</h3>
         <div style="display: flex; gap: 10px; margin-bottom: 10px">
           <input
@@ -429,7 +429,7 @@
 
         <button
           class="reset"
-          onclick="document.getElementById('setup-screen').style.display='none'; document.getElementById('rules-screen').style.display='block';"
+          onclick="document.getElementById('secure-setup-screen').style.display='none'; document.getElementById('secure-rules-screen').style.display='block';"
           style="
             margin-top: 15px;
             border: 1px dashed #555;
@@ -1794,7 +1794,7 @@
         </button>
       </div>
 
-      <div id="game-screen" style="display: none">
+      <div id="game-secure-screen" style="display: none">
         <button
           id="mic-btn"
           onclick="toggleVoice()"
@@ -1922,8 +1922,8 @@
         >
           <button
             class="nav-btn active"
-            id="btn-stats-littler"
-            onclick="switchStatsMode('littler')"
+            id="btn-stats-secure"
+            onclick="switchStatsMode('secure')"
             style="background: var(--accent-blue); color: white"
           >
             🎲 Secure Stats
@@ -1960,7 +1960,7 @@
         </button>
       </div>
 
-      <div id="rules-screen" style="display: none" class="rules-content">
+      <div id="secure-rules-screen" style="display: none" class="rules-content">
         <h3>📜 Spielregeln</h3>
         <p>
           Ziel ist es, die meisten Punkte zu sammeln, während man die Zahlen von
@@ -2014,7 +2014,7 @@
 
         <button
           class="primary"
-          onclick="document.getElementById('rules-screen').style.display='none'; document.getElementById('setup-screen').style.display='block';"
+          onclick="document.getElementById('secure-rules-screen').style.display='none'; document.getElementById('secure-setup-screen').style.display='block';"
           style="margin-top: 30px; background: #444; color: white"
         >
           🔙 Zurück zum Setup
@@ -2127,8 +2127,8 @@
           </button>
           <button
             class="nav-btn"
-            id="modal-btn-littler"
-            onclick="switchModalMode('littler')"
+            id="modal-btn-secure"
+            onclick="switchModalMode('secure')"
             style="
               margin: 0;
               padding: 8px 15px;
@@ -2564,7 +2564,7 @@
     <script src="app.js"></script>
     <script src="auth.js"></script>
     <script src="ui.js"></script>
-    <script src="game-littler.js"></script>
+    <script src="game-secure.js"></script>
     <script src="game-501.js"></script>
     <script src="game-party.js"></script>
     <script src="game-bobs.js"></script>

@@ -1183,45 +1183,8 @@ function listenForOpponent(roomCode) {
     .subscribe();
 }
 
-async function cancel501Game(force = false, broadcastToOpponent = true) {
-  const executeCancel = async () => {
-    if (!isLocal501 && currentRoomCode && broadcastToOpponent) {
-      // 1. Signal "cancelled" an den Gegner senden
-      await _supabase
-        .from("live_matches")
-        .update({ status: "cancelled" })
-        .eq("room_code", currentRoomCode);
-
-      // 2. Den Code merken und den Raum erst nach 2,5 Sekunden löschen.
-      // Das garantiert, dass das Abbruch-Signal 100% beim Gegner ankommt!
-      const codeToDelete = currentRoomCode;
-      setTimeout(async () => {
-        await _supabase
-          .from("live_matches")
-          .delete()
-          .eq("room_code", codeToDelete);
-      }, 2500);
-    }
-
-    // 3. Eigene Variablen sofort aufräumen
-    isLocal501 = false;
-    currentRoomCode = "";
-
-    if (realtimeSubscription) {
-      _supabase.removeChannel(realtimeSubscription);
-      realtimeSubscription = null;
-    }
-
-    goHome();
-  };
-
-  if (force) {
-    await executeCancel();
-  } else {
-    showCancelModal(async () => {
-      await executeCancel();
-    });
-  }
+function cancel501Game(skipConfirm = false) {
+  cancelCurrentGame("game-501-screen", skipConfirm);
 }
 
 async function requestUndo() {
@@ -1522,44 +1485,3 @@ async function triggerOnlineMatchStart() {
     })
     .eq("room_code", currentRoomCode);
 }
-
-document.addEventListener("keydown", function (event) {
-  if (document.getElementById("game-501-screen").style.display !== "block")
-    return;
-  if (document.activeElement.tagName === "INPUT") return;
-
-  // --- NEU: Tastatur-Steuerung für das Checkout-Overlay ---
-  const checkoutOverlay = document.getElementById("checkout-overlay");
-  if (checkoutOverlay && checkoutOverlay.style.display === "flex") {
-    event.preventDefault(); // Blockiert Scrollen etc.
-
-    // Prüfen, ob die Taste eine Zahl ist
-    if (event.key >= "0" && event.key <= "9") {
-      // Sucht alle generierten Buttons im Overlay
-      const btns = document
-        .getElementById("checkout-buttons")
-        .getElementsByTagName("button");
-      for (let btn of btns) {
-        if (btn.innerText === event.key) {
-          btn.click(); // Klickt den Button virtuell an!
-          break;
-        }
-      }
-    }
-    return; // Bricht ab, damit die Zahl nicht versehentlich ins Numpad getippt wird
-  }
-  // --------------------------------------------------------
-
-  if (event.key === "Enter") {
-    event.preventDefault(); // Verbietet dem Browser den Doppel-Klick!
-    submit501Score();
-  } else if (event.key >= "0" && event.key <= "9") {
-    event.preventDefault();
-    append501Input(event.key);
-  } else if (event.key === "Backspace") {
-    event.preventDefault();
-    delete501Input();
-  } else if (event.key === "Escape") {
-    cancel501Game();
-  }
-});
