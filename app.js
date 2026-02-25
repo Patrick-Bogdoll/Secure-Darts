@@ -237,8 +237,8 @@ function enterMode(mode) {
   document.getElementById("hamburger-btn").style.display = "block";
 
   if (mode === "501")
-    document.getElementById("app-title").innerText = "🌍 501 DARTS";
-  else document.getElementById("app-title").innerText = "🎯 SECURE-DARTS";
+    document.getElementById("app-title").innerText = "🎯 501 DARTS";
+  else document.getElementById("app-title").innerText = "🎲 SECURE-DARTS";
 
   showScreen("play");
 }
@@ -276,7 +276,7 @@ function openPartySetup() {
   openGameSetup("party-setup-screen", "🎉 PARTY X01");
 }
 function openBobsSetup() {
-  openGameSetup("bobs-setup-screen", "🎯 BOB'S 27", "bobs-player-input");
+  openGameSetup("bobs-setup-screen", "⭕️ BOB'S 27", "bobs-player-input");
 }
 function openRtwSetup() {
   openGameSetup("rtw-setup-screen", "🌍 ROUND THE WORLD", "rtw-player-input");
@@ -429,31 +429,42 @@ async function triggerOnlineMatchStart() {
 
 // Handy-Kamera Sender
 async function startCompanionMode(roomCode, role) {
-  document.getElementById("companion-screen").style.display = "block";
+  // ==========================================
+  // 1. RIGOROSES AUFRÄUMEN (Login-Screen blockieren)
+  // ==========================================
+  if (typeof hideAllScreens === "function") hideAllScreens();
+
+  const authScreen = document.getElementById("auth-screen");
+  if (authScreen) authScreen.style.display = "none";
+
+  const topHeader = document.getElementById("top-header");
+  if (topHeader) topHeader.style.display = "none";
+
+  const companionScreen = document.getElementById("companion-screen");
+  companionScreen.style.display = "block";
+  companionScreen.style.position = "fixed"; // Zwingt es über ALLES andere
+  companionScreen.style.top = "0";
+  companionScreen.style.left = "0";
+  companionScreen.style.width = "100vw";
+  companionScreen.style.height = "100vh";
+  companionScreen.style.zIndex = "99999"; // Höchste Priorität
+  companionScreen.style.backgroundColor = "black";
+  companionScreen.style.overflow = "hidden";
+
   try {
+    // Kamera anfordern
     currentCameraStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "environment" },
       audio: false,
     });
-    const videoTrack = currentCameraStream.getVideoTracks()[0];
+
     const videoPreview = document.getElementById("local-camera-preview");
     videoPreview.srcObject = currentCameraStream;
-
-    // ==========================================
-    // 1. DER DIGITALE BILDERRAHMEN (CSS)
-    // ==========================================
-    const companionScreen = document.getElementById("companion-screen");
-    companionScreen.style.overflow = "hidden"; // Nichts darf über den Rand rutschen
-    companionScreen.style.position = "relative";
-    companionScreen.style.width = "100vw";
-    companionScreen.style.height = "100vh";
-
     videoPreview.style.width = "100%";
     videoPreview.style.height = "100%";
     videoPreview.style.objectFit = "cover";
     videoPreview.style.touchAction = "none";
     videoPreview.style.transformOrigin = "center center";
-    videoPreview.style.transition = "transform 0.05s linear"; // Geschmeidige Bewegung
 
     // ==========================================
     // 2. DIGITALE PAN & ZOOM LOGIK
@@ -465,7 +476,6 @@ async function startCompanionMode(roomCode, role) {
       translateY = 0;
     let currentDigitalZoom = 1;
 
-    // Wir lesen die feste Breite/Höhe des Videos aus (unabhängig vom Zoom)
     const getBaseDims = () => ({
       w: videoPreview.offsetWidth || window.innerWidth,
       h: videoPreview.offsetHeight || window.innerHeight,
@@ -474,20 +484,14 @@ async function startCompanionMode(roomCode, role) {
     function updateCameraView() {
       const { w, h } = getBaseDims();
 
-      // 1. BERECHNUNG DER GRENZEN (Sichert ab, dass kein schwarzer Rand sichtbar wird)
-      // Wenn Zoom = 1, ist maxTx = 0 (Bild lässt sich nicht verschieben).
-      // Wenn Zoom > 1, berechnen wir die überstehenden Pixel.
       const maxTx = (w * (currentDigitalZoom - 1)) / 2;
       const maxTy = (h * (currentDigitalZoom - 1)) / 2;
 
-      // 2. VERSCHIEBUNG LIMITIEREN
       translateX = Math.max(-maxTx, Math.min(maxTx, translateX));
       translateY = Math.max(-maxTy, Math.min(maxTy, translateY));
 
-      // 3. CSS ANWENDEN (Reihenfolge ist wichtig: erst schieben, dann zoomen)
       videoPreview.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentDigitalZoom})`;
 
-      // 4. DATEN AN PC SENDEN (in Prozent)
       let percentX = (translateX / w) * 100;
       let percentY = (translateY / h) * 100;
 
@@ -505,7 +509,6 @@ async function startCompanionMode(roomCode, role) {
       }
     }
 
-    // --- TOUCH EVENTS ---
     videoPreview.addEventListener("touchstart", (e) => {
       if (e.touches.length === 1) {
         isDragging = true;
@@ -529,13 +532,15 @@ async function startCompanionMode(roomCode, role) {
     // ==========================================
     // 3. REIN DIGITALER ZOOM SLIDER
     // ==========================================
+    // Falls ein alter Slider da ist, löschen wir ihn zuerst
+    const existingSlider = document.getElementById("camera-zoom-slider");
+    if (existingSlider) existingSlider.remove();
+
     const zoomControl = document.createElement("input");
     zoomControl.type = "range";
     zoomControl.id = "camera-zoom-slider";
     zoomControl.style.cssText =
-      "position: absolute; bottom: 50px; left: 10%; width: 80%; height: 30px; z-index: 100;";
-
-    // Wir ignorieren die Hardware-Fähigkeiten und erzwingen einen sauberen digitalen 4x Zoom
+      "position: absolute; bottom: 50px; left: 10%; width: 80%; height: 30px; z-index: 100000;";
     zoomControl.min = 1;
     zoomControl.max = 4;
     zoomControl.step = 0.05;
@@ -543,13 +548,13 @@ async function startCompanionMode(roomCode, role) {
 
     zoomControl.oninput = (e) => {
       currentDigitalZoom = parseFloat(e.target.value);
-      updateCameraView(); // Passt beim Rauszoomen automatisch die Ränder an!
+      updateCameraView();
     };
 
     companionScreen.appendChild(zoomControl);
 
     // ==========================================
-    // 4. WEBRTC & SUPABASE SIGNALING
+    // 4. WEBRTC & SIGNALING LOGIK (Verbindung zur Lobby)
     // ==========================================
     camChannel = _supabase.channel(`camera-${roomCode}`, {
       config: { broadcast: { self: true } },
@@ -598,8 +603,7 @@ async function startCompanionMode(roomCode, role) {
             new RTCSessionDescription(data.answer)
           );
 
-          // WICHTIGER HACK: Sobald die Verbindung steht, senden wir dem PC
-          // noch einmal unsere aktuelle Kameraposition, damit er sich ausrichtet!
+          // Sofortiges Syncen an den PC, wenn die Verbindung steht
           setTimeout(() => updateCameraView(), 1000);
         } else if (data.type === "ice-candidate" && localDronePeer) {
           await localDronePeer.addIceCandidate(
@@ -609,14 +613,23 @@ async function startCompanionMode(roomCode, role) {
       })
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
+          // Das ist der Herzschlag (Ping), der der PC-Lobby sagt: "Ich bin da!"
           camStatusInterval = setInterval(() => {
-            if (camChannel)
+            if (camChannel) {
               camChannel.send({
                 type: "broadcast",
                 event: "cam-status",
                 payload: { role: role },
               });
+            }
           }, 3000);
+
+          // Ein sofortiger Ping direkt beim Start
+          camChannel.send({
+            type: "broadcast",
+            event: "cam-status",
+            payload: { role: role },
+          });
         }
       });
   } catch (err) {
