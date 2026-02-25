@@ -471,12 +471,15 @@ async function startCompanionMode(roomCode, role) {
   }
 
   try {
-    requestWakeLock();
+    // --- WAKELOCK ERZINGEN (Benötigt eine Berührung) ---
+    // Sobald du den Bildschirm 1x antippst oder wischst, bleibt er wach!
+    document.addEventListener("touchstart", requestWakeLock, { once: true });
+
+    // Falls man das Handy kurz minimiert und wieder öffnet
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") {
-        requestWakeLock();
-      }
+      if (document.visibilityState === "visible") requestWakeLock();
     });
+    // ---------------------------------------------------
 
     currentCameraStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "environment" },
@@ -696,17 +699,36 @@ function toggleVideoAvatar(playerId, showVideo) {
   if (avatarEl) avatarEl.style.display = showVideo ? "none" : "block";
 }
 
-// Receiver auf dem PC
-let camWatchdogs = { host: null, guest: null };
+// Globale Variable für die Timer, damit sie nicht den Scope verlieren
+window.camWatchdogs = window.camWatchdogs || { host: null, guest: null };
 
-// Receiver auf dem PC
 function initCameraReceiver(roomCode, myRole) {
   if (camChannel) _supabase.removeChannel(camChannel);
   boardPeers = { host: null, guest: null };
 
-  // Alte Timer zurücksetzen
-  if (camWatchdogs.host) clearTimeout(camWatchdogs.host);
-  if (camWatchdogs.guest) clearTimeout(camWatchdogs.guest);
+  // --- NEUE HILFSFUNKTION FÜR DEN HARTEN ABBRUCH ---
+  const forceDropCamera = (camRole) => {
+    console.log(`Verbindung zu ${camRole} abgerissen (Timeout/Drop).`);
+    const isHost = camRole === "host";
+    const activeId = isHost ? "p1" : "p2";
+
+    // 1. UI auf Avatar zurücksetzen
+    toggleVideoAvatar(activeId, false);
+    updateLobbyCameraStatus(isHost, false);
+
+    // 2. Eingefrorenes Bild zwingend löschen
+    const videoEl = document.getElementById(isHost ? "video-p1" : "video-p2");
+    if (videoEl) {
+      videoEl.srcObject = null;
+      videoEl.style.transform = "none";
+    }
+
+    // 3. WebRTC Peer sauber schließen
+    if (boardPeers[camRole]) {
+      boardPeers[camRole].close();
+      boardPeers[camRole] = null;
+    }
+  };
 
   camChannel = _supabase.channel(`camera-${roomCode}`, {
     config: { broadcast: { self: true } },
@@ -717,17 +739,13 @@ function initCameraReceiver(roomCode, myRole) {
       const data = payload.payload;
       const camRole = data.role;
 
-      // --- WATCHDOG: Timer zurücksetzen, da das Handy sich gemeldet hat! ---
-      if (camRole && camWatchdogs[camRole]) {
-        clearTimeout(camWatchdogs[camRole]);
+      // --- WATCHDOG RESET ---
+      if (camRole && window.camWatchdogs[camRole]) {
+        clearTimeout(window.camWatchdogs[camRole]);
       }
 
-      // Regulläres Beenden (über Button)
       if (data.offline || !camRole) {
-        ["p1", "p2"].forEach((id) => {
-          toggleVideoAvatar(id, false);
-          updateLobbyCameraStatus(id === "p1", false);
-        });
+        if (camRole) forceDropCamera(camRole);
         return;
       }
 
@@ -736,15 +754,9 @@ function initCameraReceiver(roomCode, myRole) {
       updateLobbyCameraStatus(isHost, true);
       toggleVideoAvatar(activeId, true);
 
-      // --- WATCHDOG STARTEN: Wenn in 10s kein Ping kommt -> Avatar zeigen! ---
-      camWatchdogs[camRole] = setTimeout(() => {
-        console.log(`Verbindung zu ${camRole} Kamera abgerissen (Timeout).`);
-        toggleVideoAvatar(activeId, false);
-        updateLobbyCameraStatus(isHost, false);
-        if (boardPeers[camRole]) {
-          boardPeers[camRole].close();
-          boardPeers[camRole] = null;
-        }
+      // --- WATCHDOG START (10 Sekunden) ---
+      window.camWatchdogs[camRole] = setTimeout(() => {
+        forceDropCamera(camRole);
       }, 10000);
 
       if (
@@ -769,16 +781,22 @@ function initCameraReceiver(roomCode, myRole) {
         const peer = new RTCPeerConnection(rtcConfig);
         boardPeers[fromCam] = peer;
 
-        // --- SOFORT-ABBRUCH BEI WEBRTC VERBINDUNGSVERLUST ---
+        // --- SOFORT-ABBRUCH WENN DIE LEITUNG REISST ---
         peer.onconnectionstatechange = () => {
           if (
-            peer.connectionState === "disconnected" ||
-            peer.connectionState === "failed" ||
-            peer.connectionState === "closed"
+            ["disconnected", "failed", "closed"].includes(peer.connectionState)
           ) {
-            const activeId = fromCam === "host" ? "p1" : "p2";
-            toggleVideoAvatar(activeId, false);
-            updateLobbyCameraStatus(fromCam === "host", false);
+            forceDropCamera(fromCam);
+          }
+        };
+        // Backup: Reagiert manchmal sogar noch schneller als connectionState
+        peer.oniceconnectionstatechange = () => {
+          if (
+            ["disconnected", "failed", "closed"].includes(
+              peer.iceConnectionState
+            )
+          ) {
+            forceDropCamera(fromCam);
           }
         };
 
@@ -838,14 +856,10 @@ function initCameraReceiver(roomCode, myRole) {
           videoEl.parentElement.style.overflow = "hidden";
           videoEl.parentElement.style.position = "relative";
         }
-
-        // Zwingt das Video in den perfekten Rahmen für 100% Sync
         videoEl.style.width = "100%";
         videoEl.style.height = "100%";
         videoEl.style.objectFit = "cover";
         videoEl.style.transformOrigin = "center center";
-
-        // Prozentuale Verschiebung vom Handy anwenden
         videoEl.style.transform = `translate(${data.px}%, ${data.py}%) scale(${data.zoom})`;
       }
     })
