@@ -907,3 +907,13 @@ input[type="password"]:focus {
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
+
+#camera-video {
+  touch-action: none; /* Verhindert Scrollen beim Ziehen */
+  cursor: grab;
+  transition: transform 0.1s ease-out; /* Macht das Schieben geschmeidig */
+}
+
+#camera-video:active {
+  cursor: grabbing;
+}

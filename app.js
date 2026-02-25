@@ -436,8 +436,45 @@ async function startCompanionMode(roomCode, role) {
       audio: false,
     });
     const videoTrack = currentCameraStream.getVideoTracks()[0];
-    document.getElementById("local-camera-preview").srcObject =
-      currentCameraStream;
+    const videoPreview = document.getElementById("local-camera-preview"); // <-- In Variable gepackt
+    videoPreview.srcObject = currentCameraStream;
+
+    // ==========================================
+    // ---> NEU: TOUCH-STEUERUNG ZUM VERSCHIEBEN
+    // ==========================================
+    let isDragging = false;
+    let startX, startY;
+    let translateX = 0;
+    let translateY = 0;
+
+    // Verhindert Scrollen der Seite und macht die Bewegung geschmeidig
+    videoPreview.style.touchAction = "none";
+    videoPreview.style.transition = "transform 0.05s linear";
+
+    videoPreview.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 1) {
+        // Nur bei einem Finger aktivieren
+        isDragging = true;
+        startX = e.touches[0].clientX - translateX;
+        startY = e.touches[0].clientY - translateY;
+      }
+    });
+
+    videoPreview.addEventListener("touchmove", (e) => {
+      if (!isDragging || e.touches.length !== 1) return;
+      e.preventDefault(); // Blockiert Android/iOS Standard-Gesten
+
+      translateX = e.touches[0].clientX - startX;
+      translateY = e.touches[0].clientY - startY;
+
+      // Verschiebt das Video-Element
+      videoPreview.style.transform = `translate(${translateX}px, ${translateY}px)`;
+    });
+
+    videoPreview.addEventListener("touchend", () => {
+      isDragging = false;
+    });
+    // ==========================================
 
     const capabilities = videoTrack.getCapabilities();
     if (capabilities.zoom) {
