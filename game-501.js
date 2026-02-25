@@ -481,6 +481,9 @@ function sync501UI(dbData) {
     updateThrowHistoryUI();
   }
 
+  document.getElementById("p1-score").innerText = dbData.player1_score;
+  document.getElementById("p2-score").innerText = dbData.player2_score;
+
   p1Darts501 = dbData.player1_darts || 0;
   p2Darts501 = dbData.player2_darts || 0;
 
