@@ -357,10 +357,7 @@ function openProStats(encodedData, isSwitching = false) {
 
   const m = document.getElementById("stats-modal");
 
-  document.getElementById("modal-name").innerText = data.name.replace(
-    " (Training)",
-    ""
-  );
+  document.getElementById("modal-name").innerText = currentModalRawName;
 
   // ALTE IDs WURDEN HIER ERSETZT (kpi-wins -> kpi-1 etc.)
   document.getElementById("kpi-1").innerText = data.wins;
@@ -503,7 +500,7 @@ async function open501Stats(encodedData, isSwitching = false) {
   }
   const m = document.getElementById("stats-modal");
 
-  document.getElementById("modal-name").innerText = data.name + " (501)";
+  document.getElementById("modal-name").innerText = currentModalRawName;
   document.getElementById("lbl-kpi-1").innerText = "Legs Won";
   document.getElementById("lbl-kpi-2").innerText = "Legs Played";
   document.getElementById("lbl-kpi-3").innerText = "Legs Win%";
