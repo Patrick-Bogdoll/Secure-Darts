@@ -796,10 +796,10 @@ function initCameraReceiver(roomCode, myRole) {
       updateLobbyCameraStatus(isHost, true);
       toggleVideoAvatar(activeId, true);
 
-      // --- WATCHDOG START (10 Sekunden) ---
+      // --- WATCHDOG START (30 Sekunden) ---
       window.camWatchdogs[camRole] = setTimeout(() => {
         forceDropCamera(camRole);
-      }, 10000);
+      }, 30000);
 
       if (
         !boardPeers[camRole] ||

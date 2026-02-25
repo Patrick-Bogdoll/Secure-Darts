@@ -1222,10 +1222,6 @@
       </div>
 
       <div id="game-party-screen" class="screen" style="display: none">
-        <div class="header-bar">
-          <h2 style="margin: 0; flex: 1; text-align: center">🎉 Party X01</h2>
-          <div style="width: 80px"></div>
-        </div>
 
         <div
           id="party-scoreboard"
@@ -1243,47 +1239,40 @@
           class="card"
           style="
             margin-top: 10px;
-            border: 2px solid var(--accent-blue);
             background: rgba(33, 150, 243, 0.05);
             text-align: center;
+            padding: 20px;
           "
         >
-          <h2
-            id="party-turn-indicator"
-            style="color: var(--accent-blue); margin: 0; font-size: 1.4em"
-          >
-            -
-          </h2>
 
-          <div
-            id="party-checkout-display"
-            style="
-              color: var(--accent-purple);
-              font-weight: 800;
-              font-size: 1.3em;
-              margin: 10px 0;
-              min-height: 1.4em;
-              letter-spacing: 1px;
-            "
-          ></div>
+        <div 
+        id="party-checkout-display"
+        style="color: var(--accent-purple);
+        font-weight: 800;
+        font-size: 1.3em;
+        margin: 10px 0;
+        min-height: 1.4em;
+        letter-spacing: 1px;"
+        ></div>
 
-          <div
+          <input
+          type="text"
             id="input-display-party"
+            readonly
             style="
-              font-size: 3em;
-              font-weight: bold;
-              margin: 5px auto;
-              min-height: 60px;
-              color: white;
+              width: 90%;
+              padding: 15px;
+              font-size: 2em;
+              text-align: center;
               background: #111;
+              border: 2px solid #444;
               border-radius: 8px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              width: 100%;
-              max-width: 300px;
+              color: var(--accent-purple);
+              font-weight: bold;
+              margin-bottom: 20px;
+              outline: none;
             "
-          ></div>
+          ></input>
 
           <div class="preset-grid" style="margin-top: 15px">
             <button class="preset-btn" onclick="submitPartyScore(26)">
@@ -1298,21 +1287,13 @@
             <button class="preset-btn" onclick="submitPartyScore(60)">
               60
             </button>
-            <button class="preset-btn" onclick="submitPartyScore(81)">
+            <button class="preset-btn" onclick="submitPartyScore(60)">
               81
             </button>
-            <button class="preset-btn" onclick="submitPartyScore(85)">
-              85
-            </button>
-            <button class="preset-btn" onclick="submitPartyScore(100)">
+            <button class="preset-btn" onclick="submitPartyScore(60)">
               100
             </button>
-            <button class="preset-btn" onclick="submitPartyScore(140)">
-              140
-            </button>
-            <button class="preset-btn" onclick="submitPartyScore(180)">
-              180
-            </button>
+            
           </div>
 
           <div class="numpad-grid">
@@ -1335,40 +1316,31 @@
           </div>
           <button
             id="btn-undo-party"
-            onclick="undoPartyTurn()"
-            style="
-              display: none;
-              width: 100%;
-              margin-top: 15px;
-              background: #444;
-              color: #aaa;
-              padding: 12px;
-              border: none;
-              border-radius: 8px;
-              font-weight: bold;
-              cursor: pointer;
+            onclick="requestUndo()"
+            style="display: none;
+            width: 100%;
+            margin-top: 15px;
+            background: #444;
+            color: #aaa;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
             "
           >
-            ↩ Letzten Wurf rückgängig machen
+            ↩️ Letzten Zug rückgängig
           </button>
           <button
-            onclick="cancelPartyGame()"
+            class="undo-btn"
             style="
-              background: black;
-              color: red;
-              width: 100%;
-              margin-top: 15px;
-              padding: 12px;
-              border: 2px solid red;
-              border-radius: 8px;
-              font-weight: bold;
-              font-size: 1.1em;
-              cursor: pointer;
-              text-align: center;
-              display: block;
+              margin-top: 10px;
+              background: transparent;
+              border: 1px solid #444;
             "
+            onclick="cancelPartyGame()"
           >
-            ❌ Spiel abbrechen
+            🚪 Spiel abbrechen
           </button>
         </div>
       </div>

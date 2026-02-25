@@ -80,7 +80,8 @@ function startPartyGame() {
   let undoBtn = document.getElementById("btn-undo-party");
   if (undoBtn) undoBtn.style.display = "none";
 
-  document.getElementById("input-display-party").innerText = "";
+  // WICHTIG: value statt innerText
+  document.getElementById("input-display-party").value = "";
 
   updatePartyScoreboard();
   updatePartyTurnIndicator();
@@ -114,9 +115,9 @@ function undoPartyTurn() {
   partyPlayers = lastState.players;
   currentPartyTurnIndex = lastState.turnIndex;
 
-  // Reset Eingabefeld
+  // Reset Eingabefeld (WICHTIG: value statt innerText)
   currentPartyInput = "";
-  document.getElementById("input-display-party").innerText = "";
+  document.getElementById("input-display-party").value = "";
 
   // UI aktualisieren
   updatePartyScoreboard();
@@ -132,9 +133,6 @@ function undoPartyTurn() {
 
 function updatePartyTurnIndicator() {
   const currentPlayer = partyPlayers[currentPartyTurnIndex];
-  document.getElementById(
-    "party-turn-indicator"
-  ).innerText = `🎯 ${currentPlayer.name} ist dran`;
 
   // Checkout-Weg anzeigen (Nutzt die Funktion aus game-501.js)
   const checkoutPath =
@@ -150,6 +148,11 @@ function updatePartyTurnIndicator() {
     checkoutDiv.innerText = "";
     checkoutDiv.style.opacity = "0";
   }
+
+  // NEU: Setzt den Namen des aktuellen Spielers dynamisch als Placeholder!
+  document.getElementById(
+    "input-display-party"
+  ).placeholder = `${currentPlayer.name} wirft...`;
 }
 
 function updatePartyScoreboard() {
@@ -190,14 +193,15 @@ function updatePartyScoreboard() {
 function appendPartyInput(num) {
   if (currentPartyInput.length < 3) {
     currentPartyInput += num;
-    document.getElementById("input-display-party").innerText =
-      currentPartyInput;
+    // WICHTIG: value statt innerText
+    document.getElementById("input-display-party").value = currentPartyInput;
   }
 }
 
 function deletePartyInput() {
   currentPartyInput = currentPartyInput.slice(0, -1);
-  document.getElementById("input-display-party").innerText = currentPartyInput;
+  // WICHTIG: value statt innerText
+  document.getElementById("input-display-party").value = currentPartyInput;
 }
 
 function submitPartyScore(presetScore = null) {
@@ -210,7 +214,8 @@ function submitPartyScore(presetScore = null) {
   if (score > 180) {
     alert("Maximal 180 Punkte pro Aufnahme möglich!");
     currentPartyInput = "";
-    document.getElementById("input-display-party").innerText = "";
+    // WICHTIG: value statt innerText
+    document.getElementById("input-display-party").value = "";
     return;
   }
 
@@ -229,7 +234,7 @@ function submitPartyScore(presetScore = null) {
     updatePartyScoreboard();
 
     setTimeout(() => {
-      alert(`🎉 JAAAA! ${player.name} hat gewonnen! 🎉`);
+      alert(`🎉 ${player.name} hat gewonnen!`);
       document.getElementById("game-party-screen").style.display = "none";
       goHome();
     }, 300);
@@ -244,7 +249,8 @@ function submitPartyScore(presetScore = null) {
   }
 
   currentPartyInput = "";
-  document.getElementById("input-display-party").innerText = "";
+  // WICHTIG: value statt innerText
+  document.getElementById("input-display-party").value = "";
 
   updatePartyScoreboard();
   updatePartyTurnIndicator();
