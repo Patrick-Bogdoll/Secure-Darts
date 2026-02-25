@@ -983,7 +983,7 @@ function listenForOpponent(roomCode) {
 
         // --- Abbruch-Check (Status-basiert) ---
         if (dbData.status === "cancelled") {
-          showToast("Dein Gegner hat das Spiel abgebrochen!", "info");
+          showToast("{name} hat das Spiel abgebrochen!", "info");
           // Wichtig: Wir rufen hier die UI-Löschung auf
           cancelCurrentGame("game-501-screen", true);
           return;

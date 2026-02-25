@@ -456,36 +456,41 @@ async function startCompanionMode(roomCode, role) {
     videoPreview.style.transition = "transform 0.05s linear"; // Geschmeidige Bewegung
 
     // ==========================================
-    // 2. TOUCH & ZOOM LOGIK (MIT GRENZEN)
+    // 2. DIGITALE PAN & ZOOM LOGIK
     // ==========================================
     let isDragging = false;
-    let startX, startY;
-    let currentX = 0;
-    let currentY = 0;
+    let startX = 0,
+      startY = 0;
+    let translateX = 0,
+      translateY = 0;
     let currentDigitalZoom = 1;
-    let currentHardwareZoom = 1;
+
+    // Wir lesen die feste Breite/Höhe des Videos aus (unabhängig vom Zoom)
+    const getBaseDims = () => ({
+      w: videoPreview.offsetWidth || window.innerWidth,
+      h: videoPreview.offsetHeight || window.innerHeight,
+    });
 
     function updateCameraView() {
-      // 1. GRENZEN BERECHNEN: Verhindert, dass man das Bild aus dem Rahmen schiebt!
-      // Wenn DigitalZoom = 1 ist, ist maxTranslate = 0 (Das Bild ist bombenfest fixiert).
-      let maxTranslateX =
-        (videoPreview.clientWidth * (currentDigitalZoom - 1)) / 2;
-      let maxTranslateY =
-        (videoPreview.clientHeight * (currentDigitalZoom - 1)) / 2;
+      const { w, h } = getBaseDims();
 
-      // 2. VERSCHIEBUNG LIMITIEREN (Lock to bounds)
-      // Das zwingt das Bild, am Rand stehen zu bleiben, auch wenn du weiter wischst.
-      currentX = Math.max(-maxTranslateX, Math.min(maxTranslateX, currentX));
-      currentY = Math.max(-maxTranslateY, Math.min(maxTranslateY, currentY));
+      // 1. BERECHNUNG DER GRENZEN (Sichert ab, dass kein schwarzer Rand sichtbar wird)
+      // Wenn Zoom = 1, ist maxTx = 0 (Bild lässt sich nicht verschieben).
+      // Wenn Zoom > 1, berechnen wir die überstehenden Pixel.
+      const maxTx = (w * (currentDigitalZoom - 1)) / 2;
+      const maxTy = (h * (currentDigitalZoom - 1)) / 2;
 
-      // 3. PROZENT BERECHNEN (für perfekten Sync zum PC)
-      let percentX = (currentX / videoPreview.clientWidth) * 100;
-      let percentY = (currentY / videoPreview.clientHeight) * 100;
+      // 2. VERSCHIEBUNG LIMITIEREN
+      translateX = Math.max(-maxTx, Math.min(maxTx, translateX));
+      translateY = Math.max(-maxTy, Math.min(maxTy, translateY));
 
-      // 4. ANWENDEN
-      videoPreview.style.transform = `translate(${currentX}px, ${currentY}px) scale(${currentDigitalZoom})`;
+      // 3. CSS ANWENDEN (Reihenfolge ist wichtig: erst schieben, dann zoomen)
+      videoPreview.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentDigitalZoom})`;
 
-      // 5. AN DEN PC SENDEN
+      // 4. DATEN AN PC SENDEN (in Prozent)
+      let percentX = (translateX / w) * 100;
+      let percentY = (translateY / h) * 100;
+
       if (camChannel) {
         camChannel.send({
           type: "broadcast",
@@ -500,23 +505,21 @@ async function startCompanionMode(roomCode, role) {
       }
     }
 
+    // --- TOUCH EVENTS ---
     videoPreview.addEventListener("touchstart", (e) => {
       if (e.touches.length === 1) {
         isDragging = true;
-        // Wir merken uns den Startpunkt minus die bereits gemachte Verschiebung
-        startX = e.touches[0].clientX - currentX;
-        startY = e.touches[0].clientY - currentY;
+        startX = e.touches[0].clientX - translateX;
+        startY = e.touches[0].clientY - translateY;
       }
     });
 
     videoPreview.addEventListener("touchmove", (e) => {
       if (!isDragging || e.touches.length !== 1) return;
-      e.preventDefault(); // Verhindert das eklige "Gummiband"-Scrollen am Handy
-
-      currentX = e.touches[0].clientX - startX;
-      currentY = e.touches[0].clientY - startY;
-
-      updateCameraView(); // Hier greift jetzt automatisch unsere Sperre!
+      e.preventDefault();
+      translateX = e.touches[0].clientX - startX;
+      translateY = e.touches[0].clientY - startY;
+      updateCameraView();
     });
 
     videoPreview.addEventListener("touchend", () => {
@@ -524,56 +527,25 @@ async function startCompanionMode(roomCode, role) {
     });
 
     // ==========================================
-    // 3. ZOOM SLIDER (Kombination aus Hardware & Software)
+    // 3. REIN DIGITALER ZOOM SLIDER
     // ==========================================
-    const capabilities = videoTrack.getCapabilities();
     const zoomControl = document.createElement("input");
     zoomControl.type = "range";
     zoomControl.id = "camera-zoom-slider";
     zoomControl.style.cssText =
       "position: absolute; bottom: 50px; left: 10%; width: 80%; height: 30px; z-index: 100;";
 
-    if (capabilities.zoom) {
-      // Handy hat physischen Zoom! Wir steuern die Linse und das CSS synchron.
-      zoomControl.min = capabilities.zoom.min;
-      zoomControl.max = capabilities.zoom.max;
-      zoomControl.step = capabilities.zoom.step;
-      zoomControl.value = capabilities.zoom.min;
-      currentHardwareZoom = capabilities.zoom.min;
+    // Wir ignorieren die Hardware-Fähigkeiten und erzwingen einen sauberen digitalen 4x Zoom
+    zoomControl.min = 1;
+    zoomControl.max = 4;
+    zoomControl.step = 0.05;
+    zoomControl.value = 1;
 
-      zoomControl.oninput = async (e) => {
-        try {
-          currentHardwareZoom = parseFloat(e.target.value);
-          // 1. Physisch zoomen (für gestochen scharfes Bild am PC via WebRTC)
-          await videoTrack.applyConstraints({
-            advanced: [{ zoom: currentHardwareZoom }],
-          });
+    zoomControl.oninput = (e) => {
+      currentDigitalZoom = parseFloat(e.target.value);
+      updateCameraView(); // Passt beim Rauszoomen automatisch die Ränder an!
+    };
 
-          // 2. Damit das Verschieben (CSS) noch Sinn macht, müssen wir
-          // auch digital ganz leicht mitzoomen (max. 2x), um den "Rand" verschwinden zu lassen.
-          // Wir berechnen einen digitalen Multiplikator anhand des Slider-Werts.
-          let ratio =
-            (currentHardwareZoom - zoomControl.min) /
-            (zoomControl.max - zoomControl.min);
-          currentDigitalZoom = 1 + ratio * 1.5; // Geht von 1.0 bis 2.5
-
-          updateCameraView();
-        } catch (err) {
-          console.error("Zoom Fehler", err);
-        }
-      };
-    } else {
-      // Kein Hardware-Zoom? Wir machen reinen CSS-Zoom!
-      zoomControl.min = 1;
-      zoomControl.max = 3;
-      zoomControl.step = 0.1;
-      zoomControl.value = 1;
-
-      zoomControl.oninput = (e) => {
-        currentDigitalZoom = e.target.value;
-        updateCameraView();
-      };
-    }
     companionScreen.appendChild(zoomControl);
 
     // ==========================================
