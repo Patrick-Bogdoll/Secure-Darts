@@ -85,7 +85,7 @@ function submitBobsScore(hits) {
     saveBobsStatsBackground(false);
 
     setTimeout(() => {
-      alert(`💀 Game Over! Du bist unter 0 Punkte gefallen.`);
+      alert(`Game Over! Du bist unter 0 Punkte gefallen.`);
       document.getElementById("game-bobs-screen").style.display = "none";
       goHome();
     }, 300);
@@ -98,13 +98,9 @@ function submitBobsScore(hits) {
     isBobsGameOver = true;
     saveBobsStatsBackground(true);
 
-    setTimeout(() => {
-      alert(
-        `🎉 GLÜCKWUNSCH! 🎉\n\nDu hast Bob's 27 überlebt!\nDein Endstand: ${bobsPlayer.score} Punkte`
-      );
-      document.getElementById("game-bobs-screen").style.display = "none";
-      goHome();
-    }, 300);
+    showToast("Spiel gewonnen!", "success");
+    document.getElementById("game-bobs-screen").style.display = "none";
+    goHome();
     return;
   }
 

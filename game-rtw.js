@@ -129,21 +129,9 @@ function submitRtwScore(hits) {
 
     // Sobald das letzte Feld bespielt wurde, feuern wir den Upload in den Hintergrund ab!
     saveRtwStatsBackground();
-
-    setTimeout(() => {
-      let resultMsg = `🎉 SPIEL BEENDET! 🎉\n\nDein geheimes Ergebnis:\n\n`;
-
-      rtwPlayer.pointsTable.forEach((entry) => {
-        let fieldName = entry.target === 25 ? "BULL" : entry.target;
-        resultMsg += `Feld ${fieldName}: ${entry.hits} Treffer\n`;
-      });
-
-      resultMsg += `\nGESAMTPUNKTE: ${rtwPlayer.totalPoints} / 63`;
-
-      alert(resultMsg);
-      document.getElementById("game-rtw-screen").style.display = "none";
-      goHome();
-    }, 300);
+    document.getElementById("game-rtw-screen").style.display = "none";
+    showToast("Spiel abgeschlossen!", "success");
+    goHome();
     return;
   }
 
