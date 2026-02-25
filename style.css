@@ -200,10 +200,11 @@ button.bull {
   font-weight: bold;
   color: var(--accent-green);
   z-index: 50;
-  border-radius: 12px;
+  border-radius: 3px;
   backdrop-filter: blur(4px);
   text-align: center;
-  padding: 20px;
+  padding: 0px;
+  box-sizing: border-box; /* <--- DAS LÖST DAS PROBLEM! */
 }
 
 .panic-btn {

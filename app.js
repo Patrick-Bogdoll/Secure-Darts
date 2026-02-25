@@ -78,6 +78,49 @@ let statsTracker = {
   },
 };
 
+// ==========================================
+// DRY HELPER LOGIK (Bildschirm-Steuerung)
+// ==========================================
+const ALL_SCREENS = [
+  "auth-screen",
+  "home-screen",
+  "secure-setup-screen",
+  "game-secure-screen",
+  "online-lobby-screen",
+  "game-501-screen",
+  "highscore-screen",
+  "secure-rules-screen",
+  "party-setup-screen",
+  "game-party-screen",
+  "bobs-setup-screen",
+  "game-bobs-screen",
+  "rtw-setup-screen",
+  "game-rtw-screen",
+];
+
+function hideAllScreens() {
+  ALL_SCREENS.forEach((s) => {
+    let el = document.getElementById(s);
+    if (el) el.style.display = "none";
+  });
+}
+
+// Universeller Setup-Opener für Minigames
+function openGameSetup(screenId, title, inputId = null) {
+  hideAllScreens();
+  document.getElementById(screenId).style.display = "block";
+  let titleEl = document.getElementById("app-title");
+  if (titleEl) titleEl.innerText = title;
+
+  if (inputId) {
+    let inputEl = document.getElementById(inputId);
+    if (inputEl) inputEl.value = myOnlineName || "Spieler";
+  }
+}
+
+// ==========================================
+// INITIALISIERUNG & NAVIGATION
+// ==========================================
 async function initAuth() {
   const {
     data: { session },
@@ -93,28 +136,9 @@ async function initAuth() {
 
 function showAuthScreen() {
   if (isCompanionMode) return;
-
   document.getElementById("top-header").style.display = "none";
   document.getElementById("main-container").style.display = "none";
-  const screens = [
-    "home-screen",
-    "secure-setup-screen",
-    "game-secure-screen",
-    "online-lobby-screen",
-    "game-501-screen",
-    "highscore-screen",
-    "secure-rules-screen",
-    "party-setup-screen",
-    "game-party-screen",
-    "bobs-setup-screen",
-    "game-bobs-screen",
-    "rtw-setup-screen",
-    "game-rtw-screen",
-  ];
-  screens.forEach((s) => {
-    let el = document.getElementById(s);
-    if (el) el.style.display = "none";
-  });
+  hideAllScreens();
   document.getElementById("auth-screen").style.display = "block";
 }
 
@@ -124,8 +148,6 @@ async function showMainApp() {
   document.getElementById("auth-screen").style.display = "none";
   document.getElementById("top-header").style.display = "block";
   document.getElementById("main-container").style.display = "block";
-
-  // Hide the setup screen by default to ensure it doesn't overlap the home menu
   document.getElementById("secure-setup-screen").style.display = "none";
 
   let displayName = "";
@@ -134,16 +156,13 @@ async function showMainApp() {
       currentUser.user_metadata?.display_name ||
       currentUser.user_metadata?.full_name ||
       currentUser.email.split("@")[0];
-
     myOnlineName = displayName;
-
     let p1Input = document.getElementById("local-p1-name");
     let onlineInput = document.getElementById("online-player-name");
     if (p1Input) p1Input.value = displayName;
     if (onlineInput) onlineInput.value = displayName;
   }
 
-  // --- DATABASE-BACKED RECONNECT ---
   if (!isGuest && myOnlineName) {
     let { data: room, error } = await _supabase
       .from("live_matches")
@@ -159,7 +178,6 @@ async function showMainApp() {
       isLocal501 = false;
       currentAppMode = "501";
 
-      // Ensure the lobby and setup are hidden, only show the game
       document.getElementById("home-screen").style.display = "none";
       document.getElementById("online-lobby-screen").style.display = "none";
       document.getElementById("game-501-screen").style.display = "block";
@@ -172,65 +190,35 @@ async function showMainApp() {
 
   const adminBtn = document.getElementById("admin-btn");
   if (adminBtn && currentUser && !isGuest) {
-    const { data, error } = await _supabase
+    const { data } = await _supabase
       .from("stats_501")
       .select("is_admin")
       .eq("user_id", currentUser.id)
       .maybeSingle();
-
-    if (data && data.is_admin) {
-      adminBtn.style.display = "block"; // Show button if DB says yes
-    } else {
-      adminBtn.style.display = "none";
-    }
+    adminBtn.style.display = data && data.is_admin ? "block" : "none";
   }
 
   goHome();
 }
 
 function goHome() {
-  // ---> NEU: Kameras und WebRTC-Tunnel sauber beenden!
   if (typeof cleanupWebRTC === "function") cleanupWebRTC();
-
   document.getElementById("hamburger-btn").style.display = "block";
 
-  const screens = [
-    "home-screen",
-    "secure-setup-screen",
-    "game-secure-screen",
-    "online-lobby-screen",
-    "game-501-screen",
-    "highscore-screen",
-    "secure-rules-screen",
-    "party-setup-screen",
-    "game-party-screen",
-    "bobs-setup-screen",
-    "game-bobs-screen",
-    "rtw-setup-screen",
-    "game-rtw-screen",
-  ];
-  screens.forEach((s) => {
-    let el = document.getElementById(s);
-    if (el) el.style.display = "none";
-  });
+  hideAllScreens();
 
-  // ---> NEU: Lobby-Container wieder auf "Setup" zurücksetzen
   let lobbySetup = document.getElementById("lobby-setup");
   if (lobbySetup) lobbySetup.style.display = "block";
-
   let lobbyActive = document.getElementById("lobby-active");
   if (lobbyActive) lobbyActive.style.display = "none";
 
-  // ---> NEU: Online-Match Variablen leeren
   currentRoomCode = "";
   isOnlineHost = false;
 
-  // Hauptmenü einblenden
   document.getElementById("home-screen").style.display = "block";
   document.getElementById("app-title").innerText = "🎯 SECURE-DARTS";
   document.body.classList.remove("training-active");
 
-  // ---> NEU: Sicherstellen, dass das Cancel-Modal WIRKLICH zu ist
   let cancelModal = document.getElementById("cancel-modal");
   if (cancelModal) cancelModal.style.display = "none";
 }
@@ -238,36 +226,17 @@ function goHome() {
 function enterMode(mode) {
   currentAppMode = mode;
   document.getElementById("home-screen").style.display = "none";
-  document.getElementById("hamburger-btn").style.display = "block"; // Zeigt den Hamburger-Button an
+  document.getElementById("hamburger-btn").style.display = "block";
 
-  if (mode === "501") {
+  if (mode === "501")
     document.getElementById("app-title").innerText = "🌍 501 DARTS";
-  } else {
-    document.getElementById("app-title").innerText = "🎯 SECURE-DARTS";
-  }
+  else document.getElementById("app-title").innerText = "🎯 SECURE-DARTS";
+
   showScreen("play");
 }
 
 function showScreen(screenType) {
-  const screens = [
-    "home-screen",
-    "secure-setup-screen",
-    "game-secure-screen",
-    "online-lobby-screen",
-    "game-501-screen",
-    "highscore-screen",
-    "secure-rules-screen",
-    "party-setup-screen",
-    "game-party-screen",
-    "bobs-setup-screen",
-    "game-bobs-screen",
-    "rtw-setup-screen",
-    "game-rtw-screen",
-  ];
-  screens.forEach((s) => {
-    let el = document.getElementById(s);
-    if (el) el.style.display = "none";
-  });
+  hideAllScreens();
   document
     .querySelectorAll(".nav-btn")
     .forEach((b) => b.classList.remove("active"));
@@ -275,21 +244,15 @@ function showScreen(screenType) {
   if (screenType === "play") {
     document.getElementById("tab-play")?.classList.add("active");
     if (currentAppMode === "secure") {
-      if (players.length > 0) {
-        // Safely check if the game screen exists before displaying it
-        const gameScreen =
-          document.getElementById("game-secure-screen") ||
-          document.getElementById("game-secure-screen");
-        if (gameScreen) gameScreen.style.display = "block";
-      } else {
-        const setupScreen = document.getElementById("secure-setup-screen");
-        if (setupScreen) setupScreen.style.display = "block";
-      }
+      const screenId =
+        players.length > 0 ? "game-secure-screen" : "secure-setup-screen";
+      document.getElementById(screenId).style.display = "block";
     } else {
-      if (isLocal501 || currentRoomCode)
-        document.getElementById("game-501-screen").style.display = "block";
-      else
-        document.getElementById("online-lobby-screen").style.display = "block";
+      const screenId =
+        isLocal501 || currentRoomCode
+          ? "game-501-screen"
+          : "online-lobby-screen";
+      document.getElementById(screenId).style.display = "block";
     }
   } else if (screenType === "stats") {
     document.getElementById("tab-stats").classList.add("active");
@@ -303,110 +266,21 @@ function showScreen(screenType) {
   }
 }
 
-window.addEventListener("DOMContentLoaded", (event) => {
-  loadPlayerSuggestions();
-  initAuth(); // <--- NEU: Prüft Login statt direkt ins Home-Menü zu gehen
-});
+// DRY Setup Funktionen
+function openPartySetup() {
+  openGameSetup("party-setup-screen", "🎉 PARTY X01");
+}
+function openBobsSetup() {
+  openGameSetup("bobs-setup-screen", "🎯 BOB'S 27", "bobs-player-input");
+}
+function openRtwSetup() {
+  openGameSetup("rtw-setup-screen", "🌍 ROUND THE WORLD", "rtw-player-input");
+}
 
 async function requestWakeLock() {
   try {
     if ("wakeLock" in navigator) await navigator.wakeLock.request("screen");
   } catch (err) {}
-}
-
-function openPartySetup() {
-  // 1. Hide all screens (using the array you just updated!)
-  const screens = [
-    "home-screen",
-    "secure-setup-screen",
-    "game-secure-screen",
-    "online-lobby-screen",
-    "game-501-screen",
-    "highscore-screen",
-    "secure-rules-screen",
-    "party-setup-screen",
-    "game-party-screen",
-    "bobs-setup-screen",
-    "game-bobs-screen",
-    "rtw-setup-screen",
-    "game-rtw-screen",
-  ];
-
-  screens.forEach((s) => {
-    let el = document.getElementById(s);
-    if (el) el.style.display = "none";
-  });
-
-  // 2. Show the Party Setup Screen
-  document.getElementById("party-setup-screen").style.display = "block";
-
-  // 3. Update the App Title
-  let titleEl = document.getElementById("app-title");
-  if (titleEl) {
-    titleEl.innerText = "🎉 PARTY X01";
-  }
-}
-
-function openBobsSetup() {
-  const screens = [
-    "home-screen",
-    "secure-setup-screen",
-    "game-secure-screen",
-    "online-lobby-screen",
-    "game-501-screen",
-    "highscore-screen",
-    "secure-rules-screen",
-    "party-setup-screen",
-    "game-party-screen",
-    "bobs-setup-screen",
-    "game-bobs-screen",
-    "rtw-setup-screen",
-    "game-rtw-screen",
-  ];
-  screens.forEach((s) => {
-    let el = document.getElementById(s);
-    if (el) el.style.display = "none";
-  });
-
-  document.getElementById("bobs-setup-screen").style.display = "block";
-
-  let titleEl = document.getElementById("app-title");
-  if (titleEl) titleEl.innerText = "🎯 BOB'S 27";
-
-  // NEU: Namen vorausfüllen
-  let inputEl = document.getElementById("bobs-player-input");
-  if (inputEl) inputEl.value = myOnlineName || "Spieler";
-}
-
-function openRtwSetup() {
-  const screens = [
-    "home-screen",
-    "secure-setup-screen",
-    "game-secure-screen",
-    "online-lobby-screen",
-    "game-501-screen",
-    "highscore-screen",
-    "secure-rules-screen",
-    "party-setup-screen",
-    "game-party-screen",
-    "bobs-setup-screen",
-    "game-bobs-screen",
-    "rtw-setup-screen",
-    "game-rtw-screen",
-  ];
-  screens.forEach((s) => {
-    let el = document.getElementById(s);
-    if (el) el.style.display = "none";
-  });
-
-  document.getElementById("rtw-setup-screen").style.display = "block";
-
-  let titleEl = document.getElementById("app-title");
-  if (titleEl) titleEl.innerText = "🌍 ROUND THE WORLD";
-
-  // NEU: Namen vorausfüllen
-  let inputEl = document.getElementById("rtw-player-input");
-  if (inputEl) inputEl.value = myOnlineName || "Spieler";
 }
 
 function showCancelModal(actionFunction) {
@@ -424,17 +298,15 @@ window.addEventListener("DOMContentLoaded", async (event) => {
   const cameraRoom = urlParams.get("camera");
   const cameraRole = urlParams.get("role");
 
-  // === DER KUGELSICHERE KAMERA-CHECK ===
   if (cameraRoom && cameraRole) {
-    isCompanionMode = true; // Sagt dem restlichen Code: HALT STOPP!
+    isCompanionMode = true;
     document.body.style.background = "black";
     document.getElementById("top-header").style.display = "none";
     document
       .querySelectorAll(".container > div")
       .forEach((s) => (s.style.display = "none"));
-
     startCompanionMode(cameraRoom, cameraRole);
-    return; // Bricht hier sofort ab. Auth wird gar nicht erst geladen!
+    return;
   }
 
   loadPlayerSuggestions();
@@ -461,7 +333,6 @@ let boardPeers = { host: null, guest: null };
 let currentCameraStream = null;
 let camStatusInterval = null;
 
-// 1. Lobby öffnen
 function openOnlineLobby(roomCode, hostName, guestName = null, isHost = false) {
   isOnlineHost = isHost;
   document
@@ -514,38 +385,30 @@ function updateLobbyCameraStatus(isHostCam, isConnected) {
 
 function generateCameraQR() {
   if (!currentRoomCode) return;
-
   const role = isOnlineHost ? "host" : "guest";
   const companionUrl = `${window.location.origin}${window.location.pathname}?camera=${currentRoomCode}&role=${role}`;
 
   const qrContainer = document.getElementById("qr-container");
   const qrImage = document.getElementById("qr-image");
 
-  // Da wir kein <img> Tag mehr brauchen, sondern ein <div> für die Library:
-  // Wir prüfen, ob qr-image ein <img> ist und tauschen es ggf. gegen ein <div> aus
   let canvasContainer = document.getElementById("qrcode-canvas");
   if (!canvasContainer) {
     canvasContainer = document.createElement("div");
     canvasContainer.id = "qrcode-canvas";
     canvasContainer.style.display = "flex";
     canvasContainer.style.justifyContent = "center";
-    // Ersetzt das alte img-Tag durch das neue div-Tag
     qrImage.parentNode.replaceChild(canvasContainer, qrImage);
   }
 
-  // Alten QR-Code Inhalt löschen
   canvasContainer.innerHTML = "";
-
-  // QR-Code sofort lokal generieren
   new QRCode(canvasContainer, {
     text: companionUrl,
     width: 150,
     height: 150,
-    colorDark: "#ffffff", // Code Farbe: Weiß
-    colorLight: "#2d2d2d", // Hintergrund Farbe: Grau (passend zum Container)
+    colorDark: "#ffffff",
+    colorLight: "#2d2d2d",
     correctLevel: QRCode.CorrectLevel.H,
   });
-
   qrContainer.style.display = "block";
 }
 
@@ -559,21 +422,18 @@ async function triggerOnlineMatchStart() {
     .eq("room_code", currentRoomCode);
 }
 
-// 2. Kamera auf dem Handy starten
+// Handy-Kamera Sender
 async function startCompanionMode(roomCode, role) {
   document.getElementById("companion-screen").style.display = "block";
   try {
-    // WICHTIG: Wir weisen den Stream der globalen Variable zu
     currentCameraStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "environment" },
       audio: false,
     });
-
     const videoTrack = currentCameraStream.getVideoTracks()[0];
     document.getElementById("local-camera-preview").srcObject =
       currentCameraStream;
 
-    // Zoom UI
     const capabilities = videoTrack.getCapabilities();
     if (capabilities.zoom) {
       const zoomControl = document.createElement("input");
@@ -582,16 +442,15 @@ async function startCompanionMode(roomCode, role) {
       zoomControl.max = capabilities.zoom.max;
       zoomControl.step = capabilities.zoom.step;
       zoomControl.value = capabilities.zoom.min;
-      zoomControl.id = "camera-zoom-slider"; // ID hinzufügen zum späteren Entfernen
+      zoomControl.id = "camera-zoom-slider";
       zoomControl.style.cssText = "width: 80%; margin-top: 20px; height: 30px;";
-
       zoomControl.oninput = async () => {
         try {
           await videoTrack.applyConstraints({
             advanced: [{ zoom: zoomControl.value }],
           });
         } catch (e) {
-          console.error("Zoom nicht unterstützt", e);
+          console.error("Zoom Fehler", e);
         }
       };
       document.getElementById("companion-screen").appendChild(zoomControl);
@@ -600,7 +459,6 @@ async function startCompanionMode(roomCode, role) {
     camChannel = _supabase.channel(`camera-${roomCode}`, {
       config: { broadcast: { self: true } },
     });
-
     camChannel
       .on("broadcast", { event: "webrtc-signal" }, async (payload) => {
         const data = payload.payload;
@@ -608,10 +466,11 @@ async function startCompanionMode(roomCode, role) {
 
         if (data.type === "request-offer") {
           localDronePeer = new RTCPeerConnection(rtcConfig);
-          // WICHTIG: Nutzt die globale Variable currentCameraStream
-          currentCameraStream.getTracks().forEach((track) => {
-            localDronePeer.addTrack(track, currentCameraStream);
-          });
+          currentCameraStream
+            .getTracks()
+            .forEach((track) =>
+              localDronePeer.addTrack(track, currentCameraStream)
+            );
 
           localDronePeer.onicecandidate = (e) => {
             if (e.candidate)
@@ -626,7 +485,6 @@ async function startCompanionMode(roomCode, role) {
                 },
               });
           };
-
           const offer = await localDronePeer.createOffer();
           await localDronePeer.setLocalDescription(offer);
           camChannel.send({
@@ -651,15 +509,13 @@ async function startCompanionMode(roomCode, role) {
       })
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
-          // WICHTIG: Intervall in Variable speichern
           camStatusInterval = setInterval(() => {
-            if (camChannel) {
+            if (camChannel)
               camChannel.send({
                 type: "broadcast",
                 event: "cam-status",
                 payload: { role: role },
               });
-            }
           }, 3000);
         }
       });
@@ -668,7 +524,15 @@ async function startCompanionMode(roomCode, role) {
   }
 }
 
-// 3. Receiver auf dem PC
+// DRY Helper für Kamera-UI im Dashboard
+function toggleVideoAvatar(playerId, showVideo) {
+  const videoEl = document.getElementById(`video-${playerId}`);
+  const avatarEl = document.getElementById(`avatar-${playerId}`);
+  if (videoEl) videoEl.style.display = showVideo ? "block" : "none";
+  if (avatarEl) avatarEl.style.display = showVideo ? "none" : "block";
+}
+
+// Receiver auf dem PC
 function initCameraReceiver(roomCode, myRole) {
   if (camChannel) _supabase.removeChannel(camChannel);
   boardPeers = { host: null, guest: null };
@@ -676,52 +540,30 @@ function initCameraReceiver(roomCode, myRole) {
   camChannel = _supabase.channel(`camera-${roomCode}`, {
     config: { broadcast: { self: true } },
   });
-
   camChannel
     .on("broadcast", { event: "cam-status" }, (payload) => {
       const data = payload.payload;
-      const camRole = data.role; // 'host' oder 'guest'
-
-      // --- NEU: LOGIK FÜR OFFLINE-STATUS / AVATAR-SWITCH ---
-      // Wir bestimmen, welcher Slot betroffen ist (Host = P1, Guest = P2)
-      // Falls data.role null ist (beim Stoppen), versuchen wir es über die Herkunft zu identifizieren
-      const pId = camRole === "host" ? "p1" : camRole === "guest" ? "p2" : null;
+      const camRole = data.role;
 
       if (data.offline || !camRole) {
-        // Wenn das Handy "offline" meldet, blenden wir das Video aus und den Avatar ein
-        // Wir prüfen beide IDs, falls camRole im Payload nicht definiert war
         ["p1", "p2"].forEach((id) => {
-          // Wenn wir wissen welche ID (pId) oder wenn wir aufräumen müssen
-          const videoEl = document.getElementById(`video-${id}`);
-          const avatarEl = document.getElementById(`avatar-${id}`);
-          if (videoEl) videoEl.style.display = "none";
-          if (avatarEl) avatarEl.style.display = "block";
-
-          // Lobby-Status ebenfalls auf "aus" setzen
+          toggleVideoAvatar(id, false);
           updateLobbyCameraStatus(id === "p1", false);
         });
-        return; // Keine weitere Verbindung nötig
+        return;
       }
-      // -------------------------------------------------------
 
-      if (camRole === "host") updateLobbyCameraStatus(true, true);
-      if (camRole === "guest") updateLobbyCameraStatus(false, true);
+      const isHost = camRole === "host";
+      const activeId = isHost ? "p1" : "p2";
+      updateLobbyCameraStatus(isHost, true);
+      toggleVideoAvatar(activeId, true);
 
-      // Falls Kamera aktiv, Video-Container vorbereiten (Avatar verstecken)
-      const activeVideoId = camRole === "host" ? "video-p1" : "video-p2";
-      const activeAvatarId = camRole === "host" ? "avatar-p1" : "avatar-p2";
-      if (document.getElementById(activeVideoId))
-        document.getElementById(activeVideoId).style.display = "block";
-      if (document.getElementById(activeAvatarId))
-        document.getElementById(activeAvatarId).style.display = "none";
-
-      // Fordere das Bild von JEDER Kamera an, mit der wir noch nicht verbunden sind!
       if (
         !boardPeers[camRole] ||
         boardPeers[camRole].connectionState !== "connected"
       ) {
         if (!boardPeers[camRole])
-          boardPeers[camRole] = { connectionState: "connecting" }; // Spam-Schutz
+          boardPeers[camRole] = { connectionState: "connecting" };
         camChannel.send({
           type: "broadcast",
           event: "webrtc-signal",
@@ -732,24 +574,18 @@ function initCameraReceiver(roomCode, myRole) {
     .on("broadcast", { event: "webrtc-signal" }, async (payload) => {
       const data = payload.payload;
       if (data.target !== myRole) return;
-
-      const fromCam = data.from; // Von wem kommt das Video? ('host' oder 'guest')
+      const fromCam = data.from;
 
       if (data.type === "offer") {
         const peer = new RTCPeerConnection(rtcConfig);
         boardPeers[fromCam] = peer;
 
         peer.ontrack = (event) => {
-          // Zuweisung: Host = P1, Guest = P2
           const videoId = fromCam === "host" ? "video-p1" : "video-p2";
           const videoEl = document.getElementById(videoId);
           if (videoEl) {
             videoEl.srcObject = event.streams[0];
-            videoEl.style.display = "block";
-            // Avatar zur Sicherheit hier nochmal verstecken
-            const avatarId = fromCam === "host" ? "avatar-p1" : "avatar-p2";
-            if (document.getElementById(avatarId))
-              document.getElementById(avatarId).style.display = "none";
+            toggleVideoAvatar(fromCam === "host" ? "p1" : "p2", true);
           }
         };
 
@@ -794,26 +630,19 @@ function initCameraReceiver(roomCode, myRole) {
 }
 
 function cleanupWebRTC() {
-  // 1. Supabase-Kanal verlassen
   if (camChannel) {
     _supabase.removeChannel(camChannel);
     camChannel = null;
   }
-
-  // 2. PC-Verbindungen (Board-Kameras) schließen
   if (typeof boardPeers !== "undefined") {
     if (boardPeers.host && boardPeers.host.close) boardPeers.host.close();
     if (boardPeers.guest && boardPeers.guest.close) boardPeers.guest.close();
     boardPeers = { host: null, guest: null };
   }
-
-  // 3. Handy-Verbindung (Drohne) schließen
   if (typeof localDronePeer !== "undefined" && localDronePeer) {
     localDronePeer.close();
     localDronePeer = null;
   }
-
-  // 4. Video-Elemente schwarz schalten
   let v1 = document.getElementById("video-p1");
   let v2 = document.getElementById("video-p2");
   if (v1) v1.srcObject = null;
@@ -827,61 +656,64 @@ function cleanupWebRTC() {
 async function handleAvatarUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
-
-  // UI Feedback
   document.getElementById("btn-edit-avatar").innerText = "LÄDT...";
 
   try {
-    // 1. Bild komprimieren (Client-Side Resize auf 200x200px)
-    const compressedImageBlob = await compressImage(file, 200, 200);
+    const {
+      data: { session },
+      error: sessionError,
+    } = await _supabase.auth.getSession();
+    if (!session || sessionError)
+      throw new Error(
+        "Deine Login-Sitzung ist ungültig. Bitte logge dich einmal aus und wieder ein!"
+      );
 
-    // 2. Dateinamen generieren (Nutzer ID + Zeitstempel gegen Caching)
+    const compressedImageBlob = await compressImage(file, 200, 200);
     const fileName = `${currentUser.id}_${Date.now()}.jpg`;
 
-    // 3. In den Supabase "avatars" Bucket hochladen
     const { data: uploadData, error: uploadError } = await _supabase.storage
       .from("avatars")
       .upload(fileName, compressedImageBlob, {
         contentType: "image/jpeg",
         upsert: true,
       });
+    if (uploadError) throw new Error("Storage Error: " + uploadError.message);
 
-    if (uploadError) throw uploadError;
-
-    // 4. Öffentliche URL abrufen
     const {
       data: { publicUrl },
     } = _supabase.storage.from("avatars").getPublicUrl(fileName);
 
-    // 5. URL zusätzlich in den User Metadata speichern (Backup)
     const { error: updateError } = await _supabase.auth.updateUser({
       data: { avatar_url: publicUrl },
     });
+    if (updateError)
+      throw new Error("Auth Update Error: " + updateError.message);
 
-    if (updateError) throw updateError;
+    const { error: profileError } = await _supabase
+      .from("profiles")
+      .upsert({
+        id: currentUser.id,
+        name: myOnlineName,
+        avatar_url: publicUrl,
+      });
+    if (profileError)
+      throw new Error("Profile Update Error: " + profileError.message);
 
-    // ---> 6. NEU: In die neue "profiles" Tabelle pushen <---
-    const { error: profileError } = await _supabase.from("profiles").upsert({
-      id: currentUser.id, // Verknüpft mit auth.users.id
-      name: myOnlineName, // Der aktuelle Anzeigename aus der app.js
-      avatar_url: publicUrl, // Der frische Link zum Bild
-    });
-
-    if (profileError) throw profileError;
-    // --------------------------------------------------------
-
-    // 7. UI sofort updaten
     document.getElementById("modal-avatar-preview").src = publicUrl;
-    currentUser.user_metadata.avatar_url = publicUrl; // Lokal updaten
-    showToast("Profilbild erfolgreich aktualisiert!", "success"); // Nutzt jetzt dein neues Toast-System!
+    currentUser.user_metadata.avatar_url = publicUrl;
+
+    // Fallback auf alert, falls Toast hier nicht verfügbar ist
+    if (typeof showToast === "function")
+      showToast("Profilbild erfolgreich aktualisiert!", "success");
+    else alert("Profilbild erfolgreich aktualisiert!");
   } catch (error) {
-    showToast("Fehler beim Upload: " + error.message, "error");
+    if (typeof showToast === "function") showToast(error.message, "error");
+    else alert(error.message);
   } finally {
     document.getElementById("btn-edit-avatar").innerText = "EDIT";
   }
 }
 
-// Hilfsfunktion: Schrumpft das Bild per HTML5 Canvas auf Mini-Größe
 function compressImage(file, maxWidth, maxHeight) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -891,10 +723,8 @@ function compressImage(file, maxWidth, maxHeight) {
       img.src = event.target.result;
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        let width = img.width;
-        let height = img.height;
-
-        // Seitenverhältnis beibehalten und zuschneiden
+        let width = img.width,
+          height = img.height;
         if (width > height) {
           if (width > maxWidth) {
             height *= maxWidth / width;
@@ -906,13 +736,10 @@ function compressImage(file, maxWidth, maxHeight) {
             height = maxHeight;
           }
         }
-
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
-
-        // Gibt ein hochkomprimiertes JPEG (Qualität 80%) als Blob zurück
         canvas.toBlob(
           (blob) => {
             resolve(blob);
@@ -927,45 +754,34 @@ function compressImage(file, maxWidth, maxHeight) {
 }
 
 async function stopCameraStream() {
-  // 1. Intervall stoppen (Wichtig, damit der PC merkt, dass wir weg sind)
   if (camStatusInterval) {
     clearInterval(camStatusInterval);
     camStatusInterval = null;
   }
-
-  // 2. WebRTC Verbindung schließen
   if (localDronePeer) {
     localDronePeer.close();
     localDronePeer = null;
   }
-
-  // 3. Hardware-Kamera physisch stoppen
   if (currentCameraStream) {
     currentCameraStream.getTracks().forEach((track) => track.stop());
     currentCameraStream = null;
   }
 
-  // 4. Video-Element leeren
   const videoEl = document.getElementById("local-camera-preview");
   if (videoEl) videoEl.srcObject = null;
 
-  // 5. Supabase Kanal trennen & Signal senden
   if (camChannel) {
-    // Wir senden ein explizites "Offline"-Signal an den PC
     await camChannel.send({
       type: "broadcast",
       event: "cam-status",
-      payload: { role: null, offline: true }, // 'offline: true' triggert den Avatar am PC
+      payload: { role: null, offline: true },
     });
-
-    // Kurz warten, damit das Signal sicher rausgeht, dann Kanal löschen
     setTimeout(async () => {
       await _supabase.removeChannel(camChannel);
       camChannel = null;
     }, 500);
   }
 
-  // 6. Handy-UI umschalten (Statt Tab schließen)
   document.getElementById("companion-screen").innerHTML = `
       <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #1a1a1a; color: white; font-family: sans-serif; text-align: center; padding: 20px;">
           <div style="font-size: 50px; margin-bottom: 20px;">🔒</div>

@@ -212,7 +212,7 @@ function renderUniversalStats(mode, rawData, extraChartData, isSwitching) {
 
   document.getElementById("modal-name").innerText = currentModalRawName;
 
-  // ---> NEU: Avatar für ALLE User aus der Datenbank laden <---
+  // ---> Avatar für ALLE User aus der Datenbank laden
   loadProfileAvatar(currentModalRawName);
 
   // Buttons updaten (Falls wir nicht über switchModalMode kamen)
@@ -423,19 +423,32 @@ function parseBobsData(data) {
     }
     detailsHTML += `</div>`;
 
+    // ---> DRY: Hier ist der Bobs Mülleimer
+    let safeData = encodeURIComponent(JSON.stringify(game)).replace(
+      /'/g,
+      "%27"
+    );
     historyHtml += `
       <div style="background: #2a2a2a; border-radius: 8px; margin-bottom: 8px; overflow: hidden;">
-        <div onclick="toggleHistoryDetails(this)" style="padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+        <div onclick="toggleHistoryDetails(this)" style="padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'">
           <div style="text-align: left;">
             <span style="color: #aaa; font-size: 0.8em;">${dateStr}</span>
             <div style="font-weight: bold; color: ${winColor};">${
       game.is_win ? "SIEG" : "BUST"
     }</div>
           </div>
-          <div style="font-size: 1.5em; font-weight: bold; color: white;">
+          <div style="display:flex; align-items:center; gap:15px;">
+            <div style="font-size: 1.5em; font-weight: bold; color: white;">
+              ${
+                game.final_score
+              } <span style="font-size: 0.5em; color: #888; font-weight: normal;">Pkt</span>
+            </div>
             ${
-              game.final_score
-            } <span style="font-size: 0.5em; color: #888; font-weight: normal;">Pkt</span>
+              currentUser &&
+              (game.user_id === currentUser.id || game.name === myOnlineName)
+                ? `<button onclick="event.stopPropagation(); deleteUniversalMatch('bobs', ${game.id}, '${safeData}')" style="background:none; border:none; cursor:pointer; font-size:1.2em;">🗑️</button>`
+                : ""
+            }
           </div>
         </div>
         <div class="history-details" style="display: none; padding: 0 15px 15px 15px; background: #222;">${detailsHTML}</div>
@@ -507,16 +520,31 @@ function parseRtwData(data) {
     }
     detailsHTML += `</div>`;
 
+    // ---> DRY: Hier ist der RTW Mülleimer
+    let safeData = encodeURIComponent(JSON.stringify(game)).replace(
+      /'/g,
+      "%27"
+    );
     historyHtml += `
       <div style="background: #2a2a2a; border-radius: 8px; margin-bottom: 8px; overflow: hidden;">
-        <div onclick="toggleHistoryDetails(this)" style="padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+        <div onclick="toggleHistoryDetails(this)" style="padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'">
           <div style="text-align: left;">
             <span style="color: #aaa; font-size: 0.8em;">${dateStr}</span>
             <div style="color: var(--accent-blue); font-weight: bold;">Modus: ${modeText}</div>
           </div>
-          <div style="text-align: right;">
-            <div style="font-size: 1.5em; font-weight: bold; color: white;">${game.total_points}</div>
-            <span style="color: #888; font-size: 0.8em;">Treffer</span>
+          <div style="display:flex; align-items:center; gap:15px;">
+            <div style="text-align: right;">
+              <div style="font-size: 1.5em; font-weight: bold; color: white;">${
+                game.total_points
+              }</div>
+              <span style="color: #888; font-size: 0.8em;">Treffer</span>
+            </div>
+            ${
+              currentUser &&
+              (game.user_id === currentUser.id || game.name === myOnlineName)
+                ? `<button onclick="event.stopPropagation(); deleteUniversalMatch('rtw', ${game.id}, '${safeData}')" style="background:none; border:none; cursor:pointer; font-size:1.2em;">🗑️</button>`
+                : ""
+            }
           </div>
         </div>
         <div class="history-details" style="display: none; padding: 0 15px 15px 15px; background: #222;">${detailsHTML}</div>
@@ -829,18 +857,21 @@ async function loadMatchHistory() {
   container.innerHTML = "Lade Daten...";
 
   if (currentModalType === "secure") {
+    // --- SECURE HISTORY ---
     let { data: matches, error } = await _supabase
       .from("match_history_secure")
       .select("*")
       .eq("player_name", currentModalPlayer)
       .order("created_at", { ascending: false })
       .limit(20);
+
     if (error || !matches || matches.length === 0) {
       container.innerHTML = "Noch keine Spiele aufgezeichnet.";
       return;
     }
 
     container.innerHTML = "";
+
     matches.forEach((m) => {
       const date = new Date(m.created_at).toLocaleDateString("de-DE", {
         day: "2-digit",
@@ -848,39 +879,83 @@ async function loadMatchHistory() {
         hour: "2-digit",
         minute: "2-digit",
       });
+
       const div = document.createElement("div");
       div.className = `history-item ${m.is_win ? "win" : ""}`;
 
-      let detailsHTML = `<div style="text-align:center; padding-bottom:5px; border-bottom:1px solid #444; margin-bottom:10px; color:#aaa;">Gegner: <b style="color:white">${m.opponent_name}</b> | Match Avg: <b style="color:var(--accent-blue)">${m.match_average}</b></div>`;
+      // Runden (Match Details) durchlaufen
+      let detailsHTML = `<div style="border-top:1px solid #444; margin-top:10px; padding-top:5px;">`;
 
       if (m.match_details && Array.isArray(m.match_details)) {
-        m.match_details.forEach((leg) => {
-          let isP1 = leg.p1_name === currentModalPlayer;
-          let myDarts = isP1 ? leg.p1_darts : leg.p2_darts;
-          let myRest = isP1 ? leg.p1_rest : leg.p2_rest;
-          let legStatus =
-            leg.winner === currentModalPlayer
-              ? `<span style="color:var(--accent-green)">Check: ${leg.checkout} (${myDarts} Darts)</span>`
-              : `<span style="color:var(--accent-red)">Rest: ${myRest} (${myDarts} Darts)</span>`;
+        m.match_details.forEach((round, i) => {
+          let targetName =
+            round.target === 25
+              ? "BULL"
+              : round.target === 50
+              ? "BULLSEYE"
+              : round.target;
+          let secureText = round.secured
+            ? `<span style="color:var(--accent-green)">Gesichert (x${round.multiplier})</span>`
+            : `<span style="color:var(--accent-red)">Verfehlt</span>`;
+          let pointsText =
+            round.final_points > 0
+              ? `<b style="color:var(--accent-blue)">+${round.final_points} Pkt</b>`
+              : `<b style="color:#888">0 Pkt</b>`;
 
-          detailsHTML += `<div class="detail-row"><span style="font-weight:bold; color:#888;">Leg ${leg.leg_number}</span><span>${legStatus}</span></div>`;
+          detailsHTML += `
+            <div style="display: flex; justify-content: space-between; font-size: 0.85em; padding: 6px 0; border-bottom: 1px solid #222;">
+              <span style="color: #888;">Runde ${
+                i + 1
+              } (Ziel <b style="color: white;">${targetName}</b>)</span>
+              <span style="text-align: right;">
+                Wurf: <b style="color:white;">${
+                  round.raw_score
+                }</b> &rarr; ${secureText} <br>
+                ${pointsText}
+              </span>
+            </div>`;
         });
+      } else {
+        detailsHTML += `<div style="color: #888; font-size: 0.85em; padding-top: 10px;">Keine Runden-Details verfügbar.</div>`;
       }
+      detailsHTML += `</div>`;
 
+      // ---> DRY: Hier ist der Secure Mülleimer
+      let safeData = encodeURIComponent(JSON.stringify(m)).replace(/'/g, "%27");
       div.innerHTML = `
-        <div class="history-summary" onclick="toggleHistoryDetails(this)">
-          <div>
+        <div class="history-summary" onclick="toggleHistoryDetails(this)" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+          <div style="text-align:left;">
             <div style="font-weight:bold; color:${
               m.is_win ? "var(--accent-green)" : "#aaa"
-            }">${m.is_win ? "SIEG" : "NIEDERLAGE"}</div>
+            }">
+              ${m.is_win ? "SIEG" : "NIEDERLAGE"} ${
+        m.is_training
+          ? '<span style="color:var(--accent-purple); font-size:0.8em;">(Training)</span>'
+          : ""
+      }
+            </div>
             <div class="history-date">${date}</div>
           </div>
-          <div class="history-score">${m.is_win ? "🏆" : "❌"}</div>
+          <div style="display:flex; align-items:center; gap:15px;">
+            <div style="font-size: 1.5em; font-weight: bold; color: white;">
+              ${
+                m.final_score || 0
+              } <span style="font-size: 0.5em; color: #888; font-weight: normal;">Pkt</span>
+            </div>
+            ${
+              currentUser &&
+              (m.user_id === currentUser.id || m.player_name === myOnlineName)
+                ? `<button onclick="event.stopPropagation(); deleteUniversalMatch('secure', ${m.id}, '${safeData}')" style="background:none; border:none; cursor:pointer; font-size:1.2em;">🗑️</button>`
+                : ""
+            }
+          </div>
         </div>
-        <div class="history-details" style="display:none; padding: 10px; background: #1a1a1a; border-radius: 0 0 8px 8px;">${detailsHTML}</div>`;
+        <div class="history-details" style="display:none;">${detailsHTML}</div>`;
+
       container.appendChild(div);
     });
   } else if (currentModalType === "501") {
+    // --- 501 HISTORY ---
     let { data: matches, error } = await _supabase
       .from("match_history_501")
       .select("*")
@@ -971,6 +1046,8 @@ async function loadMatchHistory() {
         });
       }
 
+      // ---> DRY: Hier ist der 501 Mülleimer
+      let safeData = encodeURIComponent(JSON.stringify(m)).replace(/'/g, "%27");
       div.innerHTML = `
         <div class="history-summary" onclick="toggleHistoryDetails(this)" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
           <div style="flex:1;">
@@ -983,15 +1060,9 @@ async function loadMatchHistory() {
           </div>
           <div class="history-score">${m.is_win ? "🏆" : "❌"}</div>
           ${
-            currentUser && m.player_name === myOnlineName
-              ? `<button onclick="event.stopPropagation(); deleteMatch501(${
-                  m.id
-                }, ${m.darts_thrown}, ${m.is_win ? 1 : 0}, ${JSON.stringify(
-                  m.match_details
-                ).replace(
-                  /"/g,
-                  "&quot;"
-                )})" style="background:none; border:none; cursor:pointer; font-size:1.2em;">🗑️</button>`
+            currentUser &&
+            (m.user_id === currentUser.id || m.player_name === myOnlineName)
+              ? `<button onclick="event.stopPropagation(); deleteUniversalMatch('501', ${m.id}, '${safeData}')" style="background:none; border:none; cursor:pointer; font-size:1.2em;">🗑️</button>`
               : ""
           }
         </div>
@@ -1073,53 +1144,132 @@ function toggleHistoryDetails(element) {
     details.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
-function deleteMatch501(matchId, dartsCount, wasWin, matchDetails) {
+// ==========================================
+// UNIVERSAL DELETE LOGIC
+// ==========================================
+function deleteUniversalMatch(mode, matchId, encodedData) {
   showConfirmModal(
-    "Möchtest du dieses Match wirklich löschen? Die Statistiken werden entsprechend korrigiert.",
+    "Möchtest du dieses Match wirklich löschen? Die Statistiken werden korrigiert.",
     async () => {
-      let totalPointsInMatch = 0,
-        legsCount = 0;
-      if (matchDetails && Array.isArray(matchDetails)) {
-        legsCount = matchDetails.length;
-        matchDetails.forEach((leg) => {
-          totalPointsInMatch +=
-            leg.p1_name === currentModalPlayer
-              ? 501 - leg.p1_rest
-              : 501 - leg.p2_rest;
-        });
-      }
+      const m = JSON.parse(decodeURIComponent(encodedData));
 
-      const { data: currentStats } = await _supabase
-        .from("stats_501")
-        .select("*")
-        .eq("name", currentModalPlayer)
-        .maybeSingle();
-      if (currentStats) {
-        await _supabase
-          .from("stats_501")
-          .update({
-            wins: Math.max(0, currentStats.wins - wasWin),
-            games_played: Math.max(0, currentStats.games_played - legsCount),
-            total_darts_thrown: Math.max(
-              0,
-              currentStats.total_darts_thrown - dartsCount
-            ),
-            total_score_thrown: Math.max(
-              0,
-              currentStats.total_score_thrown - totalPointsInMatch
-            ),
-          })
-          .eq("name", currentModalPlayer);
-      }
+      try {
+        if (mode === "bobs") {
+          await _supabase.from("stats_bobs").delete().eq("id", matchId);
+        } else if (mode === "rtw") {
+          await _supabase.from("stats_rtw").delete().eq("id", matchId);
+        } else if (mode === "501") {
+          let totalPointsInMatch = 0;
+          let legsCount = m.match_details ? m.match_details.length : 0;
+          if (m.match_details && Array.isArray(m.match_details)) {
+            m.match_details.forEach((leg) => {
+              let isP1 = leg.p1_name === m.player_name;
+              totalPointsInMatch += isP1
+                ? 501 - leg.p1_rest
+                : 501 - leg.p2_rest;
+            });
+          }
+          const { data: currentStats } = await _supabase
+            .from("stats_501")
+            .select("*")
+            .eq("name", m.player_name)
+            .maybeSingle();
+          if (currentStats) {
+            await _supabase
+              .from("stats_501")
+              .update({
+                wins: Math.max(0, currentStats.wins - (m.is_win ? 1 : 0)),
+                games_played: Math.max(
+                  0,
+                  (currentStats.games_played || 0) - legsCount
+                ),
+                total_darts_thrown: Math.max(
+                  0,
+                  (currentStats.total_darts_thrown || 0) - m.darts_thrown
+                ),
+                total_score_thrown: Math.max(
+                  0,
+                  (currentStats.total_score_thrown || 0) - totalPointsInMatch
+                ),
+              })
+              .eq("name", m.player_name);
+          }
+          await _supabase.from("match_history_501").delete().eq("id", matchId);
+        } else if (mode === "secure") {
+          let roundsCount = 0;
+          let secureCount = 0;
+          let doubleCount = 0;
+          let numStatsSub = {};
 
-      const { error } = await _supabase
-        .from("match_history_501")
-        .delete()
-        .eq("id", matchId);
-      if (error) showToast("Fehler beim Löschen: " + error.message, "error");
-      else {
-        showToast("Match gelöscht und Statistik korrigiert!", "success");
-        switchModalMode("501");
+          if (m.match_details && Array.isArray(m.match_details)) {
+            roundsCount = m.match_details.length;
+            m.match_details.forEach((round) => {
+              if (round.secured) secureCount++;
+              if (round.multiplier === 2) doubleCount++;
+              let key = round.target.toString();
+              if (!numStatsSub[key]) numStatsSub[key] = { points: 0, count: 0 };
+              numStatsSub[key].points += round.raw_score;
+              numStatsSub[key].count += 1;
+            });
+          }
+          // --> Hier wurden die Tabellennamen auf stats_secure korrigiert <--
+          const { data: currentStats } = await _supabase
+            .from("stats_secure")
+            .select("*")
+            .eq("name", m.player_name)
+            .maybeSingle();
+          if (currentStats) {
+            let mStats = currentStats.number_stats || {};
+            for (let k in numStatsSub) {
+              if (mStats[k]) {
+                mStats[k].points = Math.max(
+                  0,
+                  mStats[k].points - numStatsSub[k].points
+                );
+                mStats[k].count = Math.max(
+                  0,
+                  mStats[k].count - numStatsSub[k].count
+                );
+              }
+            }
+            await _supabase
+              .from("stats_secure")
+              .update({
+                wins: Math.max(
+                  0,
+                  (currentStats.wins || 0) - (m.is_win ? 1 : 0)
+                ),
+                games_played: Math.max(0, (currentStats.games_played || 0) - 1),
+                total_points: Math.max(
+                  0,
+                  (currentStats.total_points || 0) - (m.final_score || 0)
+                ),
+                rounds_played: Math.max(
+                  0,
+                  (currentStats.rounds_played || 0) - roundsCount
+                ),
+                secure_count: Math.max(
+                  0,
+                  (currentStats.secure_count || 0) - secureCount
+                ),
+                double_count: Math.max(
+                  0,
+                  (currentStats.double_count || 0) - doubleCount
+                ),
+                number_stats: mStats,
+              })
+              .eq("name", m.player_name);
+          }
+          await _supabase
+            .from("match_history_secure")
+            .delete()
+            .eq("id", matchId);
+        }
+
+        showToast("Match gelöscht und Statistiken aktualisiert!", "success");
+        switchModalMode(mode);
+      } catch (err) {
+        showToast("Fehler beim Löschen: " + err.message, "error");
       }
     }
   );
