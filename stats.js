@@ -347,7 +347,7 @@ function openProStats(encodedData, isSwitching = false) {
   // ---------------------------------------------
 
   let b1 = document.getElementById("modal-btn-501");
-  let b2 = document.getElementById("modal-btn-littler");
+  let b2 = document.getElementById("modal-btn-secure");
   if (b1 && b2) {
     b1.style.background = "#333";
     b1.style.color = "#aaa";
