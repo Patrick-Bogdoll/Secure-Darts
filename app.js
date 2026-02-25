@@ -436,24 +436,61 @@ async function startCompanionMode(roomCode, role) {
       audio: false,
     });
     const videoTrack = currentCameraStream.getVideoTracks()[0];
-    const videoPreview = document.getElementById("local-camera-preview"); // <-- In Variable gepackt
+    const videoPreview = document.getElementById("local-camera-preview");
     videoPreview.srcObject = currentCameraStream;
 
     // ==========================================
-    // ---> NEU: TOUCH-STEUERUNG ZUM VERSCHIEBEN
+    // 1. DER DIGITALE BILDERRAHMEN (CSS)
+    // ==========================================
+    const companionScreen = document.getElementById("companion-screen");
+    companionScreen.style.overflow = "hidden"; // Nichts darf über den Rand rutschen
+    companionScreen.style.position = "relative";
+    companionScreen.style.width = "100vw";
+    companionScreen.style.height = "100vh";
+
+    videoPreview.style.width = "100%";
+    videoPreview.style.height = "100%";
+    videoPreview.style.objectFit = "cover";
+    videoPreview.style.touchAction = "none";
+    videoPreview.style.transformOrigin = "center center";
+    videoPreview.style.transition = "transform 0.05s linear"; // Geschmeidige Bewegung
+
+    // ==========================================
+    // 2. TOUCH & ZOOM LOGIK
     // ==========================================
     let isDragging = false;
     let startX, startY;
     let translateX = 0;
     let translateY = 0;
+    let currentDigitalZoom = 1; // Für CSS (digitales Reinschieben)
+    let currentHardwareZoom = 1; // Für die Linse (falls verfügbar)
 
-    // Verhindert Scrollen der Seite und macht die Bewegung geschmeidig
-    videoPreview.style.touchAction = "none";
-    videoPreview.style.transition = "transform 0.05s linear";
+    // Zentrale Funktion: Sendet die Daten auch an den PC!
+    function updateCameraView() {
+      // Berechnung in Prozent für nahtlose PC-Übertragung
+      let percentX = (translateX / videoPreview.clientWidth) * 100;
+      let percentY = (translateY / videoPreview.clientHeight) * 100;
+
+      // Lokales CSS Update auf dem Handy
+      videoPreview.style.transform = `translate(${percentX}%, ${percentY}%) scale(${currentDigitalZoom})`;
+
+      // Live-Sync an den PC senden (falls Channel offen)
+      if (camChannel) {
+        camChannel.send({
+          type: "broadcast",
+          event: "cam-transform",
+          payload: {
+            role: role,
+            zoom: currentDigitalZoom,
+            px: percentX,
+            py: percentY,
+          },
+        });
+      }
+    }
 
     videoPreview.addEventListener("touchstart", (e) => {
       if (e.touches.length === 1) {
-        // Nur bei einem Finger aktivieren
         isDragging = true;
         startX = e.touches[0].clientX - translateX;
         startY = e.touches[0].clientY - translateY;
@@ -463,44 +500,75 @@ async function startCompanionMode(roomCode, role) {
     videoPreview.addEventListener("touchmove", (e) => {
       if (!isDragging || e.touches.length !== 1) return;
       e.preventDefault(); // Blockiert Android/iOS Standard-Gesten
-
       translateX = e.touches[0].clientX - startX;
       translateY = e.touches[0].clientY - startY;
-
-      // Verschiebt das Video-Element
-      videoPreview.style.transform = `translate(${translateX}px, ${translateY}px)`;
+      updateCameraView();
     });
 
     videoPreview.addEventListener("touchend", () => {
       isDragging = false;
     });
-    // ==========================================
 
+    // ==========================================
+    // 3. ZOOM SLIDER (Kombination aus Hardware & Software)
+    // ==========================================
     const capabilities = videoTrack.getCapabilities();
+    const zoomControl = document.createElement("input");
+    zoomControl.type = "range";
+    zoomControl.id = "camera-zoom-slider";
+    zoomControl.style.cssText =
+      "position: absolute; bottom: 50px; left: 10%; width: 80%; height: 30px; z-index: 100;";
+
     if (capabilities.zoom) {
-      const zoomControl = document.createElement("input");
-      zoomControl.type = "range";
+      // Handy hat physischen Zoom! Wir steuern die Linse und das CSS synchron.
       zoomControl.min = capabilities.zoom.min;
       zoomControl.max = capabilities.zoom.max;
       zoomControl.step = capabilities.zoom.step;
       zoomControl.value = capabilities.zoom.min;
-      zoomControl.id = "camera-zoom-slider";
-      zoomControl.style.cssText = "width: 80%; margin-top: 20px; height: 30px;";
-      zoomControl.oninput = async () => {
+      currentHardwareZoom = capabilities.zoom.min;
+
+      zoomControl.oninput = async (e) => {
         try {
+          currentHardwareZoom = parseFloat(e.target.value);
+          // 1. Physisch zoomen (für gestochen scharfes Bild am PC via WebRTC)
           await videoTrack.applyConstraints({
-            advanced: [{ zoom: zoomControl.value }],
+            advanced: [{ zoom: currentHardwareZoom }],
           });
-        } catch (e) {
-          console.error("Zoom Fehler", e);
+
+          // 2. Damit das Verschieben (CSS) noch Sinn macht, müssen wir
+          // auch digital ganz leicht mitzoomen (max. 2x), um den "Rand" verschwinden zu lassen.
+          // Wir berechnen einen digitalen Multiplikator anhand des Slider-Werts.
+          let ratio =
+            (currentHardwareZoom - zoomControl.min) /
+            (zoomControl.max - zoomControl.min);
+          currentDigitalZoom = 1 + ratio * 1.5; // Geht von 1.0 bis 2.5
+
+          updateCameraView();
+        } catch (err) {
+          console.error("Zoom Fehler", err);
         }
       };
-      document.getElementById("companion-screen").appendChild(zoomControl);
-    }
+    } else {
+      // Kein Hardware-Zoom? Wir machen reinen CSS-Zoom!
+      zoomControl.min = 1;
+      zoomControl.max = 3;
+      zoomControl.step = 0.1;
+      zoomControl.value = 1;
 
+      zoomControl.oninput = (e) => {
+        currentDigitalZoom = e.target.value;
+        updateCameraView();
+      };
+    }
+    companionScreen.appendChild(zoomControl);
+
+    // ==========================================
+    // 4. WEBRTC & SUPABASE SIGNALING
+    // ==========================================
     camChannel = _supabase.channel(`camera-${roomCode}`, {
       config: { broadcast: { self: true } },
     });
+
     camChannel
       .on("broadcast", { event: "webrtc-signal" }, async (payload) => {
         const data = payload.payload;
@@ -543,6 +611,10 @@ async function startCompanionMode(roomCode, role) {
           await localDronePeer.setRemoteDescription(
             new RTCSessionDescription(data.answer)
           );
+
+          // WICHTIGER HACK: Sobald die Verbindung steht, senden wir dem PC
+          // noch einmal unsere aktuelle Kameraposition, damit er sich ausrichtet!
+          setTimeout(() => updateCameraView(), 1000);
         } else if (data.type === "ice-candidate" && localDronePeer) {
           await localDronePeer.addIceCandidate(
             new RTCIceCandidate(data.candidate)
@@ -562,7 +634,9 @@ async function startCompanionMode(roomCode, role) {
         }
       });
   } catch (err) {
-    showToast("Kamera blockiert: " + err.message, "error");
+    if (typeof showToast === "function")
+      showToast("Kamera blockiert: " + err.message, "error");
+    else alert("Kamera blockiert: " + err.message);
   }
 }
 
@@ -666,6 +740,27 @@ function initCameraReceiver(roomCode, myRole) {
         await boardPeers[fromCam].addIceCandidate(
           new RTCIceCandidate(data.candidate)
         );
+      }
+    })
+    // ==========================================
+    // ---> NEU: LISTENER FÜR ZOOM & VERSCHIEBUNG
+    // ==========================================
+    .on("broadcast", { event: "cam-transform" }, (payload) => {
+      const data = payload.payload;
+      const videoId = data.role === "host" ? "video-p1" : "video-p2";
+      const videoEl = document.getElementById(videoId);
+
+      if (videoEl) {
+        // Sicherstellen, dass das Video den Container nicht überschreitet
+        if (videoEl.parentElement) {
+          videoEl.parentElement.style.overflow = "hidden";
+        }
+
+        videoEl.style.objectFit = "cover";
+        videoEl.style.transformOrigin = "center center";
+
+        // Wendet den Zoom und die Verschiebung vom Handy an
+        videoEl.style.transform = `translate(${data.px}%, ${data.py}%) scale(${data.zoom})`;
       }
     })
     .subscribe();
