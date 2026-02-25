@@ -523,10 +523,10 @@ function sync501UI(dbData) {
   document.getElementById("p2-darts").innerText = `${p2Darts501} Darts`;
 
   document.getElementById("p1-checkout").innerText = getCheckoutPath(
-    dbData.player1_score
+    dbData.player1_score,
   );
   document.getElementById("p2-checkout").innerText = getCheckoutPath(
-    dbData.player2_score
+    dbData.player2_score,
   );
 
   if (document.getElementById("p1-legs-display"))
@@ -690,9 +690,8 @@ function updateThrowHistoryUI() {
 
   // Best-of-Text aktualisieren
   if (document.getElementById("match-format-display")) {
-    document.getElementById(
-      "match-format-display"
-    ).innerText = `Best of ${bestOfLegs} Legs`;
+    document.getElementById("match-format-display").innerText =
+      `Best of ${bestOfLegs} Legs`;
   }
 }
 
@@ -729,13 +728,13 @@ async function submit501Score() {
       ? localP1Score
       : localP2Score
     : amIPlayer1
-    ? parseInt(document.getElementById("p1-score").innerText)
-    : parseInt(document.getElementById("p2-score").innerText);
+      ? parseInt(document.getElementById("p1-score").innerText)
+      : parseInt(document.getElementById("p2-score").innerText);
 
   const bogeyFinishes = [169, 168, 166, 165, 163, 162, 159];
   if (score === currentPoints && bogeyFinishes.includes(score)) {
     alert(
-      `Nice try! Aber ${score} ist eine Bogey-Zahl. Die kannst du unmöglich mit einem Doppel checken!`
+      `Nice try! Aber ${score} ist eine Bogey-Zahl. Die kannst du unmöglich mit einem Doppel checken!`,
     );
     current501Input = "";
     update501Display();
@@ -762,8 +761,8 @@ async function submit501Score() {
       ? statsTracker.p1
       : statsTracker.p2
     : amIPlayer1
-    ? statsTracker.p1
-    : statsTracker.p2;
+      ? statsTracker.p1
+      : statsTracker.p2;
   let isBotThrow = isLocal501 && localCurrentTurn === 2 && isP2Bot; // Prüft, ob der Bot gerade dran ist
 
   if (isBust) {
@@ -774,7 +773,7 @@ async function submit501Score() {
         : await askCheckoutOverlay(
             "Bust! Wie viele Darts gingen aufs Doppel?",
             0,
-            3
+            3,
           );
       pStats.checkoutAttempts += ans;
     }
@@ -786,7 +785,7 @@ async function submit501Score() {
       : await askCheckoutOverlay(
           "GAME SHOT! 🎯\nMit dem wievielten Dart gecheckt?",
           1,
-          3
+          3,
         );
     dartsThrownThisTurn = turnDarts;
 
@@ -795,7 +794,7 @@ async function submit501Score() {
       : await askCheckoutOverlay(
           `Checkout Attempts:\nWie viele der ${turnDarts} Darts waren aufs Doppel?`,
           1,
-          turnDarts
+          turnDarts,
         );
     pStats.checkoutAttempts += doubleDarts;
   } else {
@@ -807,13 +806,15 @@ async function submit501Score() {
     pStats.scoreFrequencies[thrownVal] =
       (pStats.scoreFrequencies[thrownVal] || 0) + 1;
 
-    if (isOnFinish && score > 0) {
+    let isDirectDouble =
+      (currentPoints <= 40 && currentPoints % 2 === 0) || currentPoints === 50;
+    if (isOnFinish && (score > 0 || isDirectDouble)) {
       let ans = isBotThrow
         ? botDoubleAttempts
         : await askCheckoutOverlay(
             "Kein Finish! Wie viele Darts gingen aufs Doppel?",
             0,
-            3
+            3,
           );
       pStats.checkoutAttempts += ans;
     }
@@ -876,7 +877,7 @@ async function submit501Score() {
       handleLegWinLocal(
         localCurrentTurn === 1 ? localP1Name : localP2Name,
         localCurrentTurn === 1 ? 1 : 2,
-        score
+        score,
       );
       return;
     }
@@ -919,7 +920,7 @@ async function submit501Score() {
 
     update501QoL(
       amIPlayer1 ? newScore : prevState.player1_score,
-      amIPlayer1 ? prevState.player2_score : newScore
+      amIPlayer1 ? prevState.player2_score : newScore,
     );
     isMyTurn = false;
     document.getElementById("input-display-501").innerText = "Sende...";
@@ -1074,7 +1075,7 @@ function listenForOpponent(roomCode) {
                 myDarts,
                 myScore,
                 isNaN(finalScore) ? 0 : finalScore,
-                myStatsObj
+                myStatsObj,
               );
               save501MatchHistory(
                 myOnlineName,
@@ -1083,7 +1084,7 @@ function listenForOpponent(roomCode) {
                 parseFloat(myAvg),
                 myDarts,
                 isNaN(finalScore) ? 0 : finalScore,
-                currentMatchLog501
+                currentMatchLog501,
               );
             }
           } else {
@@ -1119,7 +1120,7 @@ function listenForOpponent(roomCode) {
               dbData.player2_name,
               dbData.player1_score,
               dbData.player2_score,
-              finishPoints
+              finishPoints,
             );
           }
 
@@ -1147,7 +1148,7 @@ function listenForOpponent(roomCode) {
 
           sync501UI(dbData);
         }
-      }
+      },
     )
     .on(
       "postgres_changes",
@@ -1170,7 +1171,7 @@ function listenForOpponent(roomCode) {
         }
         showToast("Der Raum wurde geschlossen!");
         cancelCurrentGame("game-501-screen", true);
-      }
+      },
     )
     .subscribe();
 }
@@ -1245,7 +1246,7 @@ function recordLegStat501(
   p2Name,
   p1Rest,
   p2Rest,
-  finishScore
+  finishScore,
 ) {
   let p1LegDarts = p1Darts501 - p1DartsAtLegStart;
   let p2LegDarts = p2Darts501 - p2DartsAtLegStart;
@@ -1278,7 +1279,7 @@ function handleLegWinLocal(winnerName, playerNum, finishScore) {
     localP2Name,
     localP1Score,
     localP2Score,
-    finishScore
+    finishScore,
   );
   if (playerNum === 1) localP1Legs++;
   else localP2Legs++;
@@ -1299,7 +1300,7 @@ function handleLegWinLocal(winnerName, playerNum, finishScore) {
       p1Darts501,
       p1TotalScore,
       playerNum === 1 ? finishScore : 0,
-      statsTracker.p1
+      statsTracker.p1,
     );
     save501Stats(
       localP2Name,
@@ -1308,7 +1309,7 @@ function handleLegWinLocal(winnerName, playerNum, finishScore) {
       p2Darts501,
       p2TotalScore,
       playerNum === 2 ? finishScore : 0,
-      statsTracker.p2
+      statsTracker.p2,
     );
 
     let p1Avg = ((p1TotalScore / p1Darts501) * 3).toFixed(2);
@@ -1320,7 +1321,7 @@ function handleLegWinLocal(winnerName, playerNum, finishScore) {
       parseFloat(p1Avg),
       p1Darts501,
       playerNum === 1 ? finishScore : 0,
-      currentMatchLog501
+      currentMatchLog501,
     );
     save501MatchHistory(
       localP2Name,
@@ -1329,7 +1330,7 @@ function handleLegWinLocal(winnerName, playerNum, finishScore) {
       parseFloat(p2Avg),
       p2Darts501,
       playerNum === 2 ? finishScore : 0,
-      currentMatchLog501
+      currentMatchLog501,
     );
   }
 
@@ -1471,9 +1472,8 @@ async function play501BotTurn() {
     let hit = calculateBotHit(target, botDifficulty501);
     totalTurnScore += hit;
 
-    document.getElementById(
-      "input-display-501"
-    ).innerText = `Bot wirft: ${hit}...`;
+    document.getElementById("input-display-501").innerText =
+      `Bot wirft: ${hit}...`;
     await new Promise((r) => setTimeout(r, 800));
 
     let tempScore = localP2Score - totalTurnScore;
