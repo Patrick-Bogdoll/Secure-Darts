@@ -148,8 +148,8 @@ button small {
   opacity: 0.8;
 }
 button.reset {
-  background-color: #ff9800;
-  color: #000;
+  background-color: #333;
+  color: white;
   width: 100%;
   margin-top: 15px;
   font-size: 0.9em;
@@ -437,6 +437,9 @@ td {
 }
 .history-item.win {
   border-left-color: var(--accent-green);
+}
+.history-item.lose {
+  border-left-color: var(--accent-red);
 }
 .history-summary {
   display: flex;

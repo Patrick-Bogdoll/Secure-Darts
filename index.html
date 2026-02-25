@@ -273,7 +273,7 @@
       <button
         class="nav-btn"
         id="tab-stats"
-        onclick="showScreen('stats'); toggleMenu();"
+        onclick="showScreen('stats'); toggleMenu(); load501Stats();"
       >
         📊 Statistiken
       </button>
@@ -424,7 +424,13 @@
           <input type="checkbox" id="chk-training" />
           <span>Trainings-Modus (Separat speichern)</span>
         </label>
-        <button class="primary" onclick="startGame()">START</button>
+        <button
+          class="primary"
+          style="background-color: var(--accent-green); color: black"
+          onclick="startGame()"
+        >
+          START
+        </button>
         <button class="reset" onclick="goHome()">🏠 Zurück</button>
 
         <button
@@ -459,7 +465,7 @@
             <h4
               style="
                 margin-top: 0;
-                color: var(--accent-green);
+                color: var(--accent-blue);
                 text-transform: uppercase;
                 letter-spacing: 1px;
               "
@@ -485,7 +491,7 @@
                 id="best-of-legs"
                 style="
                   background: #111;
-                  color: var(--accent-green);
+                  color: var(--accent-blue);
                   border: 1px solid #444;
                   padding: 8px 15px;
                   border-radius: 5px;
@@ -550,7 +556,7 @@
               style="
                 margin-top: 0;
                 width: 100%;
-                background-color: var(--accent-green);
+                background-color: var(--accent-blue);
                 color: black;
               "
               onclick="startLocal501Game()"
@@ -595,6 +601,7 @@
                 class="primary"
                 style="
                   background: var(--accent-blue);
+                  color: black;
                   width: 100%;
                   padding: 10px;
                   margin-top: 5px;
@@ -1908,42 +1915,13 @@
       </div>
 
       <div id="highscore-screen" style="display: none">
-        <div
-          id="stats-toggle-container"
-          style="
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
-          "
-        >
-          <button
-            class="nav-btn active"
-            id="btn-stats-secure"
-            onclick="switchStatsMode('secure')"
-            style="background: var(--accent-blue); color: white"
-          >
-            🎲 Secure Stats
-          </button>
-          <button
-            class="nav-btn"
-            id="btn-stats-501"
-            onclick="switchStatsMode('501')"
-            style="background: #333; color: #aaa"
-          >
-            🎯 501 Stats
-          </button>
-        </div>
-        <div id="loading-spinner" style="text-align: center; padding: 20px">
-          <!--Lade Daten...-->
-        </div>
         <table id="lifetime-table">
           <thead>
             <tr id="stats-table-header">
               <th>#</th>
               <th>Name</th>
               <th>Siege</th>
-              <th>Highscore</th>
+              <th>3-Dart-Avg</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -1951,7 +1929,7 @@
         <button
           class="primary"
           style="background: #333; margin-top: 20px"
-          onclick="loadCurrentStats()"
+          onclick="load501Stats()"
         >
           Refresh
         </button>

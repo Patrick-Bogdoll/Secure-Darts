@@ -267,7 +267,6 @@ function showScreen(screenType) {
     document.getElementById("highscore-screen").style.display = "block";
     let toggle = document.getElementById("stats-toggle-container");
     if (toggle) toggle.style.display = "none";
-    switchStatsMode(currentAppMode);
   } else if (screenType === "rules") {
     document.getElementById("tab-rules").classList.add("active");
     document.getElementById("secure-rules-screen").style.display = "block";

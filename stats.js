@@ -773,32 +773,6 @@ async function save501MatchHistory(
   await _supabase.from("match_history_501").insert([payload]);
 }
 
-function switchStatsMode(mode) {
-  currentStatsMode = mode;
-  document.getElementById("btn-stats-secure").style.background =
-    mode === "secure" ? "var(--accent-blue)" : "#333";
-  document.getElementById("btn-stats-secure").style.color =
-    mode === "secure" ? "white" : "#aaa";
-  document.getElementById("btn-stats-501").style.background =
-    mode === "501" ? "var(--accent-blue)" : "#333";
-  document.getElementById("btn-stats-501").style.color =
-    mode === "501" ? "white" : "#aaa";
-
-  if (mode === "secure")
-    document.getElementById("stats-table-header").innerHTML =
-      "<th>#</th><th>Name</th><th>Siege</th><th>Highscore</th>";
-  else
-    document.getElementById("stats-table-header").innerHTML =
-      "<th>#</th><th>Name</th><th>Siege</th><th>3-Dart-Avg</th>";
-
-  loadCurrentStats();
-}
-
-function loadCurrentStats() {
-  if (currentStatsMode === "secure") loadHighscores();
-  else load501Stats();
-}
-
 async function loadHighscores() {
   const tbody = document.querySelector("#lifetime-table tbody");
   tbody.innerHTML = '<tr><td colspan="4">Lade Daten...</td></tr>';
@@ -887,7 +861,7 @@ async function loadMatchHistory() {
       });
 
       const div = document.createElement("div");
-      div.className = `history-item ${m.is_win ? "win" : ""}`;
+      div.className = `history-item ${m.is_win ? "win" : "lose"}`;
 
       // Runden (Match Details) durchlaufen
       let detailsHTML = `<div style="border-top:1px solid #444; margin-top:10px; padding-top:5px;">`;
@@ -932,7 +906,7 @@ async function loadMatchHistory() {
         <div class="history-summary" onclick="toggleHistoryDetails(this)" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
           <div style="text-align:left;">
             <div style="font-weight:bold; color:${
-              m.is_win ? "var(--accent-green)" : "#aaa"
+              m.is_win ? "var(--accent-green)" : "var(--accent-red)"
             }">
               ${m.is_win ? "SIEG" : "NIEDERLAGE"} ${
         m.is_training
@@ -982,7 +956,7 @@ async function loadMatchHistory() {
         minute: "2-digit",
       });
       const div = document.createElement("div");
-      div.className = `history-item ${m.is_win ? "win" : ""}`;
+      div.className = `history-item ${m.is_win ? "win" : "lose"}`;
 
       let legsHTML = "";
       if (m.match_details && Array.isArray(m.match_details)) {
@@ -1058,7 +1032,7 @@ async function loadMatchHistory() {
         <div class="history-summary" onclick="toggleHistoryDetails(this)" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
           <div style="flex:1;">
             <div style="font-weight:bold; color:${
-              m.is_win ? "var(--accent-green)" : "#aaa"
+              m.is_win ? "var(--accent-green)" : "var(--accent-red)"
             }">${m.is_win ? "MATCH-SIEG" : "Match-Niederlage"} gegen ${
         m.opponent_name
       }</div>
