@@ -1172,20 +1172,62 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
         } else if (mode === "501") {
           let totalPointsInMatch = 0;
           let legsCount = m.match_details ? m.match_details.length : 0;
+
+          // --- NEU: Wir zählen, was wir alles abziehen müssen ---
+          let scoresToRemove = {};
+          let bustsToRemove = 0;
+          let t100ToRemove = 0;
+          let t140ToRemove = 0;
+          let t180ToRemove = 0;
+
           if (m.match_details && Array.isArray(m.match_details)) {
             m.match_details.forEach((leg) => {
               let isP1 = leg.p1_name === m.player_name;
               totalPointsInMatch += isP1
                 ? 501 - leg.p1_rest
                 : 501 - leg.p2_rest;
+
+              // Wir holen uns die Historie des Spielers aus diesem Leg
+              let myHistory = isP1 ? leg.p1_history : leg.p2_history;
+
+              if (myHistory && Array.isArray(myHistory)) {
+                myHistory.forEach((turn) => {
+                  let val = turn.thrown === "Bust" ? 0 : parseInt(turn.thrown);
+                  if (!isNaN(val)) {
+                    // Score-Frequenz erfassen
+                    scoresToRemove[val] = (scoresToRemove[val] || 0) + 1;
+
+                    // High-Scores und Busts erfassen
+                    if (turn.thrown === "Bust") bustsToRemove++;
+                    else if (val === 180) t180ToRemove++;
+                    else if (val >= 140) t140ToRemove++;
+                    else if (val >= 100) t100ToRemove++;
+                  }
+                });
+              }
             });
           }
+
           const { data: currentStats } = await _supabase
             .from("stats_501")
             .select("*")
             .eq("name", m.player_name)
             .maybeSingle();
+
           if (currentStats) {
+            // Frequenzen updaten (Abziehen der gelöschten Würfe)
+            let updatedFreq = { ...(currentStats.score_frequencies || {}) };
+            for (let key in scoresToRemove) {
+              if (updatedFreq[key]) {
+                updatedFreq[key] = Math.max(
+                  0,
+                  updatedFreq[key] - scoresToRemove[key]
+                );
+                // Wenn ein Score nun 0-mal geworfen wurde, löschen wir ihn aus dem Diagramm
+                if (updatedFreq[key] === 0) delete updatedFreq[key];
+              }
+            }
+
             await _supabase
               .from("stats_501")
               .update({
@@ -1202,6 +1244,24 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
                   0,
                   (currentStats.total_score_thrown || 0) - totalPointsInMatch
                 ),
+                // --- NEU: Korrektur der High-Scores und Frequenzen ---
+                count_100: Math.max(
+                  0,
+                  (currentStats.count_100 || 0) - t100ToRemove
+                ),
+                count_140: Math.max(
+                  0,
+                  (currentStats.count_140 || 0) - t140ToRemove
+                ),
+                count_180: Math.max(
+                  0,
+                  (currentStats.count_180 || 0) - t180ToRemove
+                ),
+                count_busts: Math.max(
+                  0,
+                  (currentStats.count_busts || 0) - bustsToRemove
+                ),
+                score_frequencies: updatedFreq,
               })
               .eq("name", m.player_name);
           }
@@ -1223,7 +1283,6 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
               numStatsSub[key].count += 1;
             });
           }
-          // --> Hier wurden die Tabellennamen auf stats_secure korrigiert <--
           const { data: currentStats } = await _supabase
             .from("stats_secure")
             .select("*")
