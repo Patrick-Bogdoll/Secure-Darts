@@ -1149,10 +1149,19 @@ function listenForOpponent(roomCode) {
         event: "DELETE",
         schema: "public",
         table: "live_matches",
+        filter: `room_code=eq.${roomCode}`,
         // HINWEIS: Dieser Filter funktioniert oft nur, wenn room_code der PK ist!
       },
       (payload) => {
         // Wenn die Zeile weg ist, gehen wir sicherheitshalber immer raus
+
+        if (
+          payload.old &&
+          payload.old.room_code &&
+          payload.old.room_code !== roomCode
+        ) {
+          return;
+        }
         showToast("Der Raum wurde geschlossen!");
         cancelCurrentGame("game-501-screen", true);
       }

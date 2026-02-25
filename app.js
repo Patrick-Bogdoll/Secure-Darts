@@ -944,7 +944,7 @@ async function handleAvatarUpload(event) {
         "Deine Login-Sitzung ist ungültig. Bitte logge dich einmal aus und wieder ein!"
       );
 
-    const compressedImageBlob = await compressImage(file, 200, 200);
+    const compressedImageBlob = await compressImage(file, 500);
 
     // FIX 1: Fester Dateiname, damit 'upsert' das alte Bild überschreibt!
     const fileName = `${currentUser.id}.jpg`;
@@ -997,7 +997,7 @@ async function handleAvatarUpload(event) {
   }
 }
 
-function compressImage(file, maxWidth, maxHeight) {
+function compressImage(file, targetSize) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -1006,29 +1006,40 @@ function compressImage(file, maxWidth, maxHeight) {
       img.src = event.target.result;
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        let width = img.width,
-          height = img.height;
-        if (width > height) {
-          if (width > maxWidth) {
-            height *= maxWidth / width;
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width *= maxHeight / height;
-            height = maxHeight;
-          }
-        }
-        canvas.width = width;
-        canvas.height = height;
+
+        // 1. Die kürzere Seite des Originals finden, um ein perfektes Quadrat zu bilden
+        const minSize = Math.min(img.width, img.height);
+
+        // 2. Den perfekten Mittelpunkt für den Zuschnitt berechnen (Center-Crop)
+        const startX = (img.width - minSize) / 2;
+        const startY = (img.height - minSize) / 2;
+
+        // 3. Das Canvas starr auf dein Wunschmaß (500x500) nageln
+        canvas.width = targetSize;
+        canvas.height = targetSize;
+
         const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
+
+        // 4. Zeichnen: Nimm aus dem Original das Quadrat ab startX/Y
+        // und skaliere es exakt in das Canvas
+        ctx.drawImage(
+          img,
+          startX,
+          startY,
+          minSize,
+          minSize, // Wo im Original ausgeschnitten wird
+          0,
+          0,
+          targetSize,
+          targetSize // Wo auf dem Canvas gezeichnet wird
+        );
+
         canvas.toBlob(
           (blob) => {
             resolve(blob);
           },
           "image/jpeg",
-          0.8
+          0.85 // Qualität leicht angehoben für die 500x500 Auflösung
         );
       };
     };
