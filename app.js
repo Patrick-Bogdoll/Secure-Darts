@@ -853,19 +853,29 @@ async function handleAvatarUpload(event) {
       data: { publicUrl },
     } = _supabase.storage.from("avatars").getPublicUrl(fileName);
 
-    // 5. URL in den User Metadata speichern (Supabase Auth)
+    // 5. URL zusätzlich in den User Metadata speichern (Backup)
     const { error: updateError } = await _supabase.auth.updateUser({
       data: { avatar_url: publicUrl },
     });
 
     if (updateError) throw updateError;
 
-    // 6. UI sofort updaten
+    // ---> 6. NEU: In die neue "profiles" Tabelle pushen <---
+    const { error: profileError } = await _supabase.from("profiles").upsert({
+      id: currentUser.id, // Verknüpft mit auth.users.id
+      name: myOnlineName, // Der aktuelle Anzeigename aus der app.js
+      avatar_url: publicUrl, // Der frische Link zum Bild
+    });
+
+    if (profileError) throw profileError;
+    // --------------------------------------------------------
+
+    // 7. UI sofort updaten
     document.getElementById("modal-avatar-preview").src = publicUrl;
     currentUser.user_metadata.avatar_url = publicUrl; // Lokal updaten
-    alert("Profilbild erfolgreich aktualisiert!");
+    showToast("Profilbild erfolgreich aktualisiert!", "success"); // Nutzt jetzt dein neues Toast-System!
   } catch (error) {
-    alert("Fehler beim Upload: " + error.message);
+    showToast("Fehler beim Upload: " + error.message, "error");
   } finally {
     document.getElementById("btn-edit-avatar").innerText = "EDIT";
   }
@@ -960,8 +970,7 @@ async function stopCameraStream() {
       <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #1a1a1a; color: white; font-family: sans-serif; text-align: center; padding: 20px;">
           <div style="font-size: 50px; margin-bottom: 20px;">🔒</div>
           <h2 style="color: var(--accent-red); margin-top:0;">Kamera geschlossen</h2>
-          <p style="color: #888; line-height: 1.5;">Die Verbindung wurde sicher getrennt.<br>Du kannst diesen Tab jetzt schließen oder zum Hauptmenü zurückkehren.</p>
-          <button onclick="window.location.href='index.html'" style="margin-top: 30px; background: #333; color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">🏠 Zum Hauptmenü</button>
+          <p style="color: #888; line-height: 1.5;">Die Verbindung wurde sicher getrennt.<br>Du kannst diesen Tab jetzt schließen.</p>
       </div>
   `;
 }

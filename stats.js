@@ -1,6 +1,27 @@
 let currentModalType = "secure";
 let currentModalRawName = "";
 
+// --- NEU: Zieht das Bild für ALLE User aus der Profiles-Tabelle ---
+async function loadProfileAvatar(playerName) {
+  let avatarImg = document.getElementById("modal-avatar-preview");
+  if (!avatarImg) return;
+
+  // 1. Lade-Platzhalter setzen (Der Würfel)
+  avatarImg.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${playerName}`;
+
+  // 2. In der neuen Supabase Tabelle nach dem Namen suchen
+  let { data: profile } = await _supabase
+    .from("profiles")
+    .select("avatar_url")
+    .eq("name", playerName)
+    .maybeSingle();
+
+  // 3. Wenn ein Bild existiert, den Platzhalter überschreiben
+  if (profile && profile.avatar_url) {
+    avatarImg.src = profile.avatar_url;
+  }
+}
+
 // ==========================================
 // 1. ZENTRALE KONFIGURATION
 // ==========================================
@@ -179,23 +200,20 @@ function renderUniversalStats(mode, rawData, extraChartData, isSwitching) {
   // --- Avatar & Edit UI ---
   let editBtn = document.getElementById("btn-edit-name");
   let editAvatarBtn = document.getElementById("btn-edit-avatar");
-  let avatarImg = document.getElementById("modal-avatar-preview");
 
+  // Edit-Buttons nur anzeigen, wenn man sein eigenes Profil ansieht
   if (!isGuest && currentUser && firstRecord.user_id === currentUser.id) {
     if (editBtn) editBtn.style.display = "block";
     if (editAvatarBtn) editAvatarBtn.style.display = "block";
-    let myAvatar = currentUser.user_metadata?.avatar_url;
-    if (avatarImg)
-      avatarImg.src =
-        myAvatar ||
-        `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentModalRawName}`;
   } else {
     if (editBtn) editBtn.style.display = "none";
     if (editAvatarBtn) editAvatarBtn.style.display = "none";
-    if (avatarImg)
-      avatarImg.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentModalRawName}`;
   }
+
   document.getElementById("modal-name").innerText = currentModalRawName;
+
+  // ---> NEU: Avatar für ALLE User aus der Datenbank laden <---
+  loadProfileAvatar(currentModalRawName);
 
   // Buttons updaten (Falls wir nicht über switchModalMode kamen)
   document.querySelectorAll("#modal-mode-toggle .nav-btn").forEach((btn) => {

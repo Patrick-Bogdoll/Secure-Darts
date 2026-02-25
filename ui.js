@@ -113,8 +113,7 @@ async function saveInlineName() {
 
   // Wenn leer oder unverändert, einfach abbrechen und zurücksetzen
   if (!newName || newName === currentModalPlayer) {
-    nameEl.innerText =
-      currentModalPlayer + (currentModalType === "501" ? " (501)" : "");
+    nameEl.innerText = currentModalPlayer;
     document.getElementById("btn-edit-name").style.display = "block";
     return;
   }
@@ -135,9 +134,16 @@ async function saveInlineName() {
       .update({ name: newName })
       .eq("user_id", currentUser.id);
     await _supabase
-      .from("stats_secure")
+      .from("highscores")
       .update({ name: newName })
       .eq("name", currentModalPlayer);
+
+    // ---> NEU: Namen auch in der Profile-Tabelle updaten! <---
+    await _supabase
+      .from("profiles")
+      .update({ name: newName })
+      .eq("id", currentUser.id);
+    // ---------------------------------------------------------
 
     // 3. Lokale Variablen aktualisieren
     myOnlineName = newName;
@@ -149,8 +155,7 @@ async function saveInlineName() {
     showToast("Fehler beim Speichern: " + e.message, "error");
   } finally {
     // UI wiederherstellen
-    nameEl.innerText =
-      currentModalPlayer + (currentModalType === "501" ? " (501)" : "");
+    nameEl.innerText = currentModalPlayer;
     document.getElementById("btn-edit-name").style.display = "block";
   }
 }
