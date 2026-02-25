@@ -1,69 +1,588 @@
 let currentModalType = "secure";
-
 let currentModalRawName = "";
 
+// ==========================================
+// 1. ZENTRALE KONFIGURATION
+// ==========================================
+const STATS_CONFIG = {
+  501: {
+    table: "stats_501",
+    alertText: "Noch keine 501-Daten für {name} vorhanden.",
+    fetchType: "single",
+    kpiLabels: [
+      "Legs Won",
+      "Legs Played",
+      "Legs Win%",
+      "Lifetime Avg",
+      "High Finish",
+      "Double Rate",
+      "Bestes Leg",
+      "100+",
+      "140+",
+      "180s",
+    ],
+    chartColor: "rgba(0, 230, 118, 1)",
+    chartInteraction: "nearest",
+    chartAxis: "x",
+    chartTitle: null, // Wird bei 501 ausgeblendet
+  },
+  secure: {
+    table: "stats_secure",
+    alertText: "Noch keine Secure-Daten für {name} vorhanden.",
+    fetchType: "single",
+    kpiLabels: [
+      "Siege",
+      "Highscore",
+      "Winrate",
+      "Ø Score",
+      "Secure Rate",
+      "Double Rate",
+    ],
+    chartColor: "rgba(0, 230, 118, 1)",
+    chartInteraction: "index",
+    chartAxis: "xy",
+    chartTitle: "📊 DURCHSCHNITT PRO ZAHL",
+  },
+  bobs: {
+    table: "stats_bobs",
+    alertText: "Noch keine Bob's 27-Daten vorhanden.",
+    fetchType: "multiple",
+    kpiLabels: [
+      "Gespielte Runden",
+      "Siege",
+      "Highscore",
+      "Winrate",
+      "Ø Score",
+      "Letztes Spiel",
+    ],
+    chartColor: "rgba(255, 152, 0, 1)",
+    chartInteraction: "index",
+    chartAxis: "xy",
+    chartTitle: "📊 PUNKTEVERLAUF (LETZTE 20 SPIELE)",
+  },
+  rtw: {
+    table: "stats_rtw",
+    alertText: "Noch keine RTW-Daten vorhanden.",
+    fetchType: "multiple",
+    kpiLabels: [
+      "Gespielte Runden",
+      "Highscore",
+      "Ø Treffer",
+      "Single Modus",
+      "Double Modus",
+      "Triple Modus",
+    ],
+    chartColor: "rgba(41, 121, 255, 1)",
+    chartInteraction: "index",
+    chartAxis: "xy",
+    chartTitle: "📊 TREFFERVERLAUF (LETZTE 20 SPIELE)",
+  },
+};
+
+// ==========================================
+// 2. HAUPTSTEUERUNG & INITIALISIERUNG
+// ==========================================
+
+// Einstiegspunkt, wenn aus dem Leaderboard oder Profil geklickt wird
+async function initUniversalModal(mode, encodedData, isSwitching = false) {
+  currentModalType = mode;
+  const data = JSON.parse(decodeURIComponent(encodedData));
+
+  if (!isSwitching) {
+    currentModalPlayer = data.name;
+    currentModalRawName = data.name
+      .replace(" (Training)", "")
+      .replace(" (501)", "");
+  }
+
+  // Für 501 brauchen wir zusätzlich die Historie für den Chart
+  let extraChartData = null;
+  if (mode === "501") {
+    let { data: mData } = await _supabase
+      .from("match_history_501")
+      .select("match_details, created_at")
+      .eq("player_name", data.name)
+      .order("created_at", { ascending: false })
+      .limit(15);
+    extraChartData = mData;
+  }
+
+  renderUniversalStats(mode, data, extraChartData, isSwitching);
+}
+
+// Wrapper für bestehende onclick-Aufrufe
+async function openMatchStats(mode, encodedData) {
+  await initUniversalModal(mode, encodedData, false);
+}
+async function openProStats(encodedData) {
+  await initUniversalModal("secure", encodedData, false);
+}
+async function open501Stats(encodedData) {
+  await initUniversalModal("501", encodedData, false);
+}
+
+// Wird vom internen Modal-Tab-Menü aufgerufen
 async function switchModalMode(mode) {
   if (!currentModalRawName) return;
-
   currentModalType = mode;
   document.getElementById("tab-overview").style.opacity = "0.5";
 
-  // 1. Buttons visuell updaten (ohne Glow)
+  // Buttons updaten
   document.querySelectorAll("#modal-mode-toggle .nav-btn").forEach((btn) => {
     btn.style.background = "#333";
     btn.style.color = "#aaa";
-    btn.style.boxShadow = "none";
   });
-
   let activeBtn = document.getElementById(`modal-btn-${mode}`);
   if (activeBtn) {
     activeBtn.style.background = "var(--accent-blue)";
     activeBtn.style.color = "white";
-    activeBtn.style.boxShadow = "none";
   }
 
-  // 2. Daten laden
-  if (mode === "501") {
-    let { data } = await _supabase
-      .from("stats_501")
-      .select("*")
-      .eq("name", currentModalRawName)
-      .maybeSingle();
-    if (data) open501Stats(encodeURIComponent(JSON.stringify(data)), true);
-    else
-      alert("Noch keine 501-Daten für " + currentModalRawName + " vorhanden.");
-  } else if (mode === "secure") {
-    let { data } = await _supabase
-      .from("highscores")
-      .select("*")
-      .eq("name", currentModalRawName)
-      .maybeSingle();
-    if (data) openProStats(encodeURIComponent(JSON.stringify(data)), true);
-    else
-      alert(
-        "Noch keine Secure-Daten für " + currentModalRawName + " vorhanden."
-      );
-  } else if (mode === "bobs") {
-    let { data } = await _supabase
-      .from("stats_bobs")
-      .select("*")
-      .eq("name", currentModalRawName)
-      .order("created_at", { ascending: false });
-    if (data && data.length > 0) openBobsStats(data);
-    else alert("Noch keine Bob's 27-Daten vorhanden.");
-  } else if (mode === "rtw") {
-    let { data } = await _supabase
-      .from("stats_rtw")
-      .select("*")
-      .eq("name", currentModalRawName)
-      .order("created_at", { ascending: false });
-    if (data && data.length > 0) openRtwStats(data);
-    else alert("Noch keine RTW-Daten vorhanden.");
+  const conf = STATS_CONFIG[mode];
+  let query = _supabase
+    .from(conf.table)
+    .select("*")
+    .eq("name", currentModalRawName);
+  if (conf.fetchType === "multiple") {
+    query = query.order("created_at", { ascending: false });
   }
 
+  let { data } =
+    conf.fetchType === "single" ? await query.maybeSingle() : await query;
+
+  if (data && (conf.fetchType === "single" || data.length > 0)) {
+    let extraChartData = null;
+    if (mode === "501") {
+      let { data: mData } = await _supabase
+        .from("match_history_501")
+        .select("match_details, created_at")
+        .eq("player_name", currentModalRawName)
+        .order("created_at", { ascending: false })
+        .limit(15);
+      extraChartData = mData;
+    }
+    renderUniversalStats(mode, data, extraChartData, true);
+  } else {
+    alert(conf.alertText.replace("{name}", currentModalRawName));
+  }
   document.getElementById("tab-overview").style.opacity = "1";
 }
 
+// ==========================================
+// 3. RENDER-ENGINE FÜR DAS MODAL
+// ==========================================
+function renderUniversalStats(mode, rawData, extraChartData, isSwitching) {
+  const conf = STATS_CONFIG[mode];
+  const isArray = Array.isArray(rawData);
+  const firstRecord = isArray ? rawData[0] : rawData;
+
+  // --- Avatar & Edit UI ---
+  let editBtn = document.getElementById("btn-edit-name");
+  let editAvatarBtn = document.getElementById("btn-edit-avatar");
+  let avatarImg = document.getElementById("modal-avatar-preview");
+
+  if (!isGuest && currentUser && firstRecord.user_id === currentUser.id) {
+    if (editBtn) editBtn.style.display = "block";
+    if (editAvatarBtn) editAvatarBtn.style.display = "block";
+    let myAvatar = currentUser.user_metadata?.avatar_url;
+    if (avatarImg)
+      avatarImg.src =
+        myAvatar ||
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentModalRawName}`;
+  } else {
+    if (editBtn) editBtn.style.display = "none";
+    if (editAvatarBtn) editAvatarBtn.style.display = "none";
+    if (avatarImg)
+      avatarImg.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentModalRawName}`;
+  }
+  document.getElementById("modal-name").innerText = currentModalRawName;
+
+  // Buttons updaten (Falls wir nicht über switchModalMode kamen)
+  document.querySelectorAll("#modal-mode-toggle .nav-btn").forEach((btn) => {
+    btn.style.background = "#333";
+    btn.style.color = "#aaa";
+  });
+  let activeBtn = document.getElementById(`modal-btn-${mode}`);
+  if (activeBtn) {
+    activeBtn.style.background = "var(--accent-blue)";
+    activeBtn.style.color = "white";
+  }
+
+  // --- Parse Data ---
+  let parsed;
+  if (mode === "501") parsed = parse501Data(rawData, extraChartData);
+  else if (mode === "secure") parsed = parseSecureData(rawData);
+  else if (mode === "bobs") parsed = parseBobsData(rawData);
+  else if (mode === "rtw") parsed = parseRtwData(rawData);
+
+  // --- KPIs Befüllen ---
+  for (let i = 0; i < 10; i++) {
+    let box = document.getElementById(`box-kpi-${i + 1}`);
+    let label = document.getElementById(`lbl-kpi-${i + 1}`);
+    let value = document.getElementById(`kpi-${i + 1}`);
+
+    if (conf.kpiLabels[i]) {
+      if (box) box.style.display = "block";
+      if (label) label.innerText = conf.kpiLabels[i];
+      if (value) {
+        value.innerText = parsed.kpis[i].val;
+        value.style.color = parsed.kpis[i].color || "white";
+      }
+    } else {
+      if (box) box.style.display = "none";
+    }
+  }
+
+  // --- Chart Rendern ---
+  const chartTitle = document.querySelector("#tab-overview h4");
+  if (conf.chartTitle) {
+    chartTitle.style.display = "block";
+    chartTitle.innerText = conf.chartTitle;
+    document.querySelector(".chart-container").style.display = "block";
+  } else if (mode === "501") {
+    chartTitle.style.display = "none";
+    document.querySelector(".chart-container").style.display = "block";
+  } else {
+    chartTitle.style.display = "none";
+    document.querySelector(".chart-container").style.display = "none";
+  }
+  renderChart(parsed.chart.labels, parsed.chart.values, conf);
+
+  // --- Historie Rendern ---
+  if (conf.fetchType === "multiple") {
+    document.getElementById("history-list").innerHTML = parsed.historyHtml;
+  } else if (document.getElementById("tab-history").style.display === "block") {
+    loadMatchHistory(); // Dynamisches Fetching für 501 / Secure
+  }
+
+  if (!isSwitching) switchModalTab("overview");
+  document.getElementById("stats-modal").style.display = "flex";
+}
+
+// ==========================================
+// 4. PARSER (Daten normalisieren)
+// ==========================================
+function parse501Data(data, extraChartData) {
+  let gp = data.games_played || 0;
+  let winrate = gp > 0 ? Math.round((data.wins / gp) * 100) + "%" : "0%";
+  let lifetimeAvg =
+    data.total_darts_thrown > 0
+      ? ((data.total_score_thrown / data.total_darts_thrown) * 3).toFixed(2)
+      : "0.00";
+  let doubleRate =
+    data.checkout_attempts > 0
+      ? Math.round((data.checkout_hits / data.checkout_attempts) * 100) + "%"
+      : "0%";
+
+  let kpis = [
+    { val: data.wins, color: "white" },
+    { val: gp, color: "white" },
+    { val: winrate, color: "white" },
+    { val: lifetimeAvg, color: "var(--accent-green)" },
+    { val: data.highest_finish || 0, color: "white" },
+    { val: doubleRate, color: "var(--accent-red)" },
+    { val: data.best_leg > 0 ? data.best_leg : "-", color: "white" },
+    { val: data.count_100 || 0, color: "white" },
+    { val: data.count_140 || 0, color: "white" },
+    { val: data.count_180 || 0, color: "var(--accent-green)" },
+  ];
+
+  let cLabels = [],
+    cValues = [];
+  if (extraChartData && extraChartData.length > 0) {
+    let legCount = 1;
+    extraChartData.reverse().forEach((match) => {
+      if (match.match_details && Array.isArray(match.match_details)) {
+        match.match_details.forEach((leg) => {
+          cLabels.push(`Leg ${legCount++}`);
+          let isP1 = leg.p1_name === currentModalPlayer;
+          let darts = isP1 ? leg.p1_darts : leg.p2_darts;
+          let score = isP1 ? 501 - leg.p1_rest : 501 - leg.p2_rest;
+          let avg = darts > 0 ? ((score / darts) * 3).toFixed(2) : 0;
+          cValues.push(parseFloat(avg));
+        });
+      }
+    });
+  }
+  if (cValues.length === 0) {
+    cLabels = ["Keine Daten"];
+    cValues = [0];
+  }
+  if (cValues.length > 15) {
+    cValues = cValues.slice(-15);
+    cLabels = cLabels.slice(-15);
+  }
+
+  return { kpis, chart: { labels: cLabels, values: cValues } };
+}
+
+function parseSecureData(data) {
+  let gp = data.games_played || 0;
+  let rp = data.rounds_played || 0;
+  let winrate = gp > 0 ? Math.round((data.wins / gp) * 100) + "%" : "0%";
+  let avgScore = gp > 0 ? Math.round(data.total_points / gp) : "0";
+  let secRate =
+    rp > 0 ? Math.round((data.secure_count / rp) * 100) + "%" : "0%";
+  let dblRate =
+    rp > 0 ? Math.round((data.double_count / rp) * 100) + "%" : "0%";
+
+  let kpis = [
+    { val: data.wins, color: "var(--accent-green)" },
+    { val: data.highscore, color: "var(--accent-purple)" },
+    { val: winrate, color: "white" },
+    { val: avgScore, color: "white" },
+    { val: secRate, color: "var(--accent-blue)" },
+    { val: dblRate, color: "var(--accent-red)" },
+  ];
+
+  const allTargets = [];
+  for (let i = 1; i <= 20; i++) allTargets.push(i.toString());
+  allTargets.push("25", "50");
+  const cLabels = allTargets.map((t) =>
+    t === "25" ? "BULL" : t === "50" ? "B-EYE" : t
+  );
+  const numStats = data.number_stats || {};
+  const cValues = allTargets.map((key) => {
+    const s = numStats[key];
+    return s && s.count > 0 ? (s.points / s.count).toFixed(1) : 0;
+  });
+
+  return { kpis, chart: { labels: cLabels, values: cValues } };
+}
+
+function parseBobsData(data) {
+  let totalGames = data.length;
+  let totalWins = data.filter((g) => g.is_win).length;
+  let highscore = Math.max(...data.map((g) => g.final_score));
+  let avgScore =
+    totalGames > 0
+      ? Math.round(data.reduce((sum, g) => sum + g.final_score, 0) / totalGames)
+      : 0;
+  let winRate =
+    totalGames > 0 ? Math.round((totalWins / totalGames) * 100) + "%" : "0%";
+  let lastScore = totalGames > 0 ? data[0].final_score : 0;
+
+  let kpis = [
+    { val: totalGames, color: "white" },
+    { val: totalWins, color: "var(--accent-green)" },
+    { val: highscore, color: "var(--accent-purple)" },
+    { val: winRate, color: "white" },
+    { val: avgScore, color: "var(--accent-blue)" },
+    { val: lastScore, color: "white" },
+  ];
+
+  let chartGames = data.slice(0, 20).reverse();
+  let cLabels = chartGames.map((_, i) => `Spiel ${i + 1}`);
+  let cValues = chartGames.map((g) => g.final_score);
+
+  let historyHtml = "";
+  data.forEach((game) => {
+    let dateStr = new Date(game.created_at).toLocaleString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    let winColor = game.is_win ? "var(--accent-green)" : "var(--accent-red)";
+
+    let detailsHTML = `<div style="padding-top: 10px; border-top: 1px solid #444; margin-top: 10px;">`;
+    if (game.details && Array.isArray(game.details)) {
+      game.details.forEach((turn) => {
+        let hitColor =
+          turn.hits > 0 ? "var(--accent-green)" : "var(--accent-red)";
+        detailsHTML += `
+          <div style="display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 4px;">
+            <span style="color: #888;">Feld <b style="color: white;">${
+              turn.target === 25 ? "BULL" : `D${turn.target}`
+            }</b> (${turn.hits}x)</span>
+            <span style="color: ${hitColor}; font-weight: bold;">${
+          turn.points > 0 ? "+" : ""
+        }${turn.points}</span>
+          </div>`;
+      });
+    } else {
+      detailsHTML += `<div style="color: #888; font-size: 0.85em;">Keine Wurf-Details verfügbar.</div>`;
+    }
+    detailsHTML += `</div>`;
+
+    historyHtml += `
+      <div style="background: #2a2a2a; border-radius: 8px; margin-bottom: 8px; overflow: hidden;">
+        <div onclick="toggleHistoryDetails(this)" style="padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+          <div style="text-align: left;">
+            <span style="color: #aaa; font-size: 0.8em;">${dateStr}</span>
+            <div style="font-weight: bold; color: ${winColor};">${
+      game.is_win ? "SIEG" : "BUST"
+    }</div>
+          </div>
+          <div style="font-size: 1.5em; font-weight: bold; color: white;">
+            ${
+              game.final_score
+            } <span style="font-size: 0.5em; color: #888; font-weight: normal;">Pkt</span>
+          </div>
+        </div>
+        <div class="history-details" style="display: none; padding: 0 15px 15px 15px; background: #222;">${detailsHTML}</div>
+      </div>`;
+  });
+
+  return { kpis, chart: { labels: cLabels, values: cValues }, historyHtml };
+}
+
+function parseRtwData(data) {
+  let totalGames = data.length;
+  let highscore = Math.max(...data.map((g) => g.total_points));
+  let avgScore =
+    totalGames > 0
+      ? Math.round(
+          data.reduce((sum, g) => sum + g.total_points, 0) / totalGames
+        )
+      : 0;
+
+  let kpis = [
+    { val: totalGames, color: "white" },
+    { val: highscore, color: "var(--accent-blue)" },
+    { val: avgScore, color: "white" },
+    { val: data.filter((g) => g.mode === "single").length, color: "white" },
+    {
+      val: data.filter((g) => g.mode === "double").length,
+      color: "var(--accent-green)",
+    },
+    {
+      val: data.filter((g) => g.mode === "triple").length,
+      color: "var(--accent-purple)",
+    },
+  ];
+
+  let chartGames = data.slice(0, 20).reverse();
+  let cLabels = chartGames.map((_, i) => `Spiel ${i + 1}`);
+  let cValues = chartGames.map((g) => g.total_points);
+
+  let historyHtml = "";
+  data.forEach((game) => {
+    let dateStr = new Date(game.created_at).toLocaleString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    let modeText =
+      game.mode === "single"
+        ? "Single"
+        : game.mode === "double"
+        ? "Double"
+        : "Triple";
+
+    let detailsHTML = `<div style="padding-top: 10px; border-top: 1px solid #444; margin-top: 10px;">`;
+    if (game.details && Array.isArray(game.details)) {
+      game.details.forEach((turn) => {
+        detailsHTML += `
+          <div style="display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 4px;">
+            <span style="color: #888;">Feld <b style="color: white;">${
+              turn.target === 25 ? "BULL" : turn.target
+            }</b></span>
+            <span style="color: ${
+              turn.hits > 0 ? "var(--accent-green)" : "#888"
+            }; font-weight: bold;">${turn.hits} Treffer</span>
+          </div>`;
+      });
+    } else {
+      detailsHTML += `<div style="color: #888; font-size: 0.85em;">Keine Wurf-Details verfügbar.</div>`;
+    }
+    detailsHTML += `</div>`;
+
+    historyHtml += `
+      <div style="background: #2a2a2a; border-radius: 8px; margin-bottom: 8px; overflow: hidden;">
+        <div onclick="toggleHistoryDetails(this)" style="padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+          <div style="text-align: left;">
+            <span style="color: #aaa; font-size: 0.8em;">${dateStr}</span>
+            <div style="color: var(--accent-blue); font-weight: bold;">Modus: ${modeText}</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 1.5em; font-weight: bold; color: white;">${game.total_points}</div>
+            <span style="color: #888; font-size: 0.8em;">Treffer</span>
+          </div>
+        </div>
+        <div class="history-details" style="display: none; padding: 0 15px 15px 15px; background: #222;">${detailsHTML}</div>
+      </div>`;
+  });
+
+  return { kpis, chart: { labels: cLabels, values: cValues }, historyHtml };
+}
+
+// ==========================================
+// 5. CHART.JS RENDERING
+// ==========================================
+function renderChart(labels, dataArray, conf) {
+  if (statsChart) statsChart.destroy();
+  const ctx = document.getElementById("statsChart").getContext("2d");
+
+  let tooltipCallback = {};
+  if (conf.table === "stats_501") {
+    tooltipCallback = {
+      label: function (context) {
+        return `Avg: ${context.parsed.y}`;
+      },
+    };
+  }
+
+  statsChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Wert",
+          data: dataArray,
+          borderColor: conf.chartColor,
+          backgroundColor: conf.chartColor.replace("1)", "0.2)"),
+          borderWidth: 3,
+          fill: true,
+          tension: 0.3,
+          pointRadius: conf.chartInteraction === "nearest" ? 5 : 4,
+          pointHitRadius: conf.chartInteraction === "nearest" ? 100 : 50,
+          pointHoverRadius: conf.chartInteraction === "nearest" ? 12 : 10,
+          pointBackgroundColor: conf.chartColor,
+          pointBorderColor:
+            conf.chartInteraction === "nearest" ? "#fff" : "rgba(0,0,0,0.1)",
+          pointBorderWidth: conf.chartInteraction === "nearest" ? 2 : 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: conf.chartInteraction,
+        axis: conf.chartAxis,
+        intersect: false,
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: "rgba(255,255,255,0.05)" },
+          ticks: { color: "#888" },
+        },
+        x: { grid: { display: false }, ticks: { color: "#888" } },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: true,
+          position: conf.chartInteraction === "nearest" ? "nearest" : "average",
+          backgroundColor: "rgba(0,0,0,0.8)",
+          titleFont: { size: 14 },
+          bodyFont: { size: 16, weight: "bold" },
+          displayColors: false,
+          padding: 10,
+          callbacks: tooltipCallback,
+        },
+      },
+    },
+  });
+}
+
+// ==========================================
+// 6. ALLGEMEINE STATISTIK-LOGIK (DB & UI)
+// ==========================================
 async function save501Stats(
   playerName,
   legsWon,
@@ -123,8 +642,8 @@ async function save501Stats(
   if (!ex) {
     let payload = {
       name: playerName,
-      wins: legsWon, // Speichert jetzt Legs Won
-      games_played: legsPlayed, // Speichert jetzt Legs Played
+      wins: legsWon,
+      games_played: legsPlayed,
       total_darts_thrown: matchDarts,
       total_score_thrown: matchScore,
       highest_finish: finalFinish,
@@ -137,14 +656,10 @@ async function save501Stats(
       checkout_hits: tr.checkoutHits || 0,
     };
     if (isMe) payload.user_id = currentUser.id;
-
     const { error: insErr } = await _supabase
       .from("stats_501")
       .insert([payload]);
-    if (insErr) {
-      alert("Supabase Insert Fehler: " + insErr.message);
-      console.error(insErr);
-    }
+    if (insErr) console.error(insErr);
   } else {
     let newHighFinish = Math.max(ex.highest_finish || 0, finalFinish);
     let newBestLeg = ex.best_leg > 0 ? ex.best_leg : 999;
@@ -193,8 +708,6 @@ async function save501MatchHistory(
   matchLog
 ) {
   if (playerName.includes("🤖") || playerName.includes("🔥")) return;
-
-  // Wir bereiten das Paket für die Datenbank vor
   let payload = {
     player_name: playerName,
     opponent_name: opponentName,
@@ -204,18 +717,10 @@ async function save501MatchHistory(
     highest_finish: finish,
     match_details: matchLog,
   };
-
-  // NEU: Wenn ein Nutzer eingeloggt ist, hängen wir seine ID an den Spielbericht
-  if (!isGuest && currentUser) {
-    payload.user_id = currentUser.id;
-  }
-
-  const { error } = await _supabase.from("match_history_501").insert([payload]);
-
-  if (error) {
-    console.error("Fehler beim Speichern der Match-History:", error.message);
-  }
+  if (!isGuest && currentUser) payload.user_id = currentUser.id;
+  await _supabase.from("match_history_501").insert([payload]);
 }
+
 function switchStatsMode(mode) {
   currentStatsMode = mode;
   document.getElementById("btn-stats-secure").style.background =
@@ -226,40 +731,43 @@ function switchStatsMode(mode) {
     mode === "501" ? "var(--accent-blue)" : "#333";
   document.getElementById("btn-stats-501").style.color =
     mode === "501" ? "white" : "#aaa";
+
   if (mode === "secure")
     document.getElementById("stats-table-header").innerHTML =
       "<th>#</th><th>Name</th><th>Siege</th><th>Highscore</th>";
   else
     document.getElementById("stats-table-header").innerHTML =
       "<th>#</th><th>Name</th><th>Siege</th><th>3-Dart-Avg</th>";
+
   loadCurrentStats();
 }
+
 function loadCurrentStats() {
   if (currentStatsMode === "secure") loadHighscores();
   else load501Stats();
 }
 
 async function loadHighscores() {
-  const showBots = document.getElementById("chk-show-bots").checked;
   const tbody = document.querySelector("#lifetime-table tbody");
   tbody.innerHTML = '<tr><td colspan="4">Lade Daten...</td></tr>';
   let { data: highscores, error } = await _supabase
-    .from("highscores")
+    .from("stats_secure")
     .select("*")
     .order("wins", { ascending: false })
     .order("highscore", { ascending: false });
   if (error) return;
+
   tbody.innerHTML = "";
   let rank = 1;
   highscores.forEach((entry) => {
     if (entry.name.includes("🤖") || entry.name.includes("🔥")) return;
-    const tr = document.createElement("tr");
     const safeData = encodeURIComponent(JSON.stringify(entry));
     let dName = entry.name.replace(
       " (Training)",
       ' <span style="color:#d500f9; font-size:0.8em;">(Training)</span>'
     );
-    tr.innerHTML = `<td style="color:#666">${rank}.</td><td><a href="#" class="clickable-name" onclick="openProStats('${safeData}')">${dName}</a></td><td>${entry.wins}</td><td>${entry.highscore}</td>`;
+    let tr = document.createElement("tr");
+    tr.innerHTML = `<td style="color:#666">${rank}.</td><td><a href="#" class="clickable-name" onclick="openMatchStats('secure', '${safeData}')">${dName}</a></td><td>${entry.wins}</td><td>${entry.highscore}</td>`;
     tbody.appendChild(tr);
     rank++;
   });
@@ -271,27 +779,23 @@ async function loadHighscores() {
 async function load501Stats() {
   const tbody = document.querySelector("#lifetime-table tbody");
   tbody.innerHTML = '<tr><td colspan="4">Lade 501 Daten...</td></tr>';
-
   let { data: stats501, error } = await _supabase
     .from("stats_501")
     .select("*")
     .order("wins", { ascending: false });
-
   if (error) return;
+
   tbody.innerHTML = "";
   let rank = 1;
-
   stats501.forEach((entry) => {
     if (entry.name.includes("🤖") || entry.name.includes("🔥")) return;
-
     let avg =
       entry.total_darts_thrown > 0
         ? (entry.total_score_thrown / entry.total_darts_thrown) * 3
         : 0;
-    const tr = document.createElement("tr");
     const safeData = encodeURIComponent(JSON.stringify(entry));
-
-    tr.innerHTML = `<td style="color:#666">${rank}.</td><td style="font-weight:bold;"><a href="#" class="clickable-name" style="color:white;" onclick="open501Stats('${safeData}')">${
+    let tr = document.createElement("tr");
+    tr.innerHTML = `<td style="color:#666">${rank}.</td><td style="font-weight:bold;"><a href="#" class="clickable-name" style="color:white;" onclick="openMatchStats('501', '${safeData}')">${
       entry.name
     }</a></td><td>${
       entry.wins
@@ -301,696 +805,14 @@ async function load501Stats() {
   });
 }
 
-function openProStats(encodedData, isSwitching = false) {
-  currentModalType = "secure"; // Sagt dem Verlauf: Wir sind im Secure-Profil!
-
-  document.getElementById("lbl-kpi-1").innerText = "Siege";
-  document.getElementById("lbl-kpi-2").innerText = "Highscore";
-  document.getElementById("lbl-kpi-3").innerText = "Winrate";
-  document.getElementById("lbl-kpi-4").innerText = "Ø Score";
-  document.getElementById("lbl-kpi-5").innerText = "Secure Rate";
-  document.getElementById("lbl-kpi-6").innerText = "Double Rate";
-
-  // 501-Spezialboxen verstecken
-  document.getElementById("box-kpi-7").style.display = "none";
-  document.getElementById("box-kpi-8").style.display = "none";
-  document.getElementById("box-kpi-9").style.display = "none";
-  document.getElementById("box-kpi-10").style.display = "none";
-
-  document.querySelector(".modal-tab:nth-child(2)").style.display = "block";
-  const data = JSON.parse(decodeURIComponent(encodedData));
-  currentModalPlayer = data.name;
-
-  currentModalRawName = data.name
-    .replace(" (Training)", "")
-    .replace(" (501)", "");
-
-  // ---> NEU: Avatar und Edit-Buttons steuern <---
-  let editBtn = document.getElementById("btn-edit-name");
-  let editAvatarBtn = document.getElementById("btn-edit-avatar");
-  let avatarImg = document.getElementById("modal-avatar-preview");
-
-  if (!isGuest && currentUser && data.user_id === currentUser.id) {
-    if (editBtn) editBtn.style.display = "block";
-    if (editAvatarBtn) editAvatarBtn.style.display = "block";
-    let myAvatar = currentUser.user_metadata?.avatar_url;
-    if (avatarImg)
-      avatarImg.src =
-        myAvatar ||
-        `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.name}`;
-  } else {
-    if (editBtn) editBtn.style.display = "none";
-    if (editAvatarBtn) editAvatarBtn.style.display = "none";
-    if (avatarImg)
-      avatarImg.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.name}`;
-  }
-  // ---------------------------------------------
-
-  let b1 = document.getElementById("modal-btn-501");
-  let b2 = document.getElementById("modal-btn-secure");
-  if (b1 && b2) {
-    b1.style.background = "#333";
-    b1.style.color = "#aaa";
-    b2.style.background = "var(--accent-blue)";
-    b2.style.color = "white";
-  }
-
-  const m = document.getElementById("stats-modal");
-
-  document.getElementById("modal-name").innerText = currentModalRawName;
-
-  // ALTE IDs WURDEN HIER ERSETZT (kpi-wins -> kpi-1 etc.)
-  document.getElementById("kpi-1").innerText = data.wins;
-  document.getElementById("kpi-2").innerText = data.highscore;
-
-  let gp = data.games_played || 0;
-  let rp = data.rounds_played || 0;
-
-  document.getElementById("kpi-3").innerText =
-    gp > 0 ? Math.round((data.wins / gp) * 100) + "%" : "0%";
-  document.getElementById("kpi-4").innerText =
-    gp > 0 ? Math.round(data.total_points / gp) : "0";
-  document.getElementById("kpi-5").innerText =
-    rp > 0 ? Math.round((data.secure_count / rp) * 100) + "%" : "0%";
-  document.getElementById("kpi-6").innerText =
-    rp > 0 ? Math.round((data.double_count / rp) * 100) + "%" : "0%";
-
-  const allTargets = [];
-  for (let i = 1; i <= 20; i++) allTargets.push(i.toString());
-  allTargets.push("25");
-  allTargets.push("50");
-  const chartLabels = allTargets.map((t) => {
-    if (t === "25") return "BULL";
-    if (t === "50") return "B-EYE";
-    return t;
-  });
-  const numStats = data.number_stats || {};
-  const chartData = allTargets.map((key) => {
-    const s = numStats[key];
-    if (s && s.count > 0) return (s.points / s.count).toFixed(1);
-    return 0;
-  });
-
-  if (statsChart) statsChart.destroy();
-  const ctx = document.getElementById("statsChart").getContext("2d");
-  statsChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: chartLabels,
-      datasets: [
-        {
-          label: "Leg Average",
-          data: chartData,
-          borderColor: "rgba(0, 230, 118, 1)",
-          backgroundColor: "rgba(0, 230, 118, 0.2)",
-          borderWidth: 3, // Etwas dickere Linie für bessere Sichtbarkeit
-          fill: true,
-          tension: 0.4,
-
-          // Punkte-Styling
-          pointRadius: 4,
-          pointHitRadius: 50, // Riesige unsichtbare Trefferzone
-          pointHoverRadius: 10, // Deutliches Feedback beim "Andocken"
-          pointBackgroundColor: "rgba(0, 230, 118, 1)",
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-
-      // --- DAS IST DIE LÖSUNG ---
-      interaction: {
-        mode: "index", // Findet den Punkt basierend auf der X-Achse (vertikale Linie)
-        intersect: false, // WICHTIG: Man muss den Punkt NICHT mehr berühren
-      },
-
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: { color: "#333" },
-          ticks: { color: "#aaa" },
-        },
-        x: {
-          grid: { display: false },
-          ticks: { color: "#aaa" },
-        },
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          enabled: true,
-          backgroundColor: "rgba(0, 0, 0, 0.8)",
-          titleFont: { size: 14 },
-          bodyFont: { size: 16, weight: "bold" },
-          displayColors: false,
-          padding: 10,
-        },
-      },
-    },
-  });
-  if (!isSwitching) {
-    switchModalTab("overview");
-  } else if (document.getElementById("tab-history").style.display === "block") {
-    loadMatchHistory(); // Lädt den Verlauf direkt mit um, falls er gerade offen ist!
-  }
-  m.style.display = "flex";
-}
-
-async function open501Stats(encodedData, isSwitching = false) {
-  currentModalType = "501";
-  const data = JSON.parse(decodeURIComponent(encodedData));
-  currentModalPlayer = data.name;
-
-  currentModalRawName = data.name
-    .replace(" (Training)", "")
-    .replace(" (501)", "");
-  let b1 = document.getElementById("modal-btn-501");
-  let b2 = document.getElementById("modal-btn-secure");
-  if (b1 && b2) {
-    b1.style.background = "var(--accent-blue)";
-    b1.style.color = "white";
-    b2.style.background = "#333";
-    b2.style.color = "#aaa";
-  }
-
-  let editBtn = document.getElementById("btn-edit-name");
-  let editAvatarBtn = document.getElementById("btn-edit-avatar");
-  let avatarImg = document.getElementById("modal-avatar-preview");
-
-  if (!isGuest && currentUser && data.user_id === currentUser.id) {
-    // ES IST DEIN PROFIL
-    if (editBtn) editBtn.style.display = "block";
-    if (editAvatarBtn) editAvatarBtn.style.display = "block";
-
-    // Lade dein gespeichertes Profilbild (oder ein generisches, falls keins da ist)
-    let myAvatar = currentUser.user_metadata?.avatar_url;
-    if (avatarImg)
-      avatarImg.src =
-        myAvatar ||
-        `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.name}`;
-  } else {
-    // ES IST EIN GAST ODER GEGNER
-    if (editBtn) editBtn.style.display = "none";
-    if (editAvatarBtn) editAvatarBtn.style.display = "none";
-
-    // Generisches Bild für andere
-    if (avatarImg)
-      avatarImg.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.name}`;
-  }
-  const m = document.getElementById("stats-modal");
-
-  document.getElementById("modal-name").innerText = currentModalRawName;
-  document.getElementById("lbl-kpi-1").innerText = "Legs Won";
-  document.getElementById("lbl-kpi-2").innerText = "Legs Played";
-  document.getElementById("lbl-kpi-3").innerText = "Legs Win%";
-  document.getElementById("lbl-kpi-4").innerText = "Lifetime Avg";
-  document.getElementById("lbl-kpi-5").innerText = "High Finish";
-  document.getElementById("lbl-kpi-6").innerText = "Double Rate";
-
-  // Zusatzboxen einblenden
-  for (let i = 7; i <= 10; i++)
-    document.getElementById("box-kpi-" + i).style.display = "block";
-
-  let gp = data.games_played || 0;
-  let lifetimeAvg =
-    data.total_darts_thrown > 0
-      ? ((data.total_score_thrown / data.total_darts_thrown) * 3).toFixed(2)
-      : "0.00";
-
-  document.getElementById("kpi-1").innerText = data.wins;
-  document.getElementById("kpi-2").innerText = gp;
-  document.getElementById("kpi-2").style.color = "white";
-  document.getElementById("kpi-3").innerText =
-    gp > 0 ? Math.round((data.wins / gp) * 100) + "%" : "0%";
-  document.getElementById("kpi-4").innerText = lifetimeAvg;
-  document.getElementById("kpi-5").innerText = data.highest_finish || 0;
-
-  let doubleRate = "0%";
-  if (data.checkout_attempts > 0) {
-    doubleRate =
-      Math.round((data.checkout_hits / data.checkout_attempts) * 100) + "%";
-  }
-  document.getElementById("kpi-6").innerText = doubleRate;
-  document.getElementById("kpi-6").style.color = "var(--accent-red)";
-
-  document.getElementById("kpi-7").innerText =
-    data.best_leg > 0 ? data.best_leg : "-";
-  document.getElementById("kpi-8").innerText = data.count_100 || 0;
-  document.getElementById("kpi-9").innerText = data.count_140 || 0;
-  document.getElementById("kpi-10").innerText = data.count_180 || 0;
-
-  let { data: matchData } = await _supabase
-    .from("match_history_501")
-    .select("match_details, created_at")
-    .eq("player_name", data.name)
-    .order("created_at", { ascending: false })
-    .limit(15); // Get last 5 matches to show recent legs
-
-  let chartLabels = [];
-  let chartAverages = [];
-
-  if (matchData && matchData.length > 0) {
-    // Flatten leg details from recent matches
-    let legCount = 1;
-    matchData.reverse().forEach((match) => {
-      if (match.match_details && Array.isArray(match.match_details)) {
-        match.match_details.forEach((leg) => {
-          chartLabels.push(`Leg ${legCount++}`);
-          // Calculate Leg Average: ((501 - rest) / darts) * 3
-          let isP1 = leg.p1_name === currentModalPlayer;
-          let darts = isP1 ? leg.p1_darts : leg.p2_darts;
-          let score = isP1 ? 501 - leg.p1_rest : 501 - leg.p2_rest;
-          let avg = darts > 0 ? ((score / darts) * 3).toFixed(2) : 0;
-          chartAverages.push(parseFloat(avg));
-        });
-      }
-    });
-  }
-
-  if (chartAverages.length === 0) {
-    chartLabels = ["Keine Daten"];
-    chartAverages = [0];
-  }
-
-  if (chartAverages.length > 15) {
-    chartAverages = chartAverages.slice(-15);
-    cheatLaberls = chartLabels.slice(-15);
-  }
-
-  if (statsChart) statsChart.destroy();
-  const ctx = document.getElementById("statsChart").getContext("2d");
-
-  statsChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: chartLabels,
-      datasets: [
-        {
-          label: "Leg Average",
-          data: chartAverages,
-          borderColor: "rgba(0, 230, 118, 1)",
-          backgroundColor: "rgba(0, 230, 118, 0.2)",
-          borderWidth: 3,
-          fill: true,
-          tension: 0.4,
-
-          // --- PUNKT-REAKTION ---
-          pointRadius: 5, // Sichtbarer Punkt
-          pointHitRadius: 100, // RIESIGER unsichtbarer Klick-Bereich (100px!)
-          pointHoverRadius: 12, // Massives Aufploppen bei Kontakt
-          pointBackgroundColor: "rgba(0, 230, 118, 1)",
-          pointBorderColor: "#fff",
-          pointBorderWidth: 2,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-
-      // --- DAS LÖST DAS PROBLEM BEIM AIMEN ---
-      interaction: {
-        mode: "nearest", // Findet den absolut nächsten Punkt...
-        axis: "x", // ...aber ignoriert die Höhe (nur links/rechts zählt)
-        intersect: false, // WICHTIG: Man muss den Punkt NICHT berühren
-      },
-
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          enabled: true,
-          position: "nearest", // Tooltip springt zum nächsten Punkt
-          external: null,
-          // Verbessertes Tooltip-Design
-          backgroundColor: "rgba(0, 0, 0, 0.9)",
-          titleFont: { size: 14 },
-          bodyFont: { size: 16, weight: "bold" },
-          padding: 12,
-          displayColors: false,
-          callbacks: {
-            label: function (context) {
-              return `Avg: ${context.parsed.y}`;
-            },
-          },
-        },
-      },
-
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: { color: "rgba(255,255,255,0.05)" },
-          ticks: { color: "#888" },
-        },
-        x: {
-          grid: { display: false },
-          ticks: { color: "#888" },
-        },
-      },
-    },
-  });
-
-  if (!isSwitching) {
-    switchModalTab("overview");
-  } else if (document.getElementById("tab-history").style.display === "block") {
-    loadMatchHistory();
-  }
-  m.style.display = "flex";
-}
-
-function openBobsStats(data) {
-  currentModalType = "bobs";
-
-  let totalGames = data.length;
-  let totalWins = data.filter((g) => g.is_win).length;
-  let highscore = Math.max(...data.map((g) => g.final_score));
-  let avgScore =
-    totalGames > 0
-      ? Math.round(data.reduce((sum, g) => sum + g.final_score, 0) / totalGames)
-      : 0;
-  let winRate =
-    totalGames > 0 ? Math.round((totalWins / totalGames) * 100) + "%" : "0%";
-  let lastScore = totalGames > 0 ? data[0].final_score : 0; // Das neueste Spiel
-
-  // Alle 6 Standard-Boxen anzeigen
-  for (let i = 1; i <= 6; i++) {
-    let box = document.getElementById(`lbl-kpi-${i}`)?.parentElement;
-    if (box) box.style.display = "block";
-  }
-
-  // 501-Spezialboxen (7-10) wie bei Secure verstecken
-  for (let i = 7; i <= 10; i++)
-    document.getElementById(`box-kpi-${i}`).style.display = "none";
-
-  // KPIs befüllen
-  document.getElementById("lbl-kpi-1").innerText = "Gespielte Runden";
-  document.getElementById("kpi-1").innerText = totalGames;
-  document.getElementById("kpi-1").style.color = "white";
-
-  document.getElementById("lbl-kpi-2").innerText = "Siege";
-  document.getElementById("kpi-2").innerText = totalWins;
-  document.getElementById("kpi-2").style.color = "var(--accent-green)";
-
-  document.getElementById("lbl-kpi-3").innerText = "Highscore";
-  document.getElementById("kpi-3").innerText = highscore;
-  document.getElementById("kpi-3").style.color = "var(--accent-purple)";
-
-  document.getElementById("lbl-kpi-4").innerText = "Winrate";
-  document.getElementById("kpi-4").innerText = winRate;
-  document.getElementById("kpi-4").style.color = "white";
-
-  document.getElementById("lbl-kpi-5").innerText = "Ø Score";
-  document.getElementById("kpi-5").innerText = avgScore;
-  document.getElementById("kpi-5").style.color = "var(--accent-blue)";
-
-  document.getElementById("lbl-kpi-6").innerText = "Letztes Spiel";
-  document.getElementById("kpi-6").innerText = lastScore;
-  document.getElementById("kpi-6").style.color = "white";
-
-  // --- NEU: CHART EINBLENDEN ---
-  document.querySelector(".chart-container").style.display = "block";
-  const chartTitle = document.querySelector("#tab-overview h4");
-  chartTitle.style.display = "block";
-  chartTitle.innerText = "📊 PUNKTEVERLAUF (LETZTE 20 SPIELE)";
-
-  let chartGames = data.slice(0, 20).reverse(); // Älteste zuerst für den Graphen
-  let chartLabels = chartGames.map((_, i) => `Spiel ${i + 1}`);
-  let chartValues = chartGames.map((g) => g.final_score);
-
-  if (statsChart) statsChart.destroy();
-  const ctx = document.getElementById("statsChart").getContext("2d");
-  statsChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: chartLabels,
-      datasets: [
-        {
-          label: "Endstand",
-          data: chartValues,
-          borderColor: "rgba(255, 152, 0, 1)", // Bob's Orange
-          backgroundColor: "rgba(255, 152, 0, 0.2)",
-          borderWidth: 3,
-          fill: true,
-          tension: 0.3,
-          pointRadius: 4,
-          pointHitRadius: 50,
-          pointHoverRadius: 10,
-          pointBackgroundColor: "rgba(255, 152, 0, 1)",
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: "index", intersect: false },
-      scales: {
-        y: { grid: { color: "#333" }, ticks: { color: "#aaa" } },
-        x: { grid: { display: false }, ticks: { color: "#aaa" } },
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          enabled: true,
-          backgroundColor: "rgba(0,0,0,0.8)",
-          titleFont: { size: 14 },
-          bodyFont: { size: 16, weight: "bold" },
-          displayColors: false,
-          padding: 10,
-        },
-      },
-    },
-  });
-
-  // Historie befüllen
-  let historyHtml = "";
-  data.forEach((game) => {
-    let dateObj = new Date(game.created_at);
-    let dateStr =
-      dateObj.toLocaleDateString("de-DE") +
-      " " +
-      dateObj.toLocaleTimeString("de-DE", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    let winColor = game.is_win ? "var(--accent-green)" : "var(--accent-red)";
-    let winText = game.is_win ? "SIEG" : "BUST";
-
-    // 1. Detailliste (Pfeile) zusammenbauen
-    let detailsHTML = `<div style="padding-top: 10px; border-top: 1px solid #444; margin-top: 10px;">`;
-    if (game.details && Array.isArray(game.details)) {
-      game.details.forEach((turn) => {
-        let fieldName = turn.target === 25 ? "BULL" : `D${turn.target}`;
-        let hitColor =
-          turn.hits > 0 ? "var(--accent-green)" : "var(--accent-red)";
-        let prefix = turn.points > 0 ? "+" : "";
-        detailsHTML += `
-          <div style="display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 4px;">
-            <span style="color: #888;">Feld <b style="color: white;">${fieldName}</b> (${turn.hits}x)</span>
-            <span style="color: ${hitColor}; font-weight: bold;">${prefix}${turn.points}</span>
-          </div>`;
-      });
-    } else {
-      detailsHTML += `<div style="color: #888; font-size: 0.85em;">Keine Wurf-Details verfügbar.</div>`;
-    }
-    detailsHTML += `</div>`;
-
-    // 2. Klickbaren Container aufbauen
-    historyHtml += `
-      <div style="background: #2a2a2a; border-radius: 8px; margin-bottom: 8px; overflow: hidden;">
-        
-        <div onclick="toggleHistoryDetails(this)" style="padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'">
-          <div style="text-align: left;">
-            <span style="color: #aaa; font-size: 0.8em;">${dateStr}</span>
-            <div style="font-weight: bold; color: ${winColor};">${winText}</div>
-          </div>
-          <div style="font-size: 1.5em; font-weight: bold; color: white;">
-            ${game.final_score} <span style="font-size: 0.5em; color: #888; font-weight: normal;">Pkt</span>
-          </div>
-        </div>
-
-        <div class="history-details" style="display: none; padding: 0 15px 15px 15px; background: #222;">
-          ${detailsHTML}
-        </div>
-
-      </div>
-    `;
-  });
-  document.getElementById("history-list").innerHTML = historyHtml;
-}
-
-function openRtwStats(data) {
-  currentModalType = "rtw";
-
-  let totalGames = data.length;
-  let highscore = Math.max(...data.map((g) => g.total_points));
-  let avgScore =
-    totalGames > 0
-      ? Math.round(
-          data.reduce((sum, g) => sum + g.total_points, 0) / totalGames
-        )
-      : 0;
-  let lastScore = totalGames > 0 ? data[0].total_points : 0;
-  let singleGames = data.filter((g) => g.mode === "single").length;
-  let doubleGames = data.filter((g) => g.mode === "double").length;
-  let tripleGames = data.filter((g) => g.mode === "triple").length;
-
-  // Alle 6 Standard-Boxen anzeigen
-  for (let i = 1; i <= 6; i++) {
-    let box = document.getElementById(`lbl-kpi-${i}`)?.parentElement;
-    if (box) box.style.display = "block";
-  }
-
-  // 501-Spezialboxen (7-10) verstecken
-  for (let i = 7; i <= 10; i++)
-    document.getElementById(`box-kpi-${i}`).style.display = "none";
-
-  // KPIs befüllen
-  document.getElementById("lbl-kpi-1").innerText = "Gespielte Runden";
-  document.getElementById("kpi-1").innerText = totalGames;
-  document.getElementById("kpi-1").style.color = "white";
-
-  document.getElementById("lbl-kpi-2").innerText = "Highscore";
-  document.getElementById("kpi-2").innerText = highscore;
-  document.getElementById("kpi-2").style.color = "var(--accent-blue)";
-
-  document.getElementById("lbl-kpi-3").innerText = "Ø Treffer";
-  document.getElementById("kpi-3").innerText = avgScore;
-  document.getElementById("kpi-3").style.color = "white";
-
-  document.getElementById("lbl-kpi-4").innerText = "Single Modus";
-  document.getElementById("kpi-4").innerText = singleGames;
-  document.getElementById("kpi-4").style.color = "white";
-
-  document.getElementById("lbl-kpi-5").innerText = "Double Modus";
-  document.getElementById("kpi-5").innerText = doubleGames;
-  document.getElementById("kpi-5").style.color = "var(--accent-green)";
-
-  document.getElementById("lbl-kpi-6").innerText = "Triple Modus";
-  document.getElementById("kpi-6").innerText = tripleGames;
-  document.getElementById("kpi-6").style.color = "var(--accent-purple)";
-
-  // --- NEU: CHART EINBLENDEN ---
-  document.querySelector(".chart-container").style.display = "block";
-  const chartTitle = document.querySelector("#tab-overview h4");
-  chartTitle.style.display = "block";
-  chartTitle.innerText = "📊 TREFFERVERLAUF (LETZTE 20 SPIELE)";
-
-  let chartGames = data.slice(0, 20).reverse();
-  let chartLabels = chartGames.map((_, i) => `Spiel ${i + 1}`);
-  let chartValues = chartGames.map((g) => g.total_points);
-
-  if (statsChart) statsChart.destroy();
-  const ctx = document.getElementById("statsChart").getContext("2d");
-  statsChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: chartLabels,
-      datasets: [
-        {
-          label: "Punkte",
-          data: chartValues,
-          borderColor: "rgba(41, 121, 255, 1)", // Blau
-          backgroundColor: "rgba(41, 121, 255, 0.2)",
-          borderWidth: 3,
-          fill: true,
-          tension: 0.3,
-          pointRadius: 4,
-          pointHitRadius: 50,
-          pointHoverRadius: 10,
-          pointBackgroundColor: "rgba(41, 121, 255, 1)",
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: "index", intersect: false },
-      scales: {
-        y: { grid: { color: "#333" }, ticks: { color: "#aaa" } },
-        x: { grid: { display: false }, ticks: { color: "#aaa" } },
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          enabled: true,
-          backgroundColor: "rgba(0,0,0,0.8)",
-          titleFont: { size: 14 },
-          bodyFont: { size: 16, weight: "bold" },
-          displayColors: false,
-          padding: 10,
-        },
-      },
-    },
-  });
-
-  // Historie befüllen
-  let historyHtml = "";
-  data.forEach((game) => {
-    let dateObj = new Date(game.created_at);
-    let dateStr =
-      dateObj.toLocaleDateString("de-DE") +
-      " " +
-      dateObj.toLocaleTimeString("de-DE", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    let modeText =
-      game.mode === "single"
-        ? "Single"
-        : game.mode === "double"
-        ? "Double"
-        : "Triple";
-
-    // 1. Detailliste zusammenbauen
-    let detailsHTML = `<div style="padding-top: 10px; border-top: 1px solid #444; margin-top: 10px;">`;
-    if (game.details && Array.isArray(game.details)) {
-      game.details.forEach((turn) => {
-        let fieldName = turn.target === 25 ? "BULL" : turn.target;
-        let hitColor = turn.hits > 0 ? "var(--accent-green)" : "#888";
-        detailsHTML += `
-          <div style="display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 4px;">
-            <span style="color: #888;">Feld <b style="color: white;">${fieldName}</b></span>
-            <span style="color: ${hitColor}; font-weight: bold;">${turn.hits} Treffer</span>
-          </div>`;
-      });
-    } else {
-      detailsHTML += `<div style="color: #888; font-size: 0.85em;">Keine Wurf-Details verfügbar.</div>`;
-    }
-    detailsHTML += `</div>`;
-
-    // 2. Klickbaren Container aufbauen
-    historyHtml += `
-      <div style="background: #2a2a2a; border-radius: 8px; margin-bottom: 8px; overflow: hidden;">
-        
-        <div onclick="toggleHistoryDetails(this)" style="padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'">
-          <div style="text-align: left;">
-            <span style="color: #aaa; font-size: 0.8em;">${dateStr}</span>
-            <div style="color: var(--accent-blue); font-weight: bold;">Modus: ${modeText}</div>
-          </div>
-          <div style="text-align: right;">
-            <div style="font-size: 1.5em; font-weight: bold; color: white;">${game.total_points}</div>
-            <span style="color: #888; font-size: 0.8em;">Treffer</span>
-          </div>
-        </div>
-
-        <div class="history-details" style="display: none; padding: 0 15px 15px 15px; background: #222;">
-          ${detailsHTML}
-        </div>
-
-      </div>
-    `;
-  });
-  document.getElementById("history-list").innerHTML = historyHtml;
-}
-
+// Dynamisches Fetching für die Secure und 501 Match Historien (Listet die Legs/Spiele auf)
 async function loadMatchHistory() {
   const container = document.getElementById("history-list");
   container.innerHTML = "Lade Daten...";
 
   if (currentModalType === "secure") {
-    // --- TRAINING HISTORY (Secure) ---
     let { data: matches, error } = await _supabase
-      .from("match_history")
+      .from("match_history_secure")
       .select("*")
       .eq("player_name", currentModalPlayer)
       .order("created_at", { ascending: false })
@@ -999,8 +821,8 @@ async function loadMatchHistory() {
       container.innerHTML = "Noch keine Spiele aufgezeichnet.";
       return;
     }
+
     container.innerHTML = "";
-    // In stats.js - Inside loadMatchHistory (501 block)
     matches.forEach((m) => {
       const date = new Date(m.created_at).toLocaleDateString("de-DE", {
         day: "2-digit",
@@ -1008,55 +830,39 @@ async function loadMatchHistory() {
         hour: "2-digit",
         minute: "2-digit",
       });
-
       const div = document.createElement("div");
       div.className = `history-item ${m.is_win ? "win" : ""}`;
 
-      // Header Info
-      let detailsHTML = `
-    <div style="text-align:center; padding-bottom:5px; border-bottom:1px solid #444; margin-bottom:10px; color:#aaa;">
-      Gegner: <b style="color:white">${m.opponent_name}</b> | Match Avg: <b style="color:var(--accent-blue)">${m.match_average}</b>
-    </div>`;
+      let detailsHTML = `<div style="text-align:center; padding-bottom:5px; border-bottom:1px solid #444; margin-bottom:10px; color:#aaa;">Gegner: <b style="color:white">${m.opponent_name}</b> | Match Avg: <b style="color:var(--accent-blue)">${m.match_average}</b></div>`;
 
-      // Leg Loop
       if (m.match_details && Array.isArray(m.match_details)) {
         m.match_details.forEach((leg) => {
           let isP1 = leg.p1_name === currentModalPlayer;
           let myDarts = isP1 ? leg.p1_darts : leg.p2_darts;
           let myRest = isP1 ? leg.p1_rest : leg.p2_rest;
-          let legWon = leg.winner === currentModalPlayer;
+          let legStatus =
+            leg.winner === currentModalPlayer
+              ? `<span style="color:var(--accent-green)">Check: ${leg.checkout} (${myDarts} Darts)</span>`
+              : `<span style="color:var(--accent-red)">Rest: ${myRest} (${myDarts} Darts)</span>`;
 
-          let legStatus = legWon
-            ? `<span style="color:var(--accent-green)">Check: ${leg.checkout} (${myDarts} Darts)</span>`
-            : `<span style="color:var(--accent-red)">Rest: ${myRest} (${myDarts} Darts)</span>`;
-
-          detailsHTML += `
-        <div class="detail-row">
-          <span style="font-weight:bold; color:#888;">Leg ${leg.leg_number}</span>
-          <span>${legStatus}</span>
-        </div>`;
+          detailsHTML += `<div class="detail-row"><span style="font-weight:bold; color:#888;">Leg ${leg.leg_number}</span><span>${legStatus}</span></div>`;
         });
       }
 
       div.innerHTML = `
-    <div class="history-summary" onclick="toggleHistoryDetails(this)">
-      <div>
-        <div style="font-weight:bold; color:${
-          m.is_win ? "var(--accent-green)" : "#aaa"
-        }">
-          ${m.is_win ? "SIEG" : "NIEDERLAGE"}
+        <div class="history-summary" onclick="toggleHistoryDetails(this)">
+          <div>
+            <div style="font-weight:bold; color:${
+              m.is_win ? "var(--accent-green)" : "#aaa"
+            }">${m.is_win ? "SIEG" : "NIEDERLAGE"}</div>
+            <div class="history-date">${date}</div>
+          </div>
+          <div class="history-score">${m.is_win ? "🏆" : "❌"}</div>
         </div>
-        <div class="history-date">${date}</div>
-      </div>
-      <div class="history-score">${m.is_win ? "🏆" : "❌"}</div>
-    </div>
-    <div class="history-details" style="display:none; padding: 10px; background: #1a1a1a; border-radius: 0 0 8px 8px;">
-      ${detailsHTML}
-    </div>`;
+        <div class="history-details" style="display:none; padding: 10px; background: #1a1a1a; border-radius: 0 0 8px 8px;">${detailsHTML}</div>`;
       container.appendChild(div);
     });
-  } else {
-    // --- 501 MATCH HISTORY ---
+  } else if (currentModalType === "501") {
     let { data: matches, error } = await _supabase
       .from("match_history_501")
       .select("*")
@@ -1067,6 +873,7 @@ async function loadMatchHistory() {
       container.innerHTML = "Noch keine Spiele aufgezeichnet.";
       return;
     }
+
     container.innerHTML = "";
     matches.forEach((m) => {
       const date = new Date(m.created_at).toLocaleDateString("de-DE", {
@@ -1085,17 +892,14 @@ async function loadMatchHistory() {
           const myHistory = isP1 ? leg.p1_history : leg.p2_history;
           const oppHistory = isP1 ? leg.p2_history : leg.p1_history;
           const myDarts = isP1 ? leg.p1_darts : leg.p2_darts;
-          const oppDarts = isP1 ? leg.p2_darts : leg.p1_darts;
 
-          // Kopfzeile des Legs
           legsHTML += `
             <div class="leg-detail-container" style="margin-top:15px; border-top:1px solid #444; padding-top:10px;">
-              <div style="text-align:center; font-weight:bold; color:var(--accent-blue); margin-bottom:15px; text-transform:uppercase; letter-spacing:1px;">
-                LEG ${leg.leg_number} (${
+              <div style="text-align:center; font-weight:bold; color:var(--accent-blue); margin-bottom:15px; text-transform:uppercase; letter-spacing:1px;">LEG ${
+                leg.leg_number
+              } (${
             leg.winner === currentModalPlayer ? "GEWONNEN" : "VERLOREN"
-          })
-              </div>
-              
+          })</div>
               <div style="display:grid; grid-template-columns: 20% 20% 20% 20% 20%; text-align:center; font-size:0.7em; color:#888; margin-bottom:10px; text-transform:uppercase;">
                 <div>Darts<br><b style="color:white; font-size:1.3em;">${myDarts}</b></div>
                 <div>Avg<br><b style="color:white; font-size:1.3em;">${
@@ -1113,15 +917,12 @@ async function loadMatchHistory() {
                   isP1 ? leg.p2_rest : leg.p1_rest
                 }</b></div>
               </div>
-
               <table style="width:100%; table-layout: fixed; font-size:0.85em; border-collapse:collapse; text-align:center;">
                 <thead>
                   <tr style="color:#555; font-size:0.8em; border-bottom:1px solid #333; text-transform:uppercase;">
-                    <th style="width:20%; padding:8px 0;">Punkte</th>
-                    <th style="width:20%; padding:8px 0;">Score</th>
-                    <th style="width:20%; padding:8px 0; color:var(--accent-blue); font-weight:bold;">Aufn.</th>
-                    <th style="width:20%; padding:8px 0;">Score</th>
-                    <th style="width:20%; padding:8px 0;">Punkte</th>
+                    <th style="width:20%; padding:8px 0;">Pkt</th><th style="width:20%; padding:8px 0;">Score</th>
+                    <th style="width:20%; padding:8px 0; color:var(--accent-blue);">Aufn.</th>
+                    <th style="width:20%; padding:8px 0;">Score</th><th style="width:20%; padding:8px 0;">Pkt</th>
                   </tr>
                 </thead>
                 <tbody>`;
@@ -1131,25 +932,20 @@ async function loadMatchHistory() {
             oppHistory?.length || 0
           );
           for (let i = 0; i < maxTurns; i++) {
-            const myTurn = myHistory ? myHistory[i] : null;
-            const oppTurn = oppHistory ? oppHistory[i] : null;
-
             legsHTML += `
               <tr style="border-bottom:1px solid #222;">
                 <td style="color:#888; padding:8px 0;">${
-                  myTurn ? myTurn.old : ""
+                  myHistory && myHistory[i] ? myHistory[i].old : ""
                 }</td>
                 <td style="font-weight:bold; color:white; padding:8px 0;">${
-                  myTurn ? myTurn.thrown : ""
+                  myHistory && myHistory[i] ? myHistory[i].thrown : ""
                 }</td>
-                <td style="color:#444; padding:8px 0; font-size:0.9em;">${
-                  i + 1
-                }</td>
+                <td style="color:#444; padding:8px 0;">${i + 1}</td>
                 <td style="font-weight:bold; color:white; padding:8px 0;">${
-                  oppTurn ? oppTurn.thrown : ""
+                  oppHistory && oppHistory[i] ? oppHistory[i].thrown : ""
                 }</td>
                 <td style="color:#888; padding:8px 0;">${
-                  oppTurn ? oppTurn.old : ""
+                  oppHistory && oppHistory[i] ? oppHistory[i].old : ""
                 }</td>
               </tr>`;
           }
@@ -1162,23 +958,22 @@ async function loadMatchHistory() {
           <div style="flex:1;">
             <div style="font-weight:bold; color:${
               m.is_win ? "var(--accent-green)" : "#aaa"
-            }">
-              ${m.is_win ? "MATCH-SIEG" : "Match-Niederlage"} gegen ${
+            }">${m.is_win ? "MATCH-SIEG" : "Match-Niederlage"} gegen ${
         m.opponent_name
-      }
-            </div>
+      }</div>
             <div class="history-date">${date} | Avg: ${m.match_average}</div>
           </div>
           <div class="history-score">${m.is_win ? "🏆" : "❌"}</div>
-          
           ${
             currentUser && m.player_name === myOnlineName
               ? `<button onclick="event.stopPropagation(); deleteMatch501(${
                   m.id
                 }, ${m.darts_thrown}, ${m.is_win ? 1 : 0}, ${JSON.stringify(
                   m.match_details
-                ).replace(/"/g, "&quot;")})" 
-                     style="background:none; border:none; cursor:pointer; font-size:1.2em;">🗑️</button>`
+                ).replace(
+                  /"/g,
+                  "&quot;"
+                )})" style="background:none; border:none; cursor:pointer; font-size:1.2em;">🗑️</button>`
               : ""
           }
         </div>
@@ -1190,13 +985,14 @@ async function loadMatchHistory() {
 
 async function loadPlayerSuggestions() {
   let { data: playersDB, error } = await _supabase
-    .from("highscores")
+    .from("stats_secure")
     .select("name");
   if (error || !playersDB) return;
   const uniqueNames = new Set();
-  playersDB.forEach((p) => {
-    uniqueNames.add(p.name.replace(" (Training)", "").trim());
-  });
+  playersDB.forEach((p) =>
+    uniqueNames.add(p.name.replace(" (Training)", "").trim())
+  );
+
   const datalist = document.getElementById("player-suggestions");
   datalist.innerHTML = "";
   uniqueNames.forEach((name) => {
@@ -1207,12 +1003,9 @@ async function loadPlayerSuggestions() {
 }
 
 async function openMyProfile() {
-  if (isGuest || !currentUser) {
+  if (isGuest || !currentUser)
     return alert("Bitte logge dich ein, um dein Profil zu sehen.");
-  }
-
-  // 1. Try to fetch 501 data
-  let { data, error } = await _supabase
+  let { data } = await _supabase
     .from("stats_501")
     .select("*")
     .eq("user_id", currentUser.id)
@@ -1221,14 +1014,12 @@ async function openMyProfile() {
   if (data) {
     open501Stats(encodeURIComponent(JSON.stringify(data)));
   } else {
-    // 2. Try to fetch Secure data
     let myName =
       currentUser.user_metadata?.display_name ||
       currentUser.user_metadata?.full_name ||
       currentUser.email.split("@")[0];
-
     let { data: secureData } = await _supabase
-      .from("highscores")
+      .from("stats_secure")
       .select("*")
       .eq("name", myName)
       .maybeSingle();
@@ -1236,8 +1027,6 @@ async function openMyProfile() {
     if (secureData) {
       openProStats(encodeURIComponent(JSON.stringify(secureData)));
     } else {
-      // --- NEW: FORCED PROFILE VIEW FOR NEW USERS ---
-      // If no data exists yet, we pass a skeleton object so the modal opens
       const skeletonData = {
         name: myName,
         user_id: currentUser.id,
@@ -1262,37 +1051,31 @@ function toggleHistoryDetails(element) {
   const details = element.nextElementSibling;
   const isVisible = details.style.display === "block";
   details.style.display = isVisible ? "none" : "block";
-
-  // Optional: Scroll into view if opening
-  if (!isVisible) {
+  if (!isVisible)
     details.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }
 }
 
 function deleteMatch501(matchId, dartsCount, wasWin, matchDetails) {
-  // NEU: Wir rufen unser schickes Custom-Modal auf!
   showConfirmModal(
     "Möchtest du dieses Match wirklich löschen? Die Statistiken werden entsprechend korrigiert.",
     async () => {
-      // --- AB HIER STARTET DIE EIGENTLICHE LÖSCH-LOGIK ---
-      // 1. Berechnung der Punkte, die abgezogen werden müssen
-      let totalPointsInMatch = 0;
-      let legsCount = 0;
+      let totalPointsInMatch = 0,
+        legsCount = 0;
       if (matchDetails && Array.isArray(matchDetails)) {
         legsCount = matchDetails.length;
         matchDetails.forEach((leg) => {
-          let isP1 = leg.p1_name === currentModalPlayer;
-          totalPointsInMatch += isP1 ? 501 - leg.p1_rest : 501 - leg.p2_rest;
+          totalPointsInMatch +=
+            leg.p1_name === currentModalPlayer
+              ? 501 - leg.p1_rest
+              : 501 - leg.p2_rest;
         });
       }
 
-      // 2. Gesamt-Statistiken in stats_501 korrigieren
       const { data: currentStats } = await _supabase
         .from("stats_501")
         .select("*")
         .eq("name", currentModalPlayer)
         .maybeSingle();
-
       if (currentStats) {
         await _supabase
           .from("stats_501")
@@ -1311,17 +1094,13 @@ function deleteMatch501(matchId, dartsCount, wasWin, matchDetails) {
           .eq("name", currentModalPlayer);
       }
 
-      // 3. Den Eintrag aus der Historie löschen
       const { error } = await _supabase
         .from("match_history_501")
         .delete()
         .eq("id", matchId);
-
-      if (error) {
-        showToast("Fehler beim Löschen: " + error.message, "error");
-      } else {
+      if (error) showToast("Fehler beim Löschen: " + error.message, "error");
+      else {
         showToast("Match gelöscht und Statistik korrigiert!", "success");
-        // Modal aktualisieren
         switchModalMode("501");
       }
     }

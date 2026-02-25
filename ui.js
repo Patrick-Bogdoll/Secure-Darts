@@ -135,7 +135,7 @@ async function saveInlineName() {
       .update({ name: newName })
       .eq("user_id", currentUser.id);
     await _supabase
-      .from("highscores")
+      .from("stats_secure")
       .update({ name: newName })
       .eq("name", currentModalPlayer);
 

@@ -329,12 +329,12 @@ async function handleGameEnd() {
 
 async function saveProStats(name, pObj, isWin) {
   let { data: ex } = await _supabase
-    .from("highscores")
+    .from("stats_secure")
     .select("*")
     .eq("name", name)
     .single();
   if (!ex) {
-    await _supabase.from("highscores").insert([
+    await _supabase.from("stats_secure").insert([
       {
         name: name,
         wins: isWin ? 1 : 0,
@@ -356,7 +356,7 @@ async function saveProStats(name, pObj, isWin) {
       mStats[k].count += cStats[k].count;
     }
     await _supabase
-      .from("highscores")
+      .from("stats_secure")
       .update({
         wins: ex.wins + (isWin ? 1 : 0),
         highscore: Math.max(ex.highscore, pObj.score),
@@ -386,7 +386,9 @@ async function saveMatchHistory(name, pObj, isWin) {
     payload.user_id = currentUser.id;
   }
 
-  const { error } = await _supabase.from("match_history").insert([payload]);
+  const { error } = await _supabase
+    .from("match_history_secure")
+    .insert([payload]);
 
   if (error) {
     console.error("Fehler beim Speichern der Secure-History:", error.message);
