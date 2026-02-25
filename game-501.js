@@ -497,10 +497,6 @@ function sync501UI(dbData) {
     updateThrowHistoryUI();
   }
 
-  // 3. RESTLICHE WERTE UPDATEN
-  document.getElementById("p1-score").innerText = dbData.player1_score;
-  document.getElementById("p2-score").innerText = dbData.player2_score;
-
   p1Darts501 = dbData.player1_darts || 0;
   p2Darts501 = dbData.player2_darts || 0;
 
@@ -881,9 +877,6 @@ async function submit501Score() {
       p2TotalScore += currentPoints - newScore;
       p2LastThrow = throwText;
     }
-
-    document.getElementById("p1-score").innerText = localP1Score;
-    document.getElementById("p2-score").innerText = localP2Score;
     update501QoL(localP1Score, localP2Score);
 
     if (isFinished) {
