@@ -1,11 +1,11 @@
 // ==========================================
 // BOB'S 27 LOGIK
 // ==========================================
-
 let bobsPlayer = null;
 let bobsTargetIndex = 1; // 1 bis 21 (21 = Bull)
 let bobsHistoryStack = [];
 let isBobsGameOver = false;
+let isBobsEasyMode = false;
 
 const bobsTargets = [
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25,
@@ -23,6 +23,8 @@ function startBobsGame() {
   bobsTargetIndex = 1;
   bobsHistoryStack = [];
   isBobsGameOver = false;
+
+  isBobsEasyMode = document.getElementById("chk-bobs-easy")?.checked || false;
 
   document.getElementById("btn-undo-bobs").style.display = "none";
   document.getElementById("bobs-setup-screen").style.display = "none";
@@ -80,7 +82,7 @@ function submitBobsScore(hits) {
   });
 
   // Rausschmiss prüfen
-  if (bobsPlayer.score < 0) {
+  if (bobsPlayer.score < 0 && !isBobsEasyMode) {
     isBobsGameOver = true;
     saveBobsStatsBackground(false);
 
@@ -98,6 +100,11 @@ function submitBobsScore(hits) {
     isBobsGameOver = true;
     saveBobsStatsBackground(true);
 
+    if (isBobsEasyMode) {
+      showToast("Spiel beendet.", "success");
+      goHome();
+      return;
+    }
     showToast("Spiel gewonnen!", "success");
     document.getElementById("game-bobs-screen").style.display = "none";
     goHome();
@@ -138,6 +145,7 @@ function updateBobsHistoryUI() {
 
 // NEU: Supabase Speicherfunktion für Bob's 27 (läuft leise im Hintergrund)
 async function saveBobsStatsBackground(isWin) {
+  if (isBobsEasyMode) return;
   try {
     const payload = {
       name: bobsPlayer.name,
