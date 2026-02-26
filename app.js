@@ -178,6 +178,17 @@ async function showMainApp() {
       if (!currentUser.user_metadata) currentUser.user_metadata = {};
       currentUser.user_metadata.avatar_url = myProfile.avatar_url;
     }
+
+    await _supabase.from("profiles").upsert(
+      {
+        id: currentUser.id,
+        name: myOnlineName,
+        avatar_url: currentUser.user_metadata?.avatar_url || null,
+      },
+      { onConflict: "id" }
+    );
+
+    // 3. Inputs im Menü befüllen
     let p1Input = document.getElementById("local-p1-name");
     let onlineInput = document.getElementById("online-player-name");
     if (p1Input) p1Input.value = displayName;
