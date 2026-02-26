@@ -353,19 +353,38 @@ function initNotifications() {
 }
 
 // 1. Der Sender klickt auf "Spielen"
-function challengeFriend(targetUserId, targetUserName) {
+async function challengeFriend(targetUserId, targetUserName) {
   // Modal schließen
   document.getElementById("friends-modal").style.display = "none";
 
-  // Raumcode generieren & Lobby als Host betreten
+  // Raumcode generieren
   const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
   myOnlineName =
     currentUser.user_metadata?.display_name || currentUser.email.split("@")[0];
+
+  // ---> NEU: LOBBY IN DER DATENBANK ERSTELLEN <---
+  const { error } = await _supabase.from("live_matches").insert([
+    {
+      room_code: roomCode,
+      player1_name: myOnlineName,
+      status: "waiting",
+    },
+  ]);
+
+  if (error) {
+    if (typeof showToast === "function")
+      showToast("Fehler beim Erstellen der Lobby: " + error.message, "error");
+    else alert("Fehler beim Erstellen der Lobby: " + error.message);
+    return;
+  }
+
+  // Lokale Variablen für das Spiel setzen
   currentRoomCode = roomCode;
   amIPlayer1 = true;
   isLocal501 = false;
   currentAppMode = "501";
 
+  // UI umschalten
   openOnlineLobby(roomCode, myOnlineName, null, true);
 
   // Herausforderung via Broadcast absenden
@@ -381,7 +400,8 @@ function challengeFriend(targetUserId, targetUserName) {
           roomCode: roomCode,
         },
       });
-      showToast(`Herausforderung an ${targetUserName} gesendet!`, "success");
+      if (typeof showToast === "function")
+        showToast(`Herausforderung an ${targetUserName} gesendet!`, "success");
     }
   });
 }
