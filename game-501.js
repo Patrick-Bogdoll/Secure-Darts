@@ -871,8 +871,10 @@ async function submit501Score(presetScore = null) {
   else if (score >= 100) pStats.t100++;
 
   let thrownVal = isBust ? 0 : score;
-  pStats.scoreFrequencies[thrownVal] =
-    (pStats.scoreFrequencies[thrownVal] || 0) + 1;
+  if (thrownVal > 0) {
+    pStats.scoreFrequencies[thrownVal] =
+      (pStats.scoreFrequencies[thrownVal] || 0) + 1;
+  }
 
   if (isBust) {
     pStats.busts++;

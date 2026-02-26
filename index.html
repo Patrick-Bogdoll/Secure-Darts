@@ -257,7 +257,7 @@
 
       <button
         class="nav-btn accent-purple"
-        onclick="openFriendsModal()"
+        onclick="openFriendsModal(); toggleMenu();"
         style="
           display: flex;
           justify-content: space-between;
@@ -1743,7 +1743,7 @@
               <tr id="stats-table-header">
                 <th>#</th>
                 <th>Name</th>
-                <th>Siege</th>
+                <th>501 Siege</th>
                 <th>3-Dart-Avg</th>
               </tr>
             </thead>
@@ -2014,80 +2014,145 @@
         </div>
 
         <div id="tab-overview" class="modal-content-area">
-          
           <div class="kpi-grid">
-            <div class="kpi-box" id="box-kpi-1" style="display: none;">
+            <div class="kpi-box" id="box-kpi-1" style="display: none">
               <div class="kpi-label" id="lbl-kpi-1">-</div>
-              <div class="kpi-value" id="kpi-1" style="color: var(--accent-green)">-</div>
+              <div
+                class="kpi-value"
+                id="kpi-1"
+                style="color: var(--accent-green)"
+              >
+                -
+              </div>
             </div>
-            <div class="kpi-box" id="box-kpi-2" style="display: none;">
+            <div class="kpi-box" id="box-kpi-2" style="display: none">
               <div class="kpi-label" id="lbl-kpi-2">-</div>
-              <div class="kpi-value" id="kpi-2" style="color: var(--accent-purple)">-</div>
+              <div
+                class="kpi-value"
+                id="kpi-2"
+                style="color: var(--accent-purple)"
+              >
+                -
+              </div>
             </div>
-            <div class="kpi-box" id="box-kpi-3" style="display: none;">
+            <div class="kpi-box" id="box-kpi-3" style="display: none">
               <div class="kpi-label" id="lbl-kpi-3">-</div>
               <div class="kpi-value" id="kpi-3">-</div>
             </div>
-            <div class="kpi-box" id="box-kpi-4" style="display: none;">
+            <div class="kpi-box" id="box-kpi-4" style="display: none">
               <div class="kpi-label" id="lbl-kpi-4">-</div>
               <div class="kpi-value" id="kpi-4">-</div>
             </div>
-            <div class="kpi-box" id="box-kpi-5" style="display: none;">
+            <div class="kpi-box" id="box-kpi-5" style="display: none">
               <div class="kpi-label" id="lbl-kpi-5">-</div>
-              <div class="kpi-value" id="kpi-5" style="color: var(--accent-blue)">-</div>
+              <div
+                class="kpi-value"
+                id="kpi-5"
+                style="color: var(--accent-blue)"
+              >
+                -
+              </div>
             </div>
-            <div class="kpi-box" id="box-kpi-6" style="display: none;">
+            <div class="kpi-box" id="box-kpi-6" style="display: none">
               <div class="kpi-label" id="lbl-kpi-6">-</div>
-              <div class="kpi-value" id="kpi-6" style="color: var(--accent-red)">-</div>
+              <div
+                class="kpi-value"
+                id="kpi-6"
+                style="color: var(--accent-red)"
+              >
+                -
+              </div>
             </div>
-            <div class="kpi-box" id="box-kpi-7" style="display: none;">
+            <div class="kpi-box" id="box-kpi-7" style="display: none">
               <div class="kpi-label" id="lbl-kpi-7">-</div>
-              <div class="kpi-value" id="kpi-7" style="color: var(--accent-red)">-</div>
+              <div
+                class="kpi-value"
+                id="kpi-7"
+                style="color: var(--accent-red)"
+              >
+                -
+              </div>
             </div>
-            <div class="kpi-box" id="box-kpi-8" style="display: none;">
+            <div class="kpi-box" id="box-kpi-8" style="display: none">
               <div class="kpi-label" id="lbl-kpi-8">-</div>
-              <div class="kpi-value" id="kpi-8" style="color: var(--accent-red)">-</div>
+              <div
+                class="kpi-value"
+                id="kpi-8"
+                style="color: var(--accent-red)"
+              >
+                -
+              </div>
             </div>
-            <div class="kpi-box" id="box-kpi-9" style="display: none;">
+            <div class="kpi-box" id="box-kpi-9" style="display: none">
               <div class="kpi-label" id="lbl-kpi-9">-</div>
-              <div class="kpi-value" id="kpi-9" style="color: var(--accent-red)">-</div>
+              <div
+                class="kpi-value"
+                id="kpi-9"
+                style="color: var(--accent-red)"
+              >
+                -
+              </div>
             </div>
-            <div class="kpi-box" id="box-kpi-10" style="display: none;">
+            <div class="kpi-box" id="box-kpi-10" style="display: none">
               <div class="kpi-label" id="lbl-kpi-10">-</div>
-              <div class="kpi-value" id="kpi-10" style="color: var(--accent-red)">-</div>
+              <div
+                class="kpi-value"
+                id="kpi-10"
+                style="color: var(--accent-red)"
+              >
+                -
+              </div>
             </div>
-          </div> <h4 style="border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; margin-bottom: 15px; color: var(--text-muted);">
+          </div>
+          <h4
+            style="
+              border-bottom: 1px solid var(--glass-border);
+              padding-bottom: 10px;
+              margin-bottom: 15px;
+              color: var(--text-muted);
+            "
+          >
             DURCHSCHNITT PRO ZAHL
           </h4>
-          
-          <div class="chart-container" style="position: relative; height: 200px; width: 100%; margin-top: 10px;">
+
+          <div
+            class="chart-container"
+            style="
+              position: relative;
+              height: 200px;
+              width: 100%;
+              margin-top: 10px;
+            "
+          >
             <canvas id="statsChart"></canvas>
           </div>
-          
+
           <div class="glass-panel" style="margin-top: 25px; padding: 15px">
             <canvas id="score-dist-chart" style="max-height: 250px"></canvas>
           </div>
 
-          <div id="tab-history" class="modal-content-area" style="display: none">
-
+          <div
+            id="tab-history"
+            class="modal-content-area"
+            style="display: none"
+          >
             <div
-  
               id="history-list"
-  
               style="text-align: center; color: var(--text-muted)"
-  
             >
-  
               Lade Verlauf...
-  
             </div>
-  
           </div>
-          
         </div>
-    
+      </div>
+    </div>
 
-    <div id="friends-modal" class="modal-overlay" style="display: none">
+    <div
+      id="friends-modal"
+      class="modal-overlay"
+      style="display: none"
+      onclick="closeFriendsModal(event);"
+    >
       <div class="modal-content">
         <div class="sidebar-header">
           <h2 style="margin: 0">Freundesliste</h2>
@@ -2427,6 +2492,8 @@
     <script src="game-bobs.js"></script>
     <script src="game-rtw.js"></script>
     <script src="stats.js"></script>
+    <script src="friends.js"></script>
+    <script src="camera.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   </body>
 </html>

@@ -274,25 +274,25 @@ function renderUniversalDartboard(containerId, activeTarget, mode = "single") {
       rOuterBull,
       rTripleInner,
       startAngle,
-      endAngle,
+      endAngle
     )}" fill="${colorSingle}" stroke="${strokeColor}" stroke-width="0.5" />`;
     slicesHTML += `<path${tripleClass} d="${createArc(
       rTripleInner,
       rTripleOuter,
       startAngle,
-      endAngle,
+      endAngle
     )}" fill="${colorDoubleTriple}" stroke="${strokeColor}" stroke-width="0.5" />`;
     slicesHTML += `<path${outerSingleClass} d="${createArc(
       rTripleOuter,
       rDoubleInner,
       startAngle,
-      endAngle,
+      endAngle
     )}" fill="${colorSingle}" stroke="${strokeColor}" stroke-width="0.5" />`;
     slicesHTML += `<path${doubleClass} d="${createArc(
       rDoubleInner,
       rDoubleOuter,
       startAngle,
-      endAngle,
+      endAngle
     )}" fill="${colorDoubleTriple}" stroke="${strokeColor}" stroke-width="0.5" />`;
 
     const textRad = ((startAngle + angleStep / 2 - 90) * Math.PI) / 180;
@@ -480,7 +480,7 @@ function renderUniversalMiniGameHistory(
   nameLabelId,
   playerName,
   pointsTable,
-  mode,
+  mode
 ) {
   const container = document.getElementById(containerId);
   const nameLabel = document.getElementById(nameLabelId);
@@ -496,14 +496,14 @@ function renderUniversalMiniGameHistory(
         entry.target === 25
           ? "BULL"
           : mode === "bobs"
-            ? `D${entry.target}`
-            : entry.target;
+          ? `D${entry.target}`
+          : entry.target;
       let hitColor =
         entry.hits > 0
           ? "var(--accent-green)"
           : mode === "bobs"
-            ? "var(--accent-red)"
-            : "#888";
+          ? "var(--accent-red)"
+          : "#888";
 
       // Bei Bob's zeigen wir die Punkte an (+40), bei RTW die Treffer (2 Treffer)
       let suffix =
@@ -521,4 +521,29 @@ function renderUniversalMiniGameHistory(
 
   container.innerHTML = html;
   container.scrollTop = container.scrollHeight;
+}
+
+// ==========================================
+// FRIENDS MODAL UI
+// ==========================================
+function openFriendsModal() {
+  console.log("BUTTON GEKLICKT! Prüfe User-Status...");
+  console.log("isGuest:", isGuest, "| currentUser:", currentUser); // <-- Das verrät uns den Täter
+
+  if (isGuest || !currentUser) {
+    showToast("Bitte logge dich ein, um Freunde zu sehen.", "error");
+    return;
+  }
+
+  console.log("Status okay! Mache Modal sichtbar...");
+  document.getElementById("friends-modal").style.display = "flex";
+
+  if (typeof fetchAndRenderFriends === "function") {
+    fetchAndRenderFriends();
+  }
+}
+
+function closeFriendsModal() {
+  const modal = document.getElementById("friends-modal");
+  if (modal) modal.style.display = "none";
 }
