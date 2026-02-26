@@ -193,18 +193,7 @@ button:disabled {
 /* ==========================================
    INPUTS & FORMULARE
    ========================================== */
-input[type="text"] {
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-  background-color: rgba(0, 0, 0, 0.4);
-  color: var(--text-main);
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
-  padding: 15px;
-  background-image: none !important;
-}
-
+input[type="text"],
 input[type="email"],
 input[type="password"] {
   appearance: none;
