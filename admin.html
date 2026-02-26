@@ -245,7 +245,6 @@
       let currentMode = "secure";
       let editingId = null;
 
-      // Modern Glass Toast
       function showToast(message, type = "success") {
         const container = document.getElementById("toast-container");
         const toast = document.createElement("div");
@@ -316,8 +315,9 @@
         tbody.innerHTML = "";
 
         if (currentMode === "contact") {
+          // Aktionen-Header rechtsbündig
           thead.innerHTML =
-            "<tr><th>Datum</th><th>Name</th><th>E-Mail</th><th>Nachricht</th><th>Aktionen</th></tr>";
+            "<tr><th>Datum</th><th>Name</th><th>E-Mail</th><th>Nachricht</th><th style='text-align: right;'>Aktionen</th></tr>";
           data.forEach((p) => {
             let date = new Date(p.created_at).toLocaleString("de-DE", {
               day: "2-digit",
@@ -337,7 +337,7 @@
                             <td style="max-width:350px; white-space:pre-wrap; font-size: 0.9em;">${
                               p.message
                             }</td>
-                            <td><button class="reset" style="margin:0; padding: 6px 12px; font-size: 0.8em; color: var(--accent-red); border-color: var(--accent-red);" onclick="deleteRecord(${
+                            <td style="text-align: right;"><button class="reset" style="margin:0; padding: 6px 12px; font-size: 0.8em; color: var(--accent-red); border-color: var(--accent-red);" onclick="deleteRecord(${
                               p.id
                             }, 'Nachricht von ${
               p.name
@@ -346,11 +346,12 @@
           });
         } else {
           const is501 = currentMode === "501";
+          // Aktionen-Header rechtsbündig für alle Tabellen
           thead.innerHTML = is501
-            ? "<tr><th>ID</th><th>Name</th><th>Legs Won</th><th>Avg</th><th>Aktionen</th></tr>"
+            ? "<tr><th>ID</th><th>Name</th><th>Legs Won</th><th>Avg</th><th style='text-align: right;'>Aktionen</th></tr>"
             : currentMode === "secure"
-            ? "<tr><th>ID</th><th>Name</th><th>Siege</th><th>Highscore</th><th>Aktionen</th></tr>"
-            : "<tr><th>ID</th><th>Name</th><th>Wert</th><th>Info</th><th>Aktionen</th></tr>";
+            ? "<tr><th>ID</th><th>Name</th><th>Siege</th><th>Highscore</th><th style='text-align: right;'>Aktionen</th></tr>"
+            : "<tr><th>ID</th><th>Name</th><th>Wert</th><th>Info</th><th style='text-align: right;'>Aktionen</th></tr>";
 
           data.forEach((p) => {
             const tr = document.createElement("tr");
