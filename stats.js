@@ -1172,8 +1172,8 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
         } else if (mode === "501") {
           let totalPointsInMatch = 0;
           let legsCount = m.match_details ? m.match_details.length : 0;
+          let legsWonInMatch = 0; // <--- NEU: Zählt die gewonnenen LEGS, nicht Matches
 
-          // --- NEU: Wir zählen, was wir alles abziehen müssen ---
           let scoresToRemove = {};
           let bustsToRemove = 0;
           let t100ToRemove = 0;
@@ -1187,17 +1187,16 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
                 ? 501 - leg.p1_rest
                 : 501 - leg.p2_rest;
 
-              // Wir holen uns die Historie des Spielers aus diesem Leg
+              // NEU: Hat der Spieler dieses spezielle Leg gewonnen?
+              if (leg.winner === m.player_name) legsWonInMatch++;
+
               let myHistory = isP1 ? leg.p1_history : leg.p2_history;
 
               if (myHistory && Array.isArray(myHistory)) {
                 myHistory.forEach((turn) => {
                   let val = turn.thrown === "Bust" ? 0 : parseInt(turn.thrown);
                   if (!isNaN(val)) {
-                    // Score-Frequenz erfassen
                     scoresToRemove[val] = (scoresToRemove[val] || 0) + 1;
-
-                    // High-Scores und Busts erfassen
                     if (turn.thrown === "Bust") bustsToRemove++;
                     else if (val === 180) t180ToRemove++;
                     else if (val >= 140) t140ToRemove++;
@@ -1215,7 +1214,6 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
             .maybeSingle();
 
           if (currentStats) {
-            // Frequenzen updaten (Abziehen der gelöschten Würfe)
             let updatedFreq = { ...(currentStats.score_frequencies || {}) };
             for (let key in scoresToRemove) {
               if (updatedFreq[key]) {
@@ -1223,7 +1221,6 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
                   0,
                   updatedFreq[key] - scoresToRemove[key]
                 );
-                // Wenn ein Score nun 0-mal geworfen wurde, löschen wir ihn aus dem Diagramm
                 if (updatedFreq[key] === 0) delete updatedFreq[key];
               }
             }
@@ -1231,7 +1228,7 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
             await _supabase
               .from("stats_501")
               .update({
-                wins: Math.max(0, currentStats.wins - (m.is_win ? 1 : 0)),
+                wins: Math.max(0, (currentStats.wins || 0) - legsWonInMatch), // <-- GEFIXT: Zieht Legs ab!
                 games_played: Math.max(
                   0,
                   (currentStats.games_played || 0) - legsCount
@@ -1244,7 +1241,10 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
                   0,
                   (currentStats.total_score_thrown || 0) - totalPointsInMatch
                 ),
-                // --- NEU: Korrektur der High-Scores und Frequenzen ---
+                checkout_hits: Math.max(
+                  0,
+                  (currentStats.checkout_hits || 0) - legsWonInMatch
+                ), // <-- GEFIXT
                 count_100: Math.max(
                   0,
                   (currentStats.count_100 || 0) - t100ToRemove
