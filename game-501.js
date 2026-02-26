@@ -607,11 +607,10 @@ function update501Display() {
   }
 }
 
-function askCheckoutOverlay(question, minVal, maxVal) {
+function askCheckoutOverlay(question, minVal, maxVal, allowCancel = false) {
   return new Promise((resolve) => {
-    // Genialer UX-Trick: Wenn es nur eine logische Antwort gibt (z. B. Check mit dem 1. Dart = 1 Versuch aufs Doppel),
-    // dann überspringt die App die Abfrage vollautomatisch, um dir einen Klick zu sparen!
-    if (minVal === maxVal) return resolve(minVal);
+    // Auto-Skip nur, wenn man NICHT abbrechen darf (z.B. bei der Folgefrage)
+    if (minVal === maxVal && !allowCancel) return resolve(minVal);
 
     // Numpad verstecken
     document.querySelector(".preset-grid").style.display = "none";
@@ -622,24 +621,47 @@ function askCheckoutOverlay(question, minVal, maxVal) {
 
     const btnContainer = document.getElementById("checkout-buttons");
     btnContainer.innerHTML = "";
+    btnContainer.style.display = "flex";
+    btnContainer.style.flexWrap = "wrap"; // Erlaubt den Umbruch für den Cancel-Button
+    btnContainer.style.gap = "10px";
 
-    // Buttons generieren (z. B. 1, 2, 3)
+    // Standard Nummern-Buttons generieren
     for (let i = minVal; i <= maxVal; i++) {
       let btn = document.createElement("button");
       btn.className = "num-btn";
       btn.style.background = "var(--accent-green)";
       btn.style.color = "black";
       btn.style.flex = "1";
+      btn.style.minWidth = "60px";
       btn.innerText = i;
       btn.onclick = () => {
         overlay.style.display = "none";
-        // Numpad wieder einblenden
         document.querySelector(".preset-grid").style.display = "grid";
         document.querySelector(".numpad-grid").style.display = "grid";
-        resolve(i); // Code läuft weiter!
+        resolve(i);
       };
       btnContainer.appendChild(btn);
     }
+
+    // NEU: Den roten "Verrechnet" Button hinzufügen
+    if (allowCancel) {
+      let cancelBtn = document.createElement("button");
+      cancelBtn.className = "num-btn";
+      cancelBtn.style.background = "var(--accent-red)";
+      cancelBtn.style.color = "white";
+      cancelBtn.style.flexBasis = "100%"; // Nimmt die komplette untere Zeile ein
+      cancelBtn.style.padding = "15px";
+      cancelBtn.style.fontSize = "1.1em";
+      cancelBtn.innerText = "✖ Halt, verrechnet!";
+      cancelBtn.onclick = () => {
+        overlay.style.display = "none";
+        document.querySelector(".preset-grid").style.display = "grid";
+        document.querySelector(".numpad-grid").style.display = "grid";
+        resolve("CANCEL"); // Spezielles Signal zum Abbruch
+      };
+      btnContainer.appendChild(cancelBtn);
+    }
+
     overlay.style.display = "flex";
   });
 }
@@ -764,6 +786,7 @@ async function submit501Score(presetScore = null) {
   // --- PRO STATS & CHECKOUT TRACKING ---
   let isOnFinish = getCheckoutPath(currentPoints) !== "";
   let dartsThrownThisTurn = 3;
+  let doubleDarts = 0;
   let pStats = isLocal501
     ? localCurrentTurn === 1
       ? statsTracker.p1
@@ -773,54 +796,52 @@ async function submit501Score(presetScore = null) {
     : statsTracker.p2;
   let isBotThrow = isLocal501 && localCurrentTurn === 2 && isP2Bot;
 
-  // ---> FIX: STATISTIKEN IMMER SPEICHERN (VOR DER BUST/FINISH ABFRAGE) <---
-  if (score === 180) pStats.t180++;
-  else if (score >= 140) pStats.t140++;
-  else if (score >= 100) pStats.t100++;
-
-  let thrownVal = isBust ? 0 : score;
-  pStats.scoreFrequencies[thrownVal] =
-    (pStats.scoreFrequencies[thrownVal] || 0) + 1;
-  // --------------------------------------------------------------------------
-
-  // Checkout-Tracking Logik
+  // 1. ZUERST POPUPS FRAGEN (mit Möglichkeit zum Abbrechen!)
   if (isBust) {
-    pStats.busts++;
     if (isOnFinish) {
       let ans = isBotThrow
         ? botDoubleAttempts
         : await askCheckoutOverlay(
             "Bust! Wie viele Darts gingen aufs Doppel?",
             0,
-            3
+            3,
+            true
           );
-      pStats.checkoutAttempts += ans;
+
+      if (ans === "CANCEL") {
+        current501Input = "";
+        update501Display();
+        return; // Bricht den Wurf lautlos ab!
+      }
+      doubleDarts = ans;
     }
   } else if (isFinished) {
-    pStats.checkoutHits++;
-
-    // High-Finish Fix: Nur überschreiben, wenn es das bisher höchste Finish ist
-    if (currentPoints > (pStats.highestFinish || 0)) {
-      pStats.highestFinish = currentPoints;
-    }
-
-    let turnDarts = isBotThrow
+    let ansDarts = isBotThrow
       ? botDartsThrownThisTurn
       : await askCheckoutOverlay(
           "GAME SHOT! 🎯\nMit dem wievielten Dart gecheckt?",
           1,
-          3
+          3,
+          true
         );
-    dartsThrownThisTurn = turnDarts;
 
-    let doubleDarts = isBotThrow
+    if (ansDarts === "CANCEL") {
+      current501Input = "";
+      update501Display();
+      return; // Bricht den Wurf lautlos ab!
+    }
+    dartsThrownThisTurn = ansDarts;
+
+    // Folgefrage (Hier kein Cancel mehr nötig, da der User den Game Shot schon bestätigt hat)
+    let ansDouble = isBotThrow
       ? botDoubleAttempts
       : await askCheckoutOverlay(
-          `Checkout Attempts:\nWie viele der ${turnDarts} Darts waren aufs Doppel?`,
+          `Checkout Attempts:\nWie viele der ${dartsThrownThisTurn} Darts waren aufs Doppel?`,
           1,
-          turnDarts
+          dartsThrownThisTurn,
+          false
         );
-    pStats.checkoutAttempts += doubleDarts;
+    doubleDarts = ansDouble;
   } else {
     let isDirectDouble =
       (currentPoints <= 40 && currentPoints % 2 === 0) || currentPoints === 50;
@@ -830,10 +851,39 @@ async function submit501Score(presetScore = null) {
         : await askCheckoutOverlay(
             "Kein Finish! Wie viele Darts gingen aufs Doppel?",
             0,
-            3
+            3,
+            true
           );
-      pStats.checkoutAttempts += ans;
+
+      if (ans === "CANCEL") {
+        current501Input = "";
+        update501Display();
+        return; // Bricht den Wurf lautlos ab!
+      }
+      doubleDarts = ans;
     }
+  }
+
+  // 2. WENN WIR HIER SIND: DER WURF IST GÜLTIG & BESTÄTIGT! JETZT STATS SPEICHERN!
+  if (score === 180) pStats.t180++;
+  else if (score >= 140) pStats.t140++;
+  else if (score >= 100) pStats.t100++;
+
+  let thrownVal = isBust ? 0 : score;
+  pStats.scoreFrequencies[thrownVal] =
+    (pStats.scoreFrequencies[thrownVal] || 0) + 1;
+
+  if (isBust) {
+    pStats.busts++;
+    pStats.checkoutAttempts += doubleDarts;
+  } else if (isFinished) {
+    pStats.checkoutHits++;
+    if (currentPoints > (pStats.highestFinish || 0)) {
+      pStats.highestFinish = currentPoints;
+    }
+    pStats.checkoutAttempts += doubleDarts;
+  } else {
+    pStats.checkoutAttempts += doubleDarts;
   }
 
   pStats.dartsCurrentLeg += dartsThrownThisTurn;
