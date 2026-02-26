@@ -248,7 +248,7 @@ function goHome() {
   isOnlineHost = false;
 
   document.getElementById("home-screen").style.display = "block";
-  document.getElementById("app-title").innerText = "SECURE-DARTS";
+  document.getElementById("app-title").innerText = "SECURE DARTS";
   document.body.classList.remove("training-active");
 
   let cancelModal = document.getElementById("cancel-modal");
@@ -262,7 +262,7 @@ function enterMode(mode) {
 
   if (mode === "501")
     document.getElementById("app-title").innerText = "501 DARTS";
-  else document.getElementById("app-title").innerText = "SECURE-DARTS";
+  else document.getElementById("app-title").innerText = "SECURE DARTS";
 
   showScreen("play");
 }

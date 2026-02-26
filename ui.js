@@ -35,7 +35,9 @@ function switchModalTab(tab) {
       typeof currentModalType !== "undefined" &&
       (currentModalType === "501" || currentModalType === "secure")
     ) {
-      if (typeof loadMatchHistory === "function") loadMatchHistory();
+      if (currentModalType === "501" || currentModalType === "secure") {
+        if (typeof loadMatchHistory === "function") loadMatchHistory();
+      }
     }
   }
 }
@@ -326,44 +328,30 @@ function renderUniversalDartboard(containerId, activeTarget, mode = "single") {
 // ==========================================
 function cancelCurrentGame(screenIdToHide, skipConfirm = false) {
   const executeCancel = () => {
-    // 1. Bildschirm verstecken
+    // 1. Logik-Stop für 501/Bot aufrufen
+    if (typeof stopLocalGameLogic === "function") {
+      stopLocalGameLogic();
+    }
+
+    // 2. Bildschirm verstecken
     if (screenIdToHide) {
       document.getElementById(screenIdToHide).style.display = "none";
     }
 
-    // 2. Variablen für RTW & Bob's zurücksetzen
+    // 3. Variablen für Mini-Games zurücksetzen
     if (typeof rtwPlayer !== "undefined") rtwPlayer = null;
     if (typeof bobsPlayer !== "undefined") bobsPlayer = null;
 
-    // 3. Variablen für Party X01 zurücksetzen
-    if (typeof partyPlayers !== "undefined") partyPlayers = [];
-    if (typeof partyHistoryStack !== "undefined") partyHistoryStack = [];
-
-    // 4. Variablen für Secure-Darts zurücksetzen
-    if (typeof players !== "undefined") players = [];
-    if (typeof isTrainingMode !== "undefined") isTrainingMode = false;
-    if (typeof botTimer !== "undefined" && botTimer) clearTimeout(botTimer);
-
-    // 5. Spezifische 501 UI-Elemente aufräumen (Overlays)
+    // 4. Overlays aufräumen
     const winOverlay501 = document.getElementById("win-overlay-501");
     if (winOverlay501) winOverlay501.style.display = "none";
 
-    // 6. Online-Lobby und Kamera (falls vorhanden) aufräumen
+    // 5. Kamera stoppen
     if (typeof stopCameraStream === "function") stopCameraStream();
-    if (
-      typeof isVoiceActive !== "undefined" &&
-      isVoiceActive &&
-      typeof toggleVoice === "function"
-    ) {
-      toggleVoice(); // Mikrofon ausschalten
-    }
 
-    // Zurück ins Hauptmenü
     goHome();
   };
 
-  // Wenn skipConfirm "true" ist (z.B. Klick auf "Zum Hauptmenü" NACH einem Sieg),
-  // beenden wir sofort ohne lästige "Bist du sicher?"-Nachfrage.
   if (skipConfirm) {
     executeCancel();
   } else {

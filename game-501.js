@@ -1,5 +1,6 @@
 let p1LegThrows = [];
 let p2LegThrows = [];
+let botTimer501 = null;
 
 function resetStatsTracker() {
   statsTracker = {
@@ -320,6 +321,13 @@ function getCheckoutPath(score) {
 
 function undo501Turn() {
   if (history501Stack.length === 0) return;
+
+  // 1. Bot sofort stoppen, bevor wir den State ändern
+  if (botTimer501) {
+    clearTimeout(botTimer501);
+    botTimer501 = null;
+  }
+
   const lastState = history501Stack.pop();
   localP1Score = lastState.p1Score;
   localP2Score = lastState.p2Score;
@@ -334,12 +342,21 @@ function undo501Turn() {
 
   p1LegThrows = lastState.p1Throws || [];
   p2LegThrows = lastState.p2Throws || [];
-  updateThrowHistoryUI();
 
+  updateThrowHistoryUI();
   document.getElementById("p1-score").innerText = localP1Score;
   document.getElementById("p2-score").innerText = localP2Score;
   updateLocalTurnHighlight();
   update501QoL(localP1Score, localP2Score);
+
+  // UI entsperren
+  const numpad = document.querySelector(".numpad-grid");
+  if (numpad) numpad.style.pointerEvents = "auto";
+
+  // Falls nach dem Undo wieder der Bot dran ist -> neu triggern
+  if (localCurrentTurn === 2 && isP2Bot && isLocal501) {
+    play501BotTurn();
+  }
 }
 
 async function hostOnlineGame() {
@@ -1355,8 +1372,10 @@ function handleLegWinLocal(winnerName, playerNum, finishScore) {
     localP2Score,
     finishScore
   );
+
   if (playerNum === 1) localP1Legs++;
   else localP2Legs++;
+
   update501QoL(localP1Score, localP2Score);
 
   let matchWon = false;
@@ -1364,46 +1383,52 @@ function handleLegWinLocal(winnerName, playerNum, finishScore) {
 
   if (localP1Legs >= legsToWin || localP2Legs >= legsToWin) {
     matchWon = true;
-
     let totalLegs = localP1Legs + localP2Legs;
-    // WICHTIG: Hier am Ende muss zwingend statsTracker.p1 / .p2 stehen!
+
+    // Stats speichern (Nutzt trackerObj statt undefinierter p1FinalScore)
     save501Stats(
       localP1Name,
       localP1Legs,
       totalLegs,
       p1Darts501,
       p1TotalScore,
-      p1FinalScore,
+      statsTracker.p1.highestFinish || 0,
       statsTracker.p1
     );
-    save501Stats(
-      localP2Name,
-      localP2Legs,
-      totalLegs,
-      p2Darts501,
-      p2TotalScore,
-      p2FinalScore,
-      statsTracker.p2
-    );
 
-    let p1Avg = ((p1TotalScore / p1Darts501) * 3).toFixed(2);
-    let p2Avg = ((p2TotalScore / p2Darts501) * 3).toFixed(2);
+    if (!isP2Bot) {
+      save501Stats(
+        localP2Name,
+        localP2Legs,
+        totalLegs,
+        p2Darts501,
+        p2TotalScore,
+        statsTracker.p2.highestFinish || 0,
+        statsTracker.p2
+      );
+    }
+
+    let p1Avg =
+      p1Darts501 > 0 ? ((p1TotalScore / p1Darts501) * 3).toFixed(2) : 0;
+    let p2Avg =
+      p2Darts501 > 0 ? ((p2TotalScore / p2Darts501) * 3).toFixed(2) : 0;
+
     save501MatchHistory(
       localP1Name,
       localP2Name,
-      playerNum === 1,
+      localP1Legs >= legsToWin,
       parseFloat(p1Avg),
       p1Darts501,
-      p1FinalScore,
+      statsTracker.p1.highestFinish || 0,
       currentMatchLog501
     );
     save501MatchHistory(
       localP2Name,
       localP1Name,
-      playerNum === 2,
+      localP2Legs >= legsToWin,
       parseFloat(p2Avg),
       p2Darts501,
-      p2FinalScore,
+      statsTracker.p2.highestFinish || 0,
       currentMatchLog501
     );
   }
@@ -1424,14 +1449,12 @@ function handleLegWinLocal(winnerName, playerNum, finishScore) {
     btnRematch.style.display = "none";
     btnNext.innerText = "Nächstes Leg startet...";
 
-    setTimeout(() => {
-      // Nur ausführen, wenn das Overlay noch offen ist (falls man nicht schon manuell geklickt hat)
+    botTimer501 = setTimeout(() => {
       if (overlay.style.display === "flex" && isLocal501) {
         startNextLeg();
       }
     }, 1500);
   }
-
   overlay.style.display = "flex";
 }
 
@@ -1523,12 +1546,17 @@ function confirmBotSetup() {
 }
 
 async function play501BotTurn() {
-  if (localP2Score <= 0 || !isP2Bot) return;
+  if (localP2Score <= 0 || !isP2Bot || !isLocal501) return;
 
-  document.querySelector(".numpad-grid").style.pointerEvents = "none";
-  document.querySelector(".preset-grid").style.pointerEvents = "none";
+  // UI sperren während der Bot wirft
+  const numpad = document.querySelector(".numpad-grid");
+  const presets = document.querySelector(".preset-grid");
+  if (numpad) numpad.style.pointerEvents = "none";
+  if (presets) presets.style.pointerEvents = "none";
 
-  await new Promise((r) => setTimeout(r, 600));
+  // Kurze Denkpause vor dem ersten Dart
+  await new Promise((r) => (botTimer501 = setTimeout(r, 600)));
+  if (!isLocal501) return; // Falls in der Pause abgebrochen wurde
 
   botDartsThrownThisTurn = 0;
   botDoubleAttempts = 0;
@@ -1549,62 +1577,91 @@ async function play501BotTurn() {
     document.getElementById(
       "input-display-501"
     ).innerText = `Bot wirft: ${hit}...`;
-    await new Promise((r) => setTimeout(r, 800));
+
+    // Pause zwischen den Darts
+    await new Promise((r) => (botTimer501 = setTimeout(r, 800)));
+    if (!isLocal501) return; // Falls währenddessen abgebrochen wurde
 
     let tempScore = localP2Score - totalTurnScore;
     if (tempScore <= 1 || tempScore === 0) break;
   }
 
-  current501Input = totalTurnScore.toString();
-  document.querySelector(".numpad-grid").style.pointerEvents = "auto";
-  document.querySelector(".preset-grid").style.pointerEvents = "auto";
-  submit501Score();
+  // UI wieder freigeben und Score absenden
+  if (isLocal501) {
+    if (numpad) numpad.style.pointerEvents = "auto";
+    if (presets) presets.style.pointerEvents = "auto";
+    current501Input = totalTurnScore.toString();
+    submit501Score();
+  }
 }
 
 function getBotTarget(remaining) {
-  if (remaining > 170) return 60;
-  if (remaining <= 40 && remaining % 2 === 0) return remaining;
-  if (remaining <= 50) return 50;
-  if (remaining < 60) return remaining % 2 !== 0 ? 1 : 20;
-  return 60;
+  // 1. Scoring Phase
+  if (remaining > 170) return 60; // Immer T20
+
+  // 2. Spezielle Finish-Bereiche (High-Outs)
+  if (remaining === 170) return 60; // T20 -> T20 -> Bull
+  if (remaining > 50 && remaining <= 60) return remaining; // z.B. 52 -> D26 (wenn Bot das kann) oder Single 12
+  if (remaining === 50) return 50; // Bullseye-Finish
+
+  // 3. Setup Phase (Der "46-Rest" Fix)
+  // Wenn wir über 40 sind, wollen wir uns auf ein schönes Doppel stellen (meistens D20 = 40)
+  if (remaining > 40 && remaining < 170) {
+    // Wir versuchen den Rest so zu reduzieren, dass 40 (D20) oder 32 (D16) übrig bleibt
+    if (remaining > 60) return 60; // Weiter T20 bis wir im Bereich 41-60 sind
+
+    let setupTarget = remaining - 40; // Ziel, um 40 Rest zu lassen
+    // Falls das Setup-Ziel ungerade ist (z.B. bei 41 Rest -> Ziel 1), ist das okay.
+    return setupTarget;
+  }
+
+  // 4. Checkout Phase (Rest <= 40)
+  if (remaining <= 40 && remaining % 2 === 0) {
+    return remaining; // Das Ziel ist das Doppel (z.B. 40 für D20)
+  }
+
+  // 5. Notlösung für ungerade Reste unter 40
+  if (remaining < 40 && remaining % 2 !== 0) {
+    return 1; // 1 werfen, um auf ein Doppel zu kommen
+  }
+
+  return 60; // Fallback
 }
 
 function calculateBotHit(target, avg) {
   let rnd = Math.random() * 100;
 
-  // Realistische Scoring-Berechnung
-  if (target > 40 && target % 3 === 0) {
+  // Wir ermitteln, ob der Bot gerade auf ein DOPPEL wirft (Checkout-Versuch)
+  // Ein Wurf ist ein Checkout-Versuch, wenn das Ziel dem aktuellen Rest entspricht
+  let isCheckoutAttempt = (target <= 40 && target % 2 === 0) || target === 50;
+
+  // --- LOGIK FÜR DOPPEL (CHECKOUT) ---
+  if (isCheckoutAttempt) {
+    // Ein 120er Bot hat eine massive Checkout-Quote (ca. 70-80%)
+    let doubleChance = Math.max(5, (avg - 20) * 0.7);
+    if (rnd < doubleChance) return target; // Treffer!
+
+    if (rnd < doubleChance + 15) return target / 2; // Trifft Single statt Doppel (Inside)
+    return 0; // Wirft knapp vorbei (Outside/Bust)
+  }
+
+  // --- LOGIK FÜR SCORING (TRIPLES) ---
+  if (target === 60 || (target > 40 && target % 3 === 0)) {
     let single = target / 3;
-    let chanceTriple = Math.max(0, (avg - 30) * 0.6); // Triple-Chance steigt erst ab Avg 30
-    let chanceSingle = Math.min(100 - chanceTriple - 5, 10 + avg * 0.8); // Wahrscheinlichkeit, zumindest das Single-Feld zu treffen
+    let chanceTriple = Math.max(0, (avg - 30) * 0.65);
+    let chanceSingle = Math.min(100 - chanceTriple, 20 + avg * 0.7);
 
-    if (rnd < chanceTriple) return target;
-    if (rnd < chanceTriple + chanceSingle) return single;
-
-    // Kompletter Fehlschlag in die Nachbarfelder (1 und 5 bei Ziel 20)
-    let neighbors = single === 20 ? [1, 5] : single === 19 ? [3, 7] : [1, 2, 3];
-    return neighbors[Math.floor(Math.random() * neighbors.length)];
+    if (rnd < chanceTriple) return target; // T20
+    if (rnd < chanceTriple + chanceSingle) return single; // S20
+    return 1; // Abgerutscht in die 1
   }
 
-  // Realistische Doppel-Berechnung (Checkout)
-  if (target <= 40 && target % 2 === 0) {
-    let doubleChance = Math.max(2, (avg - 20) * 0.5);
-    if (rnd < doubleChance) return target;
-    if (rnd < doubleChance + 40) return target / 2; // Trifft aus Versehen innen das Single
-    return 0; // Wirft komplett vorbei (Bust)
-  }
+  // --- LOGIK FÜR SETUP-WÜRFE (SINGLES) ---
+  // Wenn der Bot z.B. eine 6 braucht, um von 46 auf 40 zu kommen.
+  let singleHitChance = Math.min(99, 40 + avg * 0.5); // Ein 120er Bot trifft Singles zu 99%
+  if (rnd < singleHitChance) return target;
 
-  if (target === 50) {
-    let bullChance = Math.max(2, (avg - 30) * 0.4);
-    let singleBullChance = Math.min(100 - bullChance, 10 + avg * 0.6);
-    if (rnd < bullChance) return 50;
-    if (rnd < bullChance + singleBullChance) return 25;
-    return Math.floor(Math.random() * 20) + 1;
-  }
-
-  let singleChance = Math.min(95, 20 + avg * 0.8);
-  if (rnd < singleChance) return target;
-  return Math.floor(Math.random() * 20) + 1;
+  return Math.floor(Math.random() * 20) + 1; // Kompletter Fail (sehr selten bei 120 Avg)
 }
 
 async function triggerOnlineMatchStart() {
@@ -1621,4 +1678,19 @@ async function triggerOnlineMatchStart() {
       last_action: "Spiel gestartet!",
     })
     .eq("room_code", currentRoomCode);
+}
+
+function stopLocalGameLogic() {
+  if (botTimer501) {
+    clearTimeout(botTimer501);
+    botTimer501 = null;
+  }
+  isLocal501 = false;
+  isP2Bot = false;
+
+  // UI sicherheitshalber entsperren
+  const numpad = document.querySelector(".numpad-grid");
+  const presets = document.querySelector(".preset-grid");
+  if (numpad) numpad.style.pointerEvents = "auto";
+  if (presets) presets.style.pointerEvents = "auto";
 }
