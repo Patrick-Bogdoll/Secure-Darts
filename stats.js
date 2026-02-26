@@ -395,7 +395,8 @@ function parseSecureData(data) {
 function parseBobsData(data) {
   let totalGames = data.length;
   let totalWins = data.filter((g) => g.is_win).length;
-  let highscore = Math.max(...data.map((g) => g.final_score));
+  let highscore =
+    totalGames > 0 ? Math.max(...data.map((g) => g.final_score)) : 0;
   let avgScore =
     totalGames > 0
       ? Math.round(data.reduce((sum, g) => sum + g.final_score, 0) / totalGames)
@@ -431,15 +432,37 @@ function parseBobsData(data) {
       "%27"
     );
 
+    // Detail-Tabelle generieren
+    let detailsHTML = `<div style="border-top: 1px solid #444; margin-top: 10px; padding-top: 5px;">`;
+    if (game.details && Array.isArray(game.details)) {
+      game.details.forEach((turn) => {
+        let hitColor =
+          turn.hits > 0 ? "var(--accent-green)" : "var(--accent-red)";
+        detailsHTML += `
+          <div style="display: flex; justify-content: space-between; font-size: 0.85em; padding: 6px 0; border-bottom: 1px solid #222;">
+            <span style="color: #888;">Feld <b style="color: white;">${
+              turn.target === 25 ? "BULL" : `D${turn.target}`
+            }</b> (${turn.hits}x)</span>
+            <span style="color: ${hitColor}; font-weight: bold;">${
+          turn.points > 0 ? "+" : ""
+        }${turn.points}</span>
+          </div>`;
+      });
+    } else {
+      detailsHTML += `<div style="color: #888; font-size: 0.85em; padding: 10px 0;">Keine Details verfügbar.</div>`;
+    }
+    detailsHTML += `</div>`;
+
+    // History Item im Secure/501 Design
     historyHtml += `
       <div class="history-item ${
         game.is_win ? "win" : "lose"
       }" style="background: var(--glass-bg); margin-bottom: 8px;">
         <div class="history-summary" onclick="toggleHistoryDetails(this)" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
           <div style="text-align:left;">
-            <div style="font-weight:bold; color:${winColor}">
-              ${game.is_win ? "SIEG" : "BUST"}
-            </div>
+            <div style="font-weight:bold; color:${winColor}">${
+      game.is_win ? "SIEG" : "BUST"
+    }</div>
             <div class="history-date">${dateStr}</div>
           </div>
           <div style="display:flex; align-items:center; gap:15px;">
@@ -453,7 +476,7 @@ function parseBobsData(data) {
               (game.user_id === currentUser.id || game.name === myOnlineName)
                 ? `
               <button onclick="event.stopPropagation(); deleteUniversalMatch('bobs', ${game.id}, '${safeData}')" 
-                      style="background:none; border:none; cursor:pointer; color:var(--text-muted); display:flex; align-items:center; padding:0;">
+                      style="background:none; border:none; cursor:pointer; color:var(--text-muted); display:flex; align-items:center; padding:0; height:18px;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="3 6 5 6 21 6"></polyline>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -463,16 +486,17 @@ function parseBobsData(data) {
             }
           </div>
         </div>
-        <div class="history-details" style="display: none; padding: 10px; border-top: 1px solid #333; margin-top: 10px;">
-          </div>
+        <div class="history-details" style="display:none; padding-bottom: 5px;">${detailsHTML}</div>
       </div>`;
   });
+
   return { kpis, chart: { labels: cLabels, values: cValues }, historyHtml };
 }
 
 function parseRtwData(data) {
   let totalGames = data.length;
-  let highscore = Math.max(...data.map((g) => g.total_points));
+  let highscore =
+    totalGames > 0 ? Math.max(...data.map((g) => g.total_points)) : 0;
   let avgScore =
     totalGames > 0
       ? Math.round(
@@ -511,14 +535,34 @@ function parseRtwData(data) {
       /'/g,
       "%27"
     );
+    let modeText =
+      game.mode === "single"
+        ? "Single"
+        : game.mode === "double"
+        ? "Double"
+        : "Triple";
+
+    let detailsHTML = `<div style="border-top: 1px solid #444; margin-top: 10px; padding-top: 5px;">`;
+    if (game.details && Array.isArray(game.details)) {
+      game.details.forEach((turn) => {
+        detailsHTML += `
+          <div style="display: flex; justify-content: space-between; font-size: 0.85em; padding: 6px 0; border-bottom: 1px solid #222;">
+            <span style="color: #888;">Feld <b style="color: white;">${
+              turn.target === 25 ? "BULL" : turn.target
+            }</b></span>
+            <span style="color: ${
+              turn.hits > 0 ? "var(--accent-green)" : "#888"
+            }; font-weight: bold;">${turn.hits} Treffer</span>
+          </div>`;
+      });
+    }
+    detailsHTML += `</div>`;
 
     historyHtml += `
       <div class="history-item win" style="background: var(--glass-bg); margin-bottom: 8px; border-left: 4px solid var(--accent-blue);">
         <div class="history-summary" onclick="toggleHistoryDetails(this)" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
           <div style="text-align:left;">
-            <div style="font-weight:bold; color:var(--accent-blue)">
-              MODUS: ${game.mode.toUpperCase()}
-            </div>
+            <div style="font-weight:bold; color:var(--accent-blue)">MODUS: ${modeText.toUpperCase()}</div>
             <div class="history-date">${dateStr}</div>
           </div>
           <div style="display:flex; align-items:center; gap:15px;">
@@ -532,7 +576,7 @@ function parseRtwData(data) {
               (game.user_id === currentUser.id || game.name === myOnlineName)
                 ? `
               <button onclick="event.stopPropagation(); deleteUniversalMatch('rtw', ${game.id}, '${safeData}')" 
-                      style="background:none; border:none; cursor:pointer; color:var(--text-muted); display:flex; align-items:center; padding:0;">
+                      style="background:none; border:none; cursor:pointer; color:var(--text-muted); display:flex; align-items:center; padding:0; height:18px;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="3 6 5 6 21 6"></polyline>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -542,10 +586,10 @@ function parseRtwData(data) {
             }
           </div>
         </div>
-        <div class="history-details" style="display: none; padding: 10px; border-top: 1px solid #333; margin-top: 10px;">
-           </div>
+        <div class="history-details" style="display:none; padding-bottom: 5px;">${detailsHTML}</div>
       </div>`;
   });
+
   return { kpis, chart: { labels: cLabels, values: cValues }, historyHtml };
 }
 
