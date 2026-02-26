@@ -137,6 +137,7 @@ async function initAuth() {
   if (session) {
     currentUser = session.user;
     isGuest = false;
+    initPresence();
     showMainApp();
   } else {
     showAuthScreen();
@@ -1099,7 +1100,65 @@ async function stopCameraStream() {
 }
 
 // ==========================================
-// FREUNDES-SYSTEM LOGIK (Phase 1)
+// ONLINE-STATUS LOGIK (Presence)
+// ==========================================
+
+let onlineUserIds = new Set();
+let presenceChannel = null;
+
+async function initPresence() {
+  if (!currentUser || isGuest) return;
+
+  // Bestehenden Channel sicherheitshalber bereinigen
+  if (presenceChannel) {
+    _supabase.removeChannel(presenceChannel);
+  }
+
+  presenceChannel = _supabase.channel("online-users");
+
+  presenceChannel
+    .on("presence", { event: "sync" }, () => {
+      const newState = presenceChannel.presenceState();
+      updateOnlineUsers(newState);
+    })
+    .on("presence", { event: "join" }, ({ key, newPresences }) => {
+      newPresences.forEach((p) => onlineUserIds.add(p.user_id));
+      refreshFriendsUIIfOpen();
+    })
+    .on("presence", { event: "leave" }, ({ key, leftPresences }) => {
+      leftPresences.forEach((p) => onlineUserIds.delete(p.user_id));
+      refreshFriendsUIIfOpen();
+    })
+    .subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        // Meldet den aktuellen User als "online" im Channel an
+        await presenceChannel.track({
+          user_id: currentUser.id,
+          online_at: new Date().toISOString(),
+        });
+      }
+    });
+}
+
+function updateOnlineUsers(state) {
+  onlineUserIds.clear();
+  for (const id in state) {
+    state[id].forEach((presence) => {
+      onlineUserIds.add(presence.user_id);
+    });
+  }
+  refreshFriendsUIIfOpen();
+}
+
+function refreshFriendsUIIfOpen() {
+  const modal = document.getElementById("friends-modal");
+  if (modal && modal.style.display === "flex") {
+    fetchAndRenderFriends();
+  }
+}
+
+// ==========================================
+// FREUNDES-SYSTEM LOGIK
 // ==========================================
 
 let currentFriendsTab = "list";
@@ -1285,14 +1344,22 @@ async function fetchAndRenderFriends() {
           avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${friendId}`,
         };
 
+        // --- NEU: Online Status prüfen & Farben setzen ---
+        let isOnline = onlineUserIds.has(friendId);
+        let statusColor = isOnline
+          ? "var(--accent-green)"
+          : "var(--text-muted)";
+        let statusFill = isOnline ? "var(--accent-green)" : "none";
+        let statusText = isOnline ? "Online" : "Offline";
+
         html += `
           <div style="display:flex; justify-content:space-between; align-items:center; background:var(--glass-bg); padding:10px; border-radius:8px; margin-bottom:8px; border:1px solid var(--glass-border);">
             <div style="display:flex; align-items:center; gap:10px;">
               <img src="${friendProf.avatar_url}" style="width:40px; height:40px; border-radius:50%; background:#111; object-fit:cover;">
               <div>
                 <div style="font-weight:bold; color:var(--text-main);">${friendProf.name}</div>
-                <div style="font-size:0.8em; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
-                  <svg width="8" height="8" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="2"/></svg> Offline
+                <div style="font-size:0.8em; color:${statusColor}; display:flex; align-items:center; gap:4px;">
+                  <svg width="8" height="8" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4" fill="${statusFill}" stroke="currentColor" stroke-width="2"/></svg> ${statusText}
                 </div> 
               </div>
             </div>

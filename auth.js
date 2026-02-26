@@ -25,6 +25,7 @@ async function handleRegister() {
   alert("Erfolgreich registriert und eingeloggt!");
   currentUser = data.user;
   isGuest = false;
+  initPresence();
   showMainApp();
 }
 
@@ -35,6 +36,12 @@ function continueAsGuest() {
 }
 
 async function handleLogout() {
+  // Beendet das Online-Tracking und verlässt den Channel
+  if (presenceChannel) {
+    await _supabase.removeChannel(presenceChannel);
+    onlineUserIds.clear();
+  }
+
   if (!isGuest) await _supabase.auth.signOut();
   isGuest = false;
   currentUser = null;
@@ -56,6 +63,8 @@ async function handleLogin() {
 
   currentUser = data.user;
   isGuest = false;
+
+  initPresence();
   showMainApp();
 }
 
