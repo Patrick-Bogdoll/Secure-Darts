@@ -354,40 +354,42 @@ function initNotifications() {
 
 // 1. Der Sender klickt auf "Spielen"
 async function challengeFriend(targetUserId, targetUserName) {
-  // Modal schließen
+  // 1. Modal sofort zu
   document.getElementById("friends-modal").style.display = "none";
 
-  // Raumcode generieren
+  // 2. RoomCode & Daten vorbereiten
   const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
   myOnlineName =
     currentUser.user_metadata?.display_name || currentUser.email.split("@")[0];
 
-  // ---> NEU: LOBBY IN DER DATENBANK ERSTELLEN <---
+  // 3. Lobby in Supabase eröffnen (damit der Gegner beitreten kann)
   const { error } = await _supabase.from("live_matches").insert([
     {
       room_code: roomCode,
       player1_name: myOnlineName,
       status: "waiting",
+      last_action: "Herausforderung gesendet",
     },
   ]);
 
-  if (error) {
-    if (typeof showToast === "function")
-      showToast("Fehler beim Erstellen der Lobby: " + error.message, "error");
-    else alert("Fehler beim Erstellen der Lobby: " + error.message);
-    return;
-  }
+  if (error) return showToast("Lobby-Fehler: " + error.message, "error");
 
-  // Lokale Variablen für das Spiel setzen
+  // 4. App-Status auf Online-Modus setzen
   currentRoomCode = roomCode;
   amIPlayer1 = true;
   isLocal501 = false;
   currentAppMode = "501";
 
-  // UI umschalten
+  // 5. DEINE BESTEHENDE LOBBY-UI ÖFFNEN
+  // Dies zeigt den Screen mit dem Raumcode und dem "Spiel Starten" Button an
   openOnlineLobby(roomCode, myOnlineName, null, true);
 
-  // Herausforderung via Broadcast absenden
+  // 6. WICHTIG: Deine App muss jetzt auf den Beitritt warten
+  if (typeof listenForOpponent === "function") {
+    listenForOpponent(roomCode);
+  }
+
+  // 7. Die Einladung per Realtime-Broadcast "rauspusten"
   const targetChannel = _supabase.channel(`user-${targetUserId}`);
   targetChannel.subscribe((status) => {
     if (status === "SUBSCRIBED") {
@@ -400,8 +402,7 @@ async function challengeFriend(targetUserId, targetUserName) {
           roomCode: roomCode,
         },
       });
-      if (typeof showToast === "function")
-        showToast(`Herausforderung an ${targetUserName} gesendet!`, "success");
+      showToast(`Herausforderung an ${targetUserName} gesendet!`, "success");
     }
   });
 }

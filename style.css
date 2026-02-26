@@ -761,3 +761,12 @@ td {
   border-radius: 8px;
   animation: pulse 1.5s infinite;
 }
+
+.preset-numpad-divider {
+  width: 100%; /* Volle Breite */
+  height: 0; /* Keine Eigenhöhe */
+  border-bottom: 2px solid var(--accent-blue, #007bff); /* Die 2px blaue Linie (Fallback auf Standard-Blau) */
+  margin-top: 15px; /* Abstand nach oben (zu den Presets) */
+  margin-bottom: 15px; /* Abstand nach unten (zum Numpad) */
+  box-sizing: border-box; /* Padding/Border nicht zur Breite dazurechnen */
+}
