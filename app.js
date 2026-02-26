@@ -2,6 +2,7 @@ const SUPABASE_URL = "https://etzkulwnjhkoiklrohbt.supabase.co";
 const SUPABASE_KEY = "sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy";
 const { createClient } = supabase;
 const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const botSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 5px;"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8.01" y2="16"></line><line x1="16" y1="16" x2="16.01" y2="16"></line></svg>`;
 
 // ==========================================
 // GLOBALE DART-KONSTANTEN
@@ -234,7 +235,7 @@ function goHome() {
   isOnlineHost = false;
 
   document.getElementById("home-screen").style.display = "block";
-  document.getElementById("app-title").innerText = "🎯 SECURE-DARTS";
+  document.getElementById("app-title").innerText = "SECURE-DARTS";
   document.body.classList.remove("training-active");
 
   let cancelModal = document.getElementById("cancel-modal");
@@ -247,8 +248,8 @@ function enterMode(mode) {
   document.getElementById("hamburger-btn").style.display = "block";
 
   if (mode === "501")
-    document.getElementById("app-title").innerText = "🎯 501 DARTS";
-  else document.getElementById("app-title").innerText = "🎲 SECURE-DARTS";
+    document.getElementById("app-title").innerText = "501 DARTS";
+  else document.getElementById("app-title").innerText = "SECURE-DARTS";
 
   showScreen("play");
 }
@@ -283,13 +284,13 @@ function showScreen(screenType) {
 
 // DRY Setup Funktionen
 function openPartySetup() {
-  openGameSetup("party-setup-screen", "🎉 PARTY X01");
+  openGameSetup("party-setup-screen", "PARTY X01");
 }
 function openBobsSetup() {
-  openGameSetup("bobs-setup-screen", "⭕️ BOB'S 27", "bobs-player-input");
+  openGameSetup("bobs-setup-screen", "BOB'S 27", "bobs-player-input");
 }
 function openRtwSetup() {
-  openGameSetup("rtw-setup-screen", "🌍 ROUND THE WORLD", "rtw-player-input");
+  openGameSetup("rtw-setup-screen", "ROUND THE WORLD", "rtw-player-input");
 }
 
 async function requestWakeLock() {
@@ -1088,7 +1089,9 @@ async function stopCameraStream() {
 
   document.getElementById("companion-screen").innerHTML = `
     <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #1a1a1a; color: white; font-family: sans-serif; text-align: center; padding: 20px;">
-        <div style="font-size: 50px; margin-bottom: 20px;">🔒</div>
+        <div style="margin-bottom: 20px;">
+          <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        </div>
         <h2 style="color: var(--accent-red); margin-top:0;">Kamera geschlossen</h2>
         <p style="color: #888; line-height: 1.5;">Die Verbindung wurde sicher getrennt.<br>Du kannst diesen Tab jetzt schließen.</p>
     </div>
@@ -1283,16 +1286,23 @@ async function fetchAndRenderFriends() {
         };
 
         html += `
-          <div style="display:flex; justify-content:space-between; align-items:center; background:#222; padding:10px; border-radius:8px; margin-bottom:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; background:var(--glass-bg); padding:10px; border-radius:8px; margin-bottom:8px; border:1px solid var(--glass-border);">
             <div style="display:flex; align-items:center; gap:10px;">
-              <img src="${friendProf.avatar_url}" style="width:40px; height:40px; border-radius:50%; background:#111;">
+              <img src="${friendProf.avatar_url}" style="width:40px; height:40px; border-radius:50%; background:#111; object-fit:cover;">
               <div>
-                <div style="font-weight:bold; color:white;">${friendProf.name}</div>
-                <div style="font-size:0.8em; color:#888;">🔴 Offline</div> </div>
+                <div style="font-weight:bold; color:var(--text-main);">${friendProf.name}</div>
+                <div style="font-size:0.8em; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
+                  <svg width="8" height="8" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="2"/></svg> Offline
+                </div> 
+              </div>
             </div>
             <div style="display:flex; gap:8px;">
-              <button onclick="challengeFriend('${friendProf.name}')" style="background:var(--accent-purple); color:white; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-weight:bold;">⚔️ Spielen</button>
-              <button onclick="removeFriend('${rel.id}')" style="background:transparent; color:#aaa; border:1px solid #444; border-radius:6px; padding:6px 10px; cursor:pointer;">🗑️</button>
+              <button onclick="challengeFriend('${friendProf.name}')" style="background:var(--accent-purple); color:white; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-weight:bold; display:flex; align-items:center; gap:5px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Spielen
+              </button>
+              <button onclick="removeFriend('${rel.id}')" style="background:transparent; color:var(--text-muted); border:1px solid var(--glass-border); border-radius:6px; padding:6px 10px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
             </div>
           </div>
         `;
@@ -1322,7 +1332,9 @@ async function fetchAndRenderFriends() {
       html += `
         <div style="display:flex; justify-content:space-between; align-items:center; background:#1a1a1a; padding:10px; border-radius:8px; margin-bottom:8px;">
           <span style="color:#888;">Warte auf ${friendProf.name}...</span>
-          <button onclick="removeFriend('${rel.id}')" style="background:transparent; color:#888; border:none; cursor:pointer;">Abbrechen ✖</button>
+          <button onclick="removeFriend('${rel.id}')" style="background:transparent; color:var(--text-muted); border:none; cursor:pointer; display:flex; align-items:center; gap:5px;">
+            Abbrechen <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
         </div>
       `;
     });
@@ -1357,7 +1369,5 @@ async function removeFriend(relationId) {
 
 // Platzhalter für Phase 2 (Live-Herausforderung)
 function challengeFriend(friendName) {
-  alert(
-    `Du forderst ${friendName} heraus! (Das Live-System kommt in Phase 2 😉)`
-  );
+  alert(`Du forderst ${friendName} heraus! (Das Live-System kommt in Phase 2)`);
 }

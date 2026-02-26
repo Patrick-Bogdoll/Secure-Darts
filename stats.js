@@ -42,10 +42,10 @@ const STATS_CONFIG = {
       "140+",
       "180s",
     ],
-    chartColor: "rgba(0, 230, 118, 1)",
+    chartColor: "#10b981", // accent-green
     chartInteraction: "nearest",
     chartAxis: "x",
-    chartTitle: null, // Wird bei 501 ausgeblendet
+    chartTitle: null,
     hasScoreDist: true,
   },
   secure: {
@@ -60,10 +60,10 @@ const STATS_CONFIG = {
       "Secure Rate",
       "Double Rate",
     ],
-    chartColor: "rgba(0, 230, 118, 1)",
+    chartColor: "#3b82f6", // accent-blue
     chartInteraction: "index",
     chartAxis: "xy",
-    chartTitle: "📊 DURCHSCHNITT PRO ZAHL",
+    chartTitle: "DURCHSCHNITT PRO ZAHL",
   },
   bobs: {
     table: "stats_bobs",
@@ -77,10 +77,10 @@ const STATS_CONFIG = {
       "Ø Score",
       "Letztes Spiel",
     ],
-    chartColor: "rgba(255, 152, 0, 1)",
+    chartColor: "#f59e0b", // accent-orange
     chartInteraction: "index",
     chartAxis: "xy",
-    chartTitle: "📊 PUNKTEVERLAUF (LETZTE 20 SPIELE)",
+    chartTitle: "PUNKTEVERLAUF (LETZTE 20 SPIELE)",
   },
   rtw: {
     table: "stats_rtw",
@@ -94,10 +94,10 @@ const STATS_CONFIG = {
       "Double Modus",
       "Triple Modus",
     ],
-    chartColor: "rgba(41, 121, 255, 1)",
+    chartColor: "#06b6d4", // accent-cyan
     chartInteraction: "index",
     chartAxis: "xy",
-    chartTitle: "📊 TREFFERVERLAUF (LETZTE 20 SPIELE)",
+    chartTitle: "TREFFERVERLAUF (LETZTE 20 SPIELE)",
   },
 };
 
@@ -470,7 +470,9 @@ function parseBobsData(data) {
             ${
               currentUser &&
               (game.user_id === currentUser.id || game.name === myOnlineName)
-                ? `<button onclick="event.stopPropagation(); deleteUniversalMatch('bobs', ${game.id}, '${safeData}')" style="background:none; border:none; cursor:pointer; font-size:1.2em;">🗑️</button>`
+                ? `<button onclick="event.stopPropagation(); deleteUniversalMatch('bobs', ${game.id}, '${safeData}')" style="background:none; border:none; cursor:pointer; color:var(--text-muted);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+    </button>`
                 : ""
             }
           </div>
@@ -557,19 +559,20 @@ function parseRtwData(data) {
             <div style="color: var(--accent-blue); font-weight: bold;">Modus: ${modeText}</div>
           </div>
           <div style="display:flex; align-items:center; gap:15px;">
-            <div style="text-align: right;">
-              <div style="font-size: 1.5em; font-weight: bold; color: white;">${
-                game.total_points
-              }</div>
-              <span style="color: #888; font-size: 0.8em;">Treffer</span>
-            </div>
-            ${
-              currentUser &&
-              (game.user_id === currentUser.id || game.name === myOnlineName)
-                ? `<button onclick="event.stopPropagation(); deleteUniversalMatch('rtw', ${game.id}, '${safeData}')" style="background:none; border:none; cursor:pointer; font-size:1.2em;">🗑️</button>`
-                : ""
-            }
-          </div>
+  <div style="font-size: 1.5em; font-weight: bold; color: white;">
+    ${
+      game.total_points
+    } <span style="font-size: 0.6em; color: var(--text-muted); font-weight: normal; margin-left: 2px;">Treffer</span>
+  </div>
+  ${
+    currentUser &&
+    (game.user_id === currentUser.id || game.name === myOnlineName)
+      ? `<button onclick="event.stopPropagation(); deleteUniversalMatch('rtw', ${game.id}, '${safeData}')" style="background:none; border:none; cursor:pointer; color:var(--text-muted); display:flex; align-items:center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </button>`
+      : ""
+  }
+</div>
         </div>
         <div class="history-details" style="display: none; padding: 0 15px 15px 15px; background: #222;">${detailsHTML}</div>
       </div>`;
@@ -603,7 +606,7 @@ function renderChart(labels, dataArray, conf) {
           label: "Wert",
           data: dataArray,
           borderColor: conf.chartColor,
-          backgroundColor: conf.chartColor.replace("1)", "0.2)"),
+          backgroundColor: conf.chartColor + "33", // Fügt "33" (ca. 20% Transparenz) an den Hex-Code an
           borderWidth: 3,
           fill: true,
           tension: 0.3,
@@ -662,7 +665,7 @@ async function save501Stats(
   finalFinish,
   trackerObj
 ) {
-  if (playerName.includes("🤖") || playerName.includes("🔥")) return;
+  if (playerName.includes("[BOT]")) return;
 
   let isMe = false;
   if (
@@ -790,7 +793,7 @@ async function save501MatchHistory(
   finish,
   matchLog
 ) {
-  if (playerName.includes("🤖") || playerName.includes("🔥")) return;
+  if (playerName.includes("[BOT]")) return;
   let payload = {
     player_name: playerName,
     opponent_name: opponentName,
@@ -817,7 +820,7 @@ async function loadHighscores() {
   tbody.innerHTML = "";
   let rank = 1;
   highscores.forEach((entry) => {
-    if (entry.name.includes("🤖") || entry.name.includes("🔥")) return;
+    if (entry.name.includes("[BOT]")) return;
     const safeData = encodeURIComponent(JSON.stringify(entry));
     let dName = entry.name.replace(
       " (Training)",
@@ -845,7 +848,7 @@ async function load501Stats() {
   tbody.innerHTML = "";
   let rank = 1;
   stats501.forEach((entry) => {
-    if (entry.name.includes("🤖") || entry.name.includes("🔥")) return;
+    if (entry.name.includes("[BOT]")) return;
     let avg =
       entry.total_darts_thrown > 0
         ? (entry.total_score_thrown / entry.total_darts_thrown) * 3
@@ -956,7 +959,9 @@ async function loadMatchHistory() {
             ${
               currentUser &&
               (m.user_id === currentUser.id || m.player_name === myOnlineName)
-                ? `<button onclick="event.stopPropagation(); deleteUniversalMatch('secure', ${m.id}, '${safeData}')" style="background:none; border:none; cursor:pointer; font-size:1.2em;">🗑️</button>`
+                ? `<button onclick="event.stopPropagation(); deleteUniversalMatch('secure', ${m.id}, '${safeData}')" style="background:none; border:none; cursor:pointer; color:var(--text-muted); display:flex; align-items:center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>`
                 : ""
             }
           </div>
@@ -1060,22 +1065,24 @@ async function loadMatchHistory() {
       // ---> DRY: Hier ist der 501 Mülleimer
       let safeData = encodeURIComponent(JSON.stringify(m)).replace(/'/g, "%27");
       div.innerHTML = `
-        <div class="history-summary" onclick="toggleHistoryDetails(this)" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-          <div style="flex:1;">
-            <div style="font-weight:bold; color:${
-              m.is_win ? "var(--accent-green)" : "var(--accent-red)"
-            }">${m.is_win ? "MATCH-SIEG" : "Match-Niederlage"} gegen ${
+  <div class="history-summary" onclick="toggleHistoryDetails(this)" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+    <div style="flex:1;">
+      <div style="font-weight:bold; color:${
+        m.is_win ? "var(--accent-green)" : "var(--accent-red)"
+      }">${m.is_win ? "Match-Sieg" : "Match-Niederlage"} gegen <b>${
         m.opponent_name
-      }</div>
-            <div class="history-date">${date} | Avg: ${m.match_average}</div>
-          </div>
-          <div class="history-score">${m.is_win ? "🏆" : "❌"}</div>
-          ${
-            currentUser &&
-            (m.user_id === currentUser.id || m.player_name === myOnlineName)
-              ? `<button onclick="event.stopPropagation(); deleteUniversalMatch('501', ${m.id}, '${safeData}')" style="background:none; border:none; cursor:pointer; font-size:1.2em;">🗑️</button>`
-              : ""
-          }
+      }</b></div>
+      <div class="history-date">${date} | Avg: ${m.match_average}</div>
+    </div>
+    
+    ${
+      currentUser &&
+      (m.user_id === currentUser.id || m.player_name === myOnlineName)
+        ? `<button onclick="event.stopPropagation(); deleteUniversalMatch('501', ${m.id}, '${safeData}')" style="background:none; border:none; cursor:pointer; color:var(--text-muted); display:flex; align-items:center; padding: 5px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </button>`
+        : ""
+    }
         </div>
         <div class="history-details" style="display:none; padding:10px; background:#111;">${legsHTML}</div>`;
       container.appendChild(div);
@@ -1392,20 +1399,26 @@ function renderScoreDistributionChart(frequencies) {
         legend: { display: false }, // Legende ausblenden, ist selbsterklärend
         title: {
           display: true,
-          text: "Meistgeworfene Scores (Top 10)",
+          text: "HÄUFIGSTE AUFNAHMEN", // Clean & Sachlich
           color: "white",
-          font: { size: 14, family: "sans-serif" },
+          padding: { top: 10, bottom: 20 },
+          font: {
+            size: 11,
+            family: "'Inter', sans-serif",
+            weight: "600",
+            letterSpacing: 1, // Passt zum Header-Design
+          },
         },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: { color: "#ccc", stepSize: 1, precision: 0 },
-          grid: { color: "rgba(255,255,255,0.1)" },
-        },
-        x: {
-          ticks: { color: "white", font: { weight: "bold" } },
-          grid: { display: false },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { color: "#ccc", stepSize: 1, precision: 0 },
+            grid: { color: "rgba(255,255,255,0.1)" },
+          },
+          x: {
+            ticks: { color: "white", font: { weight: "bold" } },
+            grid: { display: false },
+          },
         },
       },
     },

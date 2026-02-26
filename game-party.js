@@ -234,7 +234,7 @@ function submitPartyScore(presetScore = null) {
     updatePartyScoreboard();
 
     setTimeout(() => {
-      alert(`🎉 ${player.name} hat gewonnen!`);
+      alert(`${player.name} hat gewonnen!`);
       document.getElementById("game-party-screen").style.display = "none";
       goHome();
     }, 300);

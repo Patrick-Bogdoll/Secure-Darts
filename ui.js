@@ -48,35 +48,40 @@ function showToast(message, type = "success") {
   if (!container) return;
 
   const toast = document.createElement("div");
-  const bgColor =
+  const accentColor =
     type === "success" ? "var(--accent-green)" : "var(--accent-red)";
-  const color = type === "success" ? "black" : "white";
-  const icon = type === "success" ? "✅" : "⚠️";
+
+  // Icon Auswahl (SVG statt Emoji)
+  const iconSvg =
+    type === "success"
+      ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+      : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
 
   toast.style.cssText = `
-    background: ${bgColor};
-    color: ${color};
-    padding: 12px 20px;
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: var(--text-main);
+    border: 1px solid var(--glass-border);
+    border-left: 4px solid ${accentColor};
+    padding: 14px 24px;
     border-radius: 8px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.6);
-    font-weight: bold;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    font-weight: 600;
     font-size: 0.9em;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    margin-bottom: 10px;
     transform: translateX(120%);
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   `;
-  toast.innerHTML = `<span style="font-size: 1.2em;">${icon}</span> <span>${message}</span>`;
+
+  toast.innerHTML = `<span style="color: ${accentColor}; display: flex;">${iconSvg}</span> <span>${message.toUpperCase()}</span>`;
 
   container.appendChild(toast);
+  requestAnimationFrame(() => (toast.style.transform = "translateX(0)"));
 
-  // Rein-Animieren
-  requestAnimationFrame(() => {
-    toast.style.transform = "translateX(0)";
-  });
-
-  // Raus-Animieren und nach 2.5 Sekunden löschen
   setTimeout(() => {
     toast.style.transform = "translateX(120%)";
     setTimeout(() => toast.remove(), 400);
@@ -97,7 +102,7 @@ function enableInlineNameEdit() {
 
   // Tauscht den Text gegen ein cooles Input-Feld aus
   nameEl.innerHTML = `<input type="text" id="inline-name-input" value="${currentName}" 
-    style="background: #111; color: white; border: 1px solid var(--accent-blue); padding: 5px 10px; border-radius: 6px; font-size: 0.9em; width: 140px; outline: none;" 
+    style="background: rgba(0,0,0,0.3); color: white; border: 1px solid var(--accent-blue); padding: 8px 12px; border-radius: 8px; font-size: 1em; width: 100%; outline: none; font-family: inherit; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);"
     onblur="saveInlineName()" 
     onkeydown="if(event.key === 'Enter') { this.blur(); }">`;
 
@@ -194,24 +199,29 @@ function renderUniversalDartboard(containerId, activeTarget, mode = "single") {
 
   const cx = 150,
     cy = 150;
-  const rBoard = 145,
-    rDoubleOuter = 115,
+  const rBoard = 145;
+  const rDoubleOuter = 115,
     rDoubleInner = 105;
   const rTripleOuter = 65,
     rTripleInner = 55;
   const rOuterBull = 16,
-    rInnerBull = 7,
-    rText = 130;
+    rInnerBull = 7;
+  const rText = 130;
+
+  // DEFINITION DER FARBEN & STROKE (Behebt den ReferenceError)
+  const strokeColor = "#ffffff1a"; // Weiß mit 10% Deckkraft
+  const glassWhite = "rgba(255, 255, 255, 0.05)";
+  const glassDeep = "rgba(255, 255, 255, 0.02)";
 
   let slicesHTML = `
     <style>
       @keyframes flash-target {
-        0%, 100% { fill: var(--accent-green) !important; stroke: #ffffff !important; }
-        50% { fill: #ffffff !important; stroke: var(--accent-green) !important; stroke-width: 2px !important; }
+        0%, 100% { fill: rgba(255, 255, 255, 0.4); stroke: #ffffff; stroke-width: 1px; }
+        50% { fill: rgba(255, 255, 255, 0.1); stroke: rgba(255, 255, 255, 0.2); stroke-width: 0.5px; }
       }
       .blinking-target { animation: flash-target 0.8s infinite ease-in-out; }
     </style>
-    <circle cx="${cx}" cy="${cy}" r="${rBoard}" fill="#1c1c1c" />
+    <circle cx="${cx}" cy="${cy}" r="${rBoard}" fill="#0f172a" stroke="${strokeColor}" stroke-width="1" />
   `;
 
   const angleStep = 360 / 20;
@@ -235,8 +245,9 @@ function renderUniversalDartboard(containerId, activeTarget, mode = "single") {
     const endAngle = startAngle + angleStep;
     const isRedBlack = index % 2 === 0;
 
-    const colorSingle = isRedBlack ? "#222222" : "#5d554a";
-    const colorDoubleTriple = isRedBlack ? "#a82b2b" : "#1a5d38";
+    // Glass-Colors für die Segmente
+    const colorSingle = isRedBlack ? glassWhite : glassDeep;
+    const colorDoubleTriple = isRedBlack ? "#3b82f644" : "#10b98144"; // Blau & Grün transparent
 
     let innerSingleClass = "",
       tripleClass = "",
@@ -259,30 +270,30 @@ function renderUniversalDartboard(containerId, activeTarget, mode = "single") {
       rTripleInner,
       startAngle,
       endAngle
-    )}" fill="${colorSingle}" stroke="#aaa" stroke-width="0.5" />`;
+    )}" fill="${colorSingle}" stroke="${strokeColor}" stroke-width="0.5" />`;
     slicesHTML += `<path${tripleClass} d="${createArc(
       rTripleInner,
       rTripleOuter,
       startAngle,
       endAngle
-    )}" fill="${colorDoubleTriple}" stroke="#aaa" stroke-width="0.5" />`;
+    )}" fill="${colorDoubleTriple}" stroke="${strokeColor}" stroke-width="0.5" />`;
     slicesHTML += `<path${outerSingleClass} d="${createArc(
       rTripleOuter,
       rDoubleInner,
       startAngle,
       endAngle
-    )}" fill="${colorSingle}" stroke="#aaa" stroke-width="0.5" />`;
+    )}" fill="${colorSingle}" stroke="${strokeColor}" stroke-width="0.5" />`;
     slicesHTML += `<path${doubleClass} d="${createArc(
       rDoubleInner,
       rDoubleOuter,
       startAngle,
       endAngle
-    )}" fill="${colorDoubleTriple}" stroke="#aaa" stroke-width="0.5" />`;
+    )}" fill="${colorDoubleTriple}" stroke="${strokeColor}" stroke-width="0.5" />`;
 
     const textRad = ((startAngle + angleStep / 2 - 90) * Math.PI) / 180;
     const tx = cx + rText * Math.cos(textRad);
     const ty = cy + rText * Math.sin(textRad);
-    slicesHTML += `<text x="${tx}" y="${ty}" fill="white" font-size="14" font-weight="bold" font-family="sans-serif" text-anchor="middle" dominant-baseline="central">${num}</text>`;
+    slicesHTML += `<text x="${tx}" y="${ty}" fill="rgba(255,255,255,0.6)" font-size="12" font-weight="bold" font-family="Inter, sans-serif" text-anchor="middle" dominant-baseline="central">${num}</text>`;
   });
 
   // Bullseye Logic
@@ -294,16 +305,15 @@ function renderUniversalDartboard(containerId, activeTarget, mode = "single") {
     } else if (mode === "double" || mode === "triple") {
       innerBullClass = ' class="blinking-target"';
     } else if (mode === "bobs") {
-      // Bei Bob's blinkt der gesamte Bull-Bereich
       outerBullClass = ' class="blinking-target"';
       innerBullClass = ' class="blinking-target"';
     }
   }
 
-  slicesHTML += `<circle${outerBullClass} cx="${cx}" cy="${cy}" r="${rOuterBull}" fill="#1a5d38" stroke="#aaa" stroke-width="0.5" />`;
-  slicesHTML += `<circle${innerBullClass} cx="${cx}" cy="${cy}" r="${rInnerBull}" fill="#a82b2b" stroke="#aaa" stroke-width="0.5" />`;
+  slicesHTML += `<circle${outerBullClass} cx="${cx}" cy="${cy}" r="${rOuterBull}" fill="#10b98144" stroke="${strokeColor}" stroke-width="0.5" />`;
+  slicesHTML += `<circle${innerBullClass} cx="${cx}" cy="${cy}" r="${rInnerBull}" fill="#ef444466" stroke="${strokeColor}" stroke-width="0.5" />`;
 
-  container.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 300 300" style="max-width: 350px; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));">${slicesHTML}</svg>`;
+  container.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 300 300" style="max-width: 350px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4));">${slicesHTML}</svg>`;
 }
 
 // ==========================================
@@ -497,10 +507,10 @@ function renderUniversalMiniGameHistory(
           : `${entry.hits} Treffer`;
 
       html += `
-        <div style="display:flex; justify-content:space-between; padding:8px 10px; background:#2a2a2a; margin-bottom:5px; border-radius:6px; font-size: 0.9em; color:#ccc;">
-          <span>Feld <b style="color:white;">${fieldName}</b></span>
-          <span style="color:${hitColor}; font-weight:bold;">${suffix}</span>
-        </div>`;
+          <div style="display:flex; justify-content:space-between; padding:10px 14px; background:var(--glass-bg); border: 1px solid var(--glass-border); margin-bottom:6px; border-radius:8px; font-size: 0.85em; color:var(--text-main);">
+            <span style="color:var(--text-muted);">FELD <b style="color:var(--text-main); margin-left:4px;">${fieldName}</b></span>
+            <span style="color:${hitColor}; font-weight:800; letter-spacing:0.5px;">${suffix.toUpperCase()}</span>
+          </div>`;
     });
   }
 

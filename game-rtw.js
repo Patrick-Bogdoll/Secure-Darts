@@ -41,7 +41,7 @@ function updateRtwUI() {
 
   document.getElementById(
     "rtw-turn-indicator"
-  ).innerText = `🎯 ${rtwPlayer.name} wirft...`;
+  ).innerText = `${rtwPlayer.name} wirft...`;
   document.getElementById(
     "rtw-points-count"
   ).innerText = `${rtwPlayer.totalPoints}`;

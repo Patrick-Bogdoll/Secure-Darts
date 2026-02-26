@@ -42,7 +42,7 @@ function updateBobsUI() {
 
   document.getElementById(
     "bobs-turn-indicator"
-  ).innerText = `🎯 ${bobsPlayer.name} wirft...`;
+  ).innerHTML = `${bobsPlayer.name} wirft...`;
   document.getElementById("bobs-current-score").innerText = bobsPlayer.score;
 
   let targetDisplay = targetVal === 25 ? "BULL" : `D${targetVal}`;

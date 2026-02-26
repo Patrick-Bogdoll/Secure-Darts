@@ -23,13 +23,13 @@ function addBot() {
   let name = "Bot";
   let diff = 1;
   if (choice === "1") {
-    name = "🤖 Kneipen-Held";
+    name = botSvg + " Kneipen-Held [BOT]";
     diff = 1;
   } else if (choice === "2") {
-    name = "🤖 Liga-Spieler";
+    name = botSvg + " Liga-Spieler [BOT]";
     diff = 2;
   } else if (choice === "3") {
-    name = "🔥 THE NUKE";
+    name = botSvg + " THE NUKE [BOT]";
     diff = 3;
   } else return;
   players.push({

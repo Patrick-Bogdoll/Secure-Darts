@@ -36,7 +36,7 @@ function startLocal501Game() {
     document.getElementById("local-p1-name").value.trim() || "Spieler 1";
   localP2Name =
     document.getElementById("local-p2-name").value.trim() || "Spieler 2";
-  isP2Bot = localP2Name.includes("🤖");
+  isP2Bot = localP2Name.includes("[BOT]");
   localP1Legs = 0;
   localP2Legs = 0;
   p1TotalScore = 0;
@@ -652,7 +652,8 @@ function askCheckoutOverlay(question, minVal, maxVal, allowCancel = false) {
       cancelBtn.style.flexBasis = "100%"; // Nimmt die komplette untere Zeile ein
       cancelBtn.style.padding = "15px";
       cancelBtn.style.fontSize = "1.1em";
-      cancelBtn.innerText = "✖ Halt, verrechnet!";
+      cancelBtn.innerHTML =
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Halt, verrechnet!';
       cancelBtn.onclick = () => {
         overlay.style.display = "none";
         document.querySelector(".preset-grid").style.display = "grid";
@@ -819,7 +820,7 @@ async function submit501Score(presetScore = null) {
     let ansDarts = isBotThrow
       ? botDartsThrownThisTurn
       : await askCheckoutOverlay(
-          "GAME SHOT! 🎯\nMit dem wievielten Dart gecheckt?",
+          "GAME SHOT!\nMit dem wievielten Dart gecheckt?",
           1,
           3,
           true
@@ -1513,7 +1514,7 @@ function cancelBotSetup() {
 
 function confirmBotSetup() {
   document.getElementById("bot-setup-overlay").style.display = "none";
-  localP2Name = `🤖 Bot (Avg: ${currentBotAvgSelection})`;
+  localP2Name = `[BOT] (Avg: ${currentBotAvgSelection})`;
   document.getElementById("local-p2-name").value = localP2Name;
   isP2Bot = true;
   botDifficulty501 = currentBotAvgSelection;

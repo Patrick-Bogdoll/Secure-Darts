@@ -6,46 +6,32 @@
     <title>Secure-Darts</title>
     <link
       rel="icon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' stroke='white' stroke-width='8' fill='none'/><circle cx='50' cy='50' r='15' fill='%2310b981'/></svg>"
     />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div
       id="auth-screen"
-      class="container"
-      style="
-        text-align: center;
-        margin-top: 4vh;
-        max-width: 420px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
-      "
+      class="container glass-panel"
+      style="text-align: center; margin-top: 4vh; max-width: 420px"
     >
-      <div
+      <h1
         style="
-          font-size: 4.5em;
+          font-size: 2em;
           margin-bottom: 5px;
-          text-shadow: 0 0 20px rgba(0, 230, 118, 0.2);
-        "
-      >
-        🎯
-      </div>
-      <h2
-        style="
           color: white;
-          margin-bottom: 10px;
-          text-transform: uppercase;
-          letter-spacing: 2px;
+          text-shadow: 0 0 15px rgba(174, 219, 204, 0.3);
         "
       >
-        Willkommen
-      </h2>
+        SECURE DARTS
+      </h1>
+      <h2 style="color: var(--text-main); margin-bottom: 10px">Willkommen</h2>
       <p
         style="
-          color: #888;
+          color: var(--text-muted);
           margin-bottom: 30px;
           font-size: 0.95em;
           line-height: 1.5;
@@ -60,10 +46,10 @@
         id="auth-email"
         placeholder="E-Mail Adresse"
         style="
-          width: 100%;
-          box-sizing: border-box;
           margin-bottom: 15px;
           text-align: center;
+          width: 100%;
+          box-sizing: border-box;
         "
       />
       <input
@@ -71,10 +57,10 @@
         id="auth-password"
         placeholder="Passwort (min. 6 Zeichen)"
         style="
-          width: 100%;
-          box-sizing: border-box;
           margin-bottom: 25px;
           text-align: center;
+          width: 100%;
+          box-sizing: border-box;
         "
       />
 
@@ -87,42 +73,32 @@
         "
       >
         <button
-          class="primary"
-          style="margin: 0; padding: 16px; font-size: 1.1em"
+          class="btn-glass accent-green"
+          style="align-items: center; padding: 16px; margin: 0"
           onclick="handleLogin()"
         >
-          Einloggen
+          <span style="font-size: 1.1em; font-weight: bold">Einloggen</span>
         </button>
         <button
-          class="primary"
-          style="
-            margin: 0;
-            padding: 16px;
-            font-size: 1.1em;
-            background: #2a2a2a;
-            color: white;
-            border: 1px solid #444;
-          "
+          class="btn-glass accent-blue"
+          style="align-items: center; padding: 16px; margin: 0"
           onclick="handleRegister()"
         >
-          Account erstellen
+          <span style="font-size: 1.1em; font-weight: bold"
+            >Account erstellen</span
+          >
         </button>
 
         <button
-          class="primary"
+          class="primary glass-panel"
           style="
             margin: 0;
             padding: 15px;
-            font-size: 1.1em;
-            background: white;
-            color: #444;
-            border: none;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 12px;
             font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
           "
           onclick="handleGoogleLogin()"
         >
@@ -149,38 +125,29 @@
       </div>
 
       <div style="display: flex; align-items: center; margin: 25px 0">
-        <div style="flex: 1; height: 1px; background: #333"></div>
+        <div
+          style="flex: 1; height: 1px; background: var(--glass-border)"
+        ></div>
         <div
           style="
-            color: #666;
+            color: var(--text-muted);
             padding: 0 15px;
             font-size: 0.8em;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 1px;
           "
         >
           Oder
         </div>
-        <div style="flex: 1; height: 1px; background: #333"></div>
+        <div
+          style="flex: 1; height: 1px; background: var(--glass-border)"
+        ></div>
       </div>
 
-      <button
-        class="reset"
-        style="
-          background: transparent;
-          border: 1px dashed #555;
-          color: #aaa;
-          margin-top: 0;
-          padding: 15px;
-          transition: all 0.3s;
-        "
-        onmouseover="this.style.borderColor='white'; this.style.color='white'"
-        onmouseout="this.style.borderColor='#555'; this.style.color='#aaa'"
-        onclick="continueAsGuest()"
-      >
+      <button class="reset" onclick="continueAsGuest()">
         Als Gast fortfahren (Lokal)
       </button>
+
       <div
         style="
           margin-top: 35px;
@@ -193,20 +160,17 @@
       >
         <a
           href="impressum.html"
-          style="color: #666; text-decoration: none; transition: 0.3s"
-          onmouseover="this.style.color='white'"
-          onmouseout="this.style.color='#666'"
+          style="color: var(--text-muted); text-decoration: none"
           >Impressum</a
         >
         <a
           href="datenschutz.html"
-          style="color: #666; text-decoration: none; transition: 0.3s"
-          onmouseover="this.style.color='white'"
-          onmouseout="this.style.color='#666'"
+          style="color: var(--text-muted); text-decoration: none"
           >Datenschutzerklärung</a
         >
       </div>
     </div>
+
     <div
       id="top-header"
       style="
@@ -229,19 +193,30 @@
           transform: translateY(-50%);
           background: transparent;
           border: none;
-          font-size: 2em;
           padding: 0;
-          margin: 0;
-          width: auto;
-          color: white;
-          cursor: pointer;
+          color: var(--text-main);
           z-index: 10;
         "
       >
-        ☰
+        <svg
+          width="30"
+          height="30"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        >
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
       </button>
-      <h1 id="app-title" style="margin: 0; display: inline-block; color: white">
-        Secure-Darts
+      <h1
+        id="app-title"
+        style="margin: 0; display: inline-block; color: var(--text-main)"
+      >
+        SECURE DARTS
       </h1>
     </div>
 
@@ -252,46 +227,48 @@
     ></div>
     <div class="nav-tabs" id="main-nav">
       <div class="sidebar-header">
-        <h2 style="margin: 0; color: white">Menü</h2>
+        <h2 style="margin: 0; font-size: 1.2em">Menü</h2>
         <button
           onclick="toggleMenu()"
           style="
             background: transparent;
             border: none;
-            color: #aaa;
+            color: var(--text-muted);
             font-size: 2em;
             padding: 0;
             margin: 0;
-            width: auto;
             line-height: 1;
-            cursor: pointer;
           "
         >
           ×
         </button>
       </div>
       <button
-        class="nav-btn"
+        class="nav-btn accent-blue"
         id="tab-stats"
         onclick="showScreen('stats'); toggleMenu(); load501Stats();"
       >
-        📊 Statistiken
+        Statistiken
       </button>
 
       <button
-        class="nav-btn"
+        class="nav-btn accent-purple"
         onclick="openFriendsModal()"
-        style="display: flex; align-items: center; gap: 10px"
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        "
       >
-        <span>👥</span> Freunde
+        <span>Freunde</span>
         <span
           id="online-friends-badge"
           style="
             background: var(--accent-green);
             color: black;
             font-size: 0.7em;
-            padding: 2px 6px;
-            border-radius: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
             display: none;
           "
           >0</span
@@ -299,142 +276,165 @@
       </button>
 
       <div style="flex: 1; min-height: 20px"></div>
+
       <button
-        class="nav-btn"
+        class="nav-btn accent-cyan"
         onclick="openMyProfile(); toggleMenu();"
-        style="
-          background: #2a2a2a;
-          color: white;
-          border: 1px solid var(--accent-blue);
-        "
       >
-        👤 Mein Profil
+        Mein Profil
       </button>
       <button
         id="admin-btn"
-        class="nav-btn"
+        class="nav-btn accent-orange"
         onclick="window.location.href='admin.html'"
-        style="
-          background: #222;
-          color: #aaa;
-          border: 1px solid #444;
-          display: none;
-        "
+        style="display: none"
       >
-        ⚙️ Admin
+        Admin
+      </button>
+      <button class="nav-btn" onclick="goHome(); toggleMenu();">
+        Modus wechseln
       </button>
       <button
-        class="nav-btn"
-        onclick="goHome(); toggleMenu();"
-        style="background: #444"
-      >
-        🏠 Modus wechseln
-      </button>
-      <button
-        class="nav-btn"
+        class="nav-btn accent-red"
         onclick="handleLogout(); toggleMenu();"
-        style="background: var(--accent-red); color: white"
       >
-        🚪 Logout
+        Logout
       </button>
+
       <div
         style="
-          margin-top: 25px;
+          margin-top: 15px;
           padding-top: 15px;
-          border-top: 1px solid #333;
+          border-top: 1px solid var(--glass-border);
           display: flex;
           justify-content: center;
           gap: 15px;
           font-size: 0.8em;
         "
       >
-        <a href="impressum.html" style="color: #666; text-decoration: none"
+        <a
+          href="impressum.html"
+          style="color: var(--text-muted); text-decoration: none"
           >Impressum</a
         >
-        <a href="datenschutz.html" style="color: #666; text-decoration: none"
+        <a
+          href="datenschutz.html"
+          style="color: var(--text-muted); text-decoration: none"
           >Datenschutz</a
         >
-        <a href="kontakt.html" style="color: #666; text-decoration: none"
+        <a
+          href="kontakt.html"
+          style="color: var(--text-muted); text-decoration: none"
           >Kontakt</a
         >
       </div>
     </div>
 
     <div id="main-container" class="container" style="position: relative">
-      <div id="home-screen">
-        <h2 style="text-align: center; color: #888; margin-bottom: 25px">
-          Wähle deinen Modus
+      <div id="home-screen" style="width: 100%">
+        <h2
+          style="
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            font-weight: 400;
+            font-size: 1.1em;
+            letter-spacing: 2px;
+          "
+        >
+          WÄHLE DEINEN MODUS
         </h2>
-
-        <button
-          class="primary"
-          onclick="enterMode('secure')"
-          style="background-color: var(--accent-green); color: black"
-        >
-          🎲 Secure-Darts
-          <span>Sichere die meisten Punkte</span>
+        <button class="btn-glass accent-green" onclick="enterMode('secure')">
+          <div style="font-size: 1.2em; letter-spacing: 0.5px">
+            SECURE
+            <span class="title-accent" style="color: var(--accent-green)"
+              >DARTS</span
+            >
+          </div>
+          <div class="btn-subtext">Taktisches Punkte-Sichern</div>
         </button>
-
-        <button
-          class="primary"
-          onclick="enterMode('501')"
-          style="background-color: var(--accent-blue); color: black"
-        >
-          🎯 x501
-          <span>Lokal & Online Mehrspieler</span>
+        <button class="btn-glass accent-blue" onclick="enterMode('501')">
+          <div style="font-size: 1.2em; letter-spacing: 0.5px">
+            <span class="title-accent" style="color: var(--accent-blue)"
+              >501</span
+            >
+            DARTS
+          </div>
+          <div class="btn-subtext">Lokal & Online Mehrspieler</div>
         </button>
-
-        <button
-          class="primary"
-          onclick="openPartySetup()"
-          style="background-color: var(--accent-purple); color: black"
-        >
-          🎉 Party X01 (Couch-Koop)
-          <span>2 - 8 Lokale Spieler (Ohne Stats)</span>
+        <button class="btn-glass accent-purple" onclick="openPartySetup()">
+          <div style="font-size: 1.2em; letter-spacing: 0.5px">
+            PARTY
+            <span class="title-accent" style="color: var(--accent-purple)"
+              >X01</span
+            >
+          </div>
+          <div class="btn-subtext">2 - 8 Lokale Spieler (Couch-Koop)</div>
         </button>
-
-        <button
-          class="primary"
-          onclick="openBobsSetup()"
-          style="background-color: #ff9800; color: black"
-        >
-          ⭕️ Bob's 27
-          <span>Doppel Trainings Modus</span>
+        <button class="btn-glass accent-orange" onclick="openBobsSetup()">
+          <div style="font-size: 1.2em; letter-spacing: 0.5px">
+            BOB'S
+            <span class="title-accent" style="color: var(--accent-orange)"
+              >27</span
+            >
+          </div>
+          <div class="btn-subtext">Das ultimative Doppel-Training</div>
         </button>
-
-        <button
-          class="primary"
-          onclick="openRtwSetup()"
-          style="background-color: powderblue; color: black"
-        >
-          🌍 Round the World
-          <span>Aim Trainings Modus</span>
+        <button class="btn-glass accent-cyan" onclick="openRtwSetup()">
+          <div style="font-size: 1.2em; letter-spacing: 0.5px">
+            ROUND THE
+            <span class="title-accent" style="color: var(--accent-cyan)"
+              >WORLD</span
+            >
+          </div>
+          <div class="btn-subtext">Einmal um das ganze Board</div>
         </button>
       </div>
 
-      <div id="secure-setup-screen">
-        <h3 style="text-align: center; color: #888">Setup</h3>
-        <div style="display: flex; gap: 10px; margin-bottom: 10px">
+      <div id="secure-setup-screen" style="display: none">
+        <h3 style="text-align: center; color: var(--text-muted)">Setup</h3>
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: stretch;
+          "
+        >
           <input
             type="text"
             id="player-input"
             list="player-suggestions"
             placeholder="Name wählen oder tippen..."
+            style="flex: 1"
           />
           <datalist id="player-suggestions"></datalist>
+
           <button
+            class="btn-glass accent-blue"
             onclick="addPlayer()"
-            style="width: auto; margin: 0; background: #444"
+            style="
+              width: 50px;
+              margin: 0;
+              padding: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            "
           >
             +
           </button>
         </div>
         <button
           onclick="addBot()"
-          class="btn-bot"
-          style="width: 100%; margin-bottom: 15px"
+          class="btn-glass accent-purple btn-bot"
+          style="
+            align-items: center;
+            margin-bottom: 15px;
+            justify-content: center;
+          "
         >
-          🤖 Bot hinzufügen
+          Bot hinzufügen
         </button>
         <div
           id="player-list-setup"
@@ -445,257 +445,218 @@
           <span>Trainings-Modus (Separat speichern)</span>
         </label>
         <button
-          class="primary"
-          style="background-color: var(--accent-green); color: black"
+          class="btn-glass accent-green"
+          style="align-items: center; justify-content: center"
           onclick="startGame()"
         >
           START
         </button>
-        <button class="reset" onclick="goHome()">🏠 Zurück</button>
-
+        <button class="reset" onclick="goHome()">Zurück</button>
         <button
           class="reset"
           onclick="document.getElementById('secure-setup-screen').style.display='none'; document.getElementById('secure-rules-screen').style.display='block';"
-          style="
-            margin-top: 15px;
-            border: 1px dashed #555;
-            color: #aaa;
-            background: transparent;
-          "
         >
-          📜 Spielregeln lesen
+          Spielregeln lesen
         </button>
       </div>
 
-      <div
-        id="online-lobby-screen"
-        style="display: none; text-align: center; width: 100%"
-      >
-        <h3 style="text-align: center; color: #888">Setup</h3>
+      <div id="online-lobby-screen" style="display: none; width: 100%">
+        <h3 style="text-align: center; color: var(--text-muted)">Setup</h3>
         <div id="lobby-setup">
-          <div
-            style="
-              background: #222;
-              padding: 20px;
-              border-radius: 8px;
-              margin-bottom: 20px;
-              border: 1px solid #333;
-            "
-          >
-            <h4
-              style="
-                margin-top: 0;
-                color: var(--accent-blue);
-                text-transform: uppercase;
-                letter-spacing: 1px;
-              "
-            >
+          <div class="glass-panel" style="margin-bottom: 20px">
+            <h4 style="color: var(--accent-blue); margin-bottom: 15px">
               Lokal (1 Gerät)
             </h4>
+
             <div
               style="
-                background: #222;
-                padding: 15px;
-                border-radius: 8px;
-                margin-bottom: 20px;
-                border: 1px solid #333;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                background: rgba(0, 0, 0, 0.2);
+                padding: 10px 15px;
+                border-radius: 8px;
+                margin-bottom: 15px;
+                border: 1px solid var(--glass-border);
               "
             >
-              <label style="color: white; font-weight: bold"
-                >🎯 Best of (Legs):</label
+              <span style="font-size: 0.9em; color: var(--text-muted)"
+                >Match Modus:</span
               >
               <select
                 id="best-of-legs"
+                class="custom-select"
                 style="
-                  background: #111;
-                  color: var(--accent-blue);
-                  border: 1px solid #444;
-                  padding: 8px 15px;
-                  border-radius: 5px;
-                  font-size: 1.1em;
+                  width: auto;
+                  border: 1px solid var(--glass-border);
+                  background-color: rgba(0, 0, 0, 0.4);
+                  color: white;
                   font-weight: bold;
+                  padding: 8px 35px 8px 15px; /* Adjust padding for a smaller look */
                 "
               >
-                <option value="1">1 Leg</option>
-                <option value="3" selected>3 Legs</option>
-                <option value="5">5 Legs</option>
-                <option value="7">7 Legs</option>
-                <option value="9">9 Legs</option>
-                <option value="11">11 Legs</option>
+                <option value="1">Best of 1 Leg</option>
+                <option value="3" selected>Best of 3 Leg</option>
+                <option value="5">Best of 5 Leg</option>
+                <option value="7">Best of 7 Leg</option>
+                <option value="9">Best of 9 Leg</option>
               </select>
             </div>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px">
+
+            <div
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                margin-bottom: 15px;
+              "
+            >
               <input
                 type="text"
                 id="local-p1-name"
                 placeholder="Spieler 1"
-                style="
-                  flex: 1;
-                  padding: 12px;
-                  border-radius: 8px;
-                  border: none;
-                  background: #111;
-                  color: white;
-                  text-align: center;
-                "
+                style="text-align: center"
               />
-              <div style="display: flex; flex: 1; gap: 5px">
+              <div style="display: flex; gap: 10px">
                 <input
                   type="text"
                   id="local-p2-name"
-                  placeholder="Spieler 2"
-                  style="
-                    flex: 1;
-                    padding: 12px;
-                    border-radius: 8px;
-                    border: none;
-                    background: #111;
-                    color: white;
-                    text-align: center;
-                  "
+                  placeholder="Spieler 2 / Bot"
+                  style="flex: 1; text-align: center"
                 />
                 <button
                   onclick="add501Bot()"
-                  title="Bot hinzufügen"
+                  class="btn-glass accent-purple"
                   style="
-                    background: #673ab7;
+                    width: 50px;
                     margin: 0;
-                    padding: 0 15px;
-                    font-size: 1.3em;
+                    padding: 0;
+                    align-items: center;
+                    justify-content: center;
+                    height: 50px;
                   "
                 >
-                  🤖
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                    <circle cx="12" cy="5" r="2"></circle>
+                    <path d="M12 7v4"></path>
+                  </svg>
                 </button>
               </div>
             </div>
+
             <button
-              class="primary"
-              style="
-                margin-top: 0;
-                width: 100%;
-                background-color: var(--accent-blue);
-                color: black;
-              "
+              class="primary accent-blue"
+              style="margin: 0"
               onclick="startLocal501Game()"
             >
-              Lokales Spiel Starten
+              Spiel Starten
             </button>
           </div>
-          <div style="color: #666; font-weight: bold; margin-bottom: 20px">
-            --- ODER ONLINE ---
-          </div>
-          <input
-            type="text"
-            id="online-player-name"
-            placeholder="Dein Online-Name..."
+
+          <div
             style="
-              width: 100%;
-              box-sizing: border-box;
-              margin-bottom: 15px;
+              color: var(--text-muted);
+              font-weight: bold;
+              margin: 25px 0;
               text-align: center;
-              padding: 15px;
-              border-radius: 8px;
-              border: none;
-              background: #333;
-              color: white;
-              font-size: 1.1em;
+              font-size: 0.8em;
+              letter-spacing: 2px;
             "
-          />
-          <div style="display: flex; gap: 10px">
+          >
+            ODER ONLINE
+          </div>
+
+          <div style="width: 100%; margin-bottom: 15px">
+            <input
+              type="text"
+              id="online-player-name"
+              placeholder="Dein Online-Name..."
+              style="text-align: center; width: 100%"
+            />
+          </div>
+
+          <div style="display: flex; gap: 15px; align-items: stretch">
+            <button
+              class="btn-glass accent-blue"
+              style="
+                flex: 1;
+                align-items: center;
+                justify-content: center;
+                padding: 15px;
+                margin: 0;
+                height: auto;
+              "
+              onclick="hostOnlineGame()"
+            >
+              Host
+            </button>
+
             <div
               style="
-                background: #222;
-                padding: 15px;
-                border-radius: 8px;
                 flex: 1;
-                border: 1px solid #333;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                padding: 10px;
+                background: rgba(255, 255, 255, 0.03);
+                border-radius: 12px;
+                border: 1px solid var(--glass-border);
               "
             >
-              <h4 style="margin-top: 0; color: #aaa; font-size: 0.9em">
-                Raum Hosten
-              </h4>
-              <button
-                class="primary"
-                style="
-                  background: var(--accent-blue);
-                  color: black;
-                  width: 100%;
-                  padding: 10px;
-                  margin-top: 5px;
-                "
-                onclick="hostOnlineGame()"
-              >
-                Erstellen
-              </button>
-            </div>
-            <div
-              style="
-                background: #222;
-                padding: 15px;
-                border-radius: 8px;
-                flex: 1;
-                border: 1px solid #333;
-              "
-            >
-              <h4 style="margin-top: 0; color: #aaa; font-size: 0.9em">
-                Beitreten
-              </h4>
               <input
                 type="text"
                 id="join-room-code"
-                placeholder="Code (X7B9)"
+                placeholder="CODE"
                 style="
-                  width: 100%;
-                  box-sizing: border-box;
-                  margin-bottom: 10px;
                   text-align: center;
                   text-transform: uppercase;
-                  padding: 10px;
-                  border-radius: 8px;
-                  border: none;
-                  background: #111;
-                  color: var(--accent-green);
                   font-weight: bold;
+                  color: var(--accent-green);
+                  padding: 10px;
                 "
               />
               <button
-                class="primary"
-                style="width: 100%; padding: 10px; margin-top: 0"
+                class="primary accent-green"
+                style="margin: 0; padding: 10px; font-size: 0.9em"
                 onclick="joinOnlineGame()"
               >
                 Beitreten
               </button>
             </div>
           </div>
-          <button class="reset" onclick="goHome()">🏠 Zurück</button>
+
+          <button class="reset" onclick="goHome()" style="margin-top: 25px">
+            Abbrechen
+          </button>
         </div>
+
         <div
           id="lobby-active"
-          style="
-            display: none;
-            padding: 20px;
-            background: #222;
-            border-radius: 8px;
-            border: 2px solid var(--accent-blue);
-          "
+          class="glass-panel"
+          style="display: none; border-color: var(--accent-blue)"
         >
-          <h3 style="margin-top: 0; color: white; text-align: center">
-            Online Lobby
-          </h3>
-
+          <h3 style="text-align: center">Online Lobby</h3>
           <div
-            style="
-              background: #111;
-              padding: 15px;
-              border-radius: 8px;
-              margin-bottom: 20px;
-              text-align: center;
-            "
+            class="glass-panel"
+            style="margin-bottom: 20px; text-align: center"
           >
-            <p style="color: #aaa; margin: 0 0 5px 0; font-size: 0.9em">
+            <p
+              style="
+                color: var(--text-muted);
+                margin: 0 0 5px 0;
+                font-size: 0.9em;
+              "
+            >
               Raumcode:
             </p>
             <div
@@ -705,82 +666,57 @@
                 font-size: 2.5em;
                 letter-spacing: 5px;
                 font-weight: 900;
-                text-shadow: 0 0 10px rgba(0, 230, 118, 0.3);
               "
             >
               ----
             </div>
           </div>
-
           <div style="display: flex; gap: 10px; margin-bottom: 20px">
-            <div
-              style="
-                flex: 1;
-                background: #1a1a1a;
-                padding: 15px;
-                border-radius: 8px;
-                border: 1px solid #333;
-                text-align: center;
-              "
-            >
-              <h4
-                style="
-                  color: var(--accent-blue);
-                  margin: 0 0 10px 0;
-                  font-size: 0.8em;
-                  text-transform: uppercase;
-                "
-              >
-                Host
-              </h4>
+            <div class="glass-panel" style="flex: 1; text-align: center">
+              <h4 style="color: var(--accent-blue); font-size: 0.8em">Host</h4>
               <div
                 id="lobby-host-name"
-                style="font-weight: bold; font-size: 1.2em; color: white"
+                style="font-weight: bold; font-size: 1.2em"
               >
                 Wartet...
               </div>
               <div
                 id="lobby-host-cam"
-                style="margin-top: 10px; font-size: 0.9em; color: #888"
+                style="
+                  margin-top: 10px;
+                  font-size: 0.9em;
+                  color: var(--text-muted);
+                "
               >
                 🚫 Keine Kamera
               </div>
             </div>
-            <div
-              style="
-                flex: 1;
-                background: #1a1a1a;
-                padding: 15px;
-                border-radius: 8px;
-                border: 1px solid #333;
-                text-align: center;
-              "
-            >
-              <h4
-                style="
-                  color: var(--accent-purple);
-                  margin: 0 0 10px 0;
-                  font-size: 0.8em;
-                  text-transform: uppercase;
-                "
-              >
+            <div class="glass-panel" style="flex: 1; text-align: center">
+              <h4 style="color: var(--accent-purple); font-size: 0.8em">
                 Gast
               </h4>
               <div
                 id="lobby-guest-name"
-                style="font-weight: bold; font-size: 1.2em; color: #888"
+                style="
+                  font-weight: bold;
+                  font-size: 1.2em;
+                  color: var(--text-muted);
+                "
               >
                 Wartet...
               </div>
               <div
                 id="lobby-guest-cam"
-                style="margin-top: 10px; font-size: 0.9em; color: #888"
+                style="
+                  margin-top: 10px;
+                  font-size: 0.9em;
+                  color: var(--text-muted);
+                "
               >
                 🚫 Keine Kamera
               </div>
             </div>
           </div>
-
           <button
             class="primary"
             onclick="generateCameraQR()"
@@ -788,38 +724,27 @@
               background: transparent;
               border: 1px dashed var(--accent-blue);
               color: var(--accent-blue);
-              width: 100%;
               margin-bottom: 15px;
-              padding: 12px;
             "
           >
-            📱 Mein Handy als Kamera verbinden
+            Mein Handy als Kamera verbinden
           </button>
+
           <div
             id="qr-container"
-            style="
-              display: none;
-              text-align: center;
-              margin-bottom: 20px;
-              background: #2d2d2d;
-              padding: 20px;
-              border-radius: 12px;
-              box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            "
+            class="glass-panel"
+            style="display: none; text-align: center; margin-bottom: 20px"
           >
             <div
               id="qrcode-canvas"
               style="display: flex; justify-content: center"
             ></div>
-
             <div
               style="
-                color: #e0e0e0;
                 font-size: 0.85em;
                 margin-top: 12px;
                 font-weight: bold;
                 text-transform: uppercase;
-                letter-spacing: 1px;
               "
             >
               Scannen, um Kamera zu starten
@@ -828,78 +753,68 @@
 
           <button
             id="btn-start-online-match"
-            class="primary"
+            class="btn-glass accent-green"
             onclick="triggerOnlineMatchStart()"
             style="
               display: none;
-              width: 100%;
-              background: var(--accent-green);
-              color: black;
+              align-items: center;
+              justify-content: center;
               font-size: 1.2em;
-              padding: 15px;
             "
           >
             Spiel Starten
           </button>
-          <button
-            class="reset"
-            style="margin-top: 10px; width: 100%; background: #333"
-            onclick="cancelLobby()"
-          >
-            Lobby verlassen
-          </button>
+          <button class="reset" onclick="cancelLobby()">Lobby verlassen</button>
         </div>
       </div>
 
       <div id="game-501-screen" style="display: none; width: 100%">
-        <div
-          id="win-overlay-501"
-          class="bot-overlay"
-          style="display: none; z-index: 100; text-align: center"
-        >
+        <div id="win-overlay-501" class="bot-overlay" style="display: none">
           <h2
             id="win-title-501"
-            style="
-              font-size: 2.5em;
-              color: var(--accent-green);
-              text-transform: uppercase;
-              margin-bottom: 10px;
-            "
+            style="font-size: 2.5em; color: var(--accent-green)"
           >
             Game Shot!
           </h2>
           <div
             id="win-subtitle-501"
-            style="color: white; font-size: 1.2em; margin-bottom: 30px"
+            style="font-size: 1.2em; margin-bottom: 30px"
           >
             Spieler gewinnt!
           </div>
           <button
             id="btn-next-leg"
-            class="primary"
-            style="margin: 0 auto 15px auto; width: 90%"
+            class="btn-glass accent-green"
+            style="
+              align-items: center;
+              justify-content: center;
+              width: 90%;
+              margin: 0 auto 15px auto;
+            "
             onclick="startNextLeg()"
           >
             Nächstes Leg starten
           </button>
           <button
             id="btn-rematch"
-            class="primary"
+            class="btn-glass accent-blue"
             style="
               display: none;
-              background: var(--accent-blue);
-              margin-bottom: 15px;
+              align-items: center;
+              justify-content: center;
+              width: 90%;
+              margin: 0 auto 15px auto;
             "
             onclick="triggerRematch()"
           >
-            🔄 Neues Spiel (Rematch)
+            Neues Spiel (Rematch)
           </button>
           <button
             class="undo-btn"
             onclick="cancel501Game(true)"
             style="width: auto"
           >
-            🚪 Zum Hauptmenü
+            Zum Hauptmenü
           </button>
         </div>
 
@@ -907,7 +822,7 @@
           id="match-format-display"
           style="
             text-align: center;
-            color: #888;
+            color: var(--text-muted);
             font-weight: bold;
             margin-bottom: 10px;
             text-transform: uppercase;
@@ -916,7 +831,8 @@
         >
           Best of 3 Legs
         </div>
-        <div class="scoreboard-501">
+
+        <div class="scoreboard-501 accent-blue">
           <div id="p1-box" class="score-box">
             <div id="p1-name" class="score-name">Spieler 1</div>
             <div
@@ -935,8 +851,15 @@
               <span id="p1-leg-avg">0.00</span>
             </div>
             <div id="p1-darts" class="darts-count">0 Darts</div>
-            <div id="p1-checkout" class="checkout-path"></div>
-            <div class="darts-count" style="margin-top: 5px; color: #bbb">
+            <div
+              id="p1-checkout"
+              class="checkout-path"
+              style="color: var(--accent-purple)"
+            ></div>
+            <div
+              class="darts-count"
+              style="margin-top: 5px; color: var(--text-muted)"
+            >
               Letzter Wurf: <strong id="p1-last-throw">-</strong>
             </div>
           </div>
@@ -958,8 +881,15 @@
               <span id="p2-leg-avg">0.00</span>
             </div>
             <div id="p2-darts" class="darts-count">0 Darts</div>
-            <div id="p2-checkout" class="checkout-path"></div>
-            <div class="darts-count" style="margin-top: 5px; color: #bbb">
+            <div
+              id="p2-checkout"
+              class="checkout-path"
+              style="color: var(--accent-purple)"
+            ></div>
+            <div
+              class="darts-count"
+              style="margin-top: 5px; color: var(--text-muted)"
+            >
               Letzter Wurf: <strong id="p2-last-throw">-</strong>
             </div>
           </div>
@@ -987,7 +917,7 @@
           <button class="num-btn" onclick="append501Input('8')">8</button>
           <button class="num-btn" onclick="append501Input('9')">9</button>
           <button class="num-btn action-del" onclick="delete501Input()">
-            ⌫
+            DEL
           </button>
           <button class="num-btn" onclick="append501Input('0')">0</button>
           <button class="num-btn action-ok" onclick="submit501Score()">
@@ -997,65 +927,46 @@
 
         <div
           id="checkout-overlay"
+          class="glass-panel"
           style="
             display: none;
+            border-color: var(--accent-green);
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: var(--card-bg);
-            border: 2px solid var(--accent-green);
-            border-radius: 12px;
-            padding: 20px;
+            text-align: center;
             margin-top: 15px;
-            width: 100%;
-            box-sizing: border-box;
           "
         >
-          <h3
-            id="checkout-question"
-            style="
-              margin-top: 0;
-              color: white;
-              text-align: center;
-              line-height: 1.3;
-            "
-          >
+          <h3 id="checkout-question" style="margin-top: 0; line-height: 1.3">
             Frage?
           </h3>
           <div
             id="checkout-buttons"
-            style="display: flex; gap: 15px; width: 100%"
+            style="
+              display: flex;
+              gap: 15px;
+              width: 100%;
+              justify-content: center;
+            "
           ></div>
         </div>
 
         <div id="side-history-panel-p1" class="side-history-panel left-panel">
-          <h3
-            style="
-              margin-top: 0;
-              color: var(--accent-blue);
-              text-align: center;
-              font-size: 1.1em;
-              text-transform: uppercase;
-            "
-          >
-            <span id="history-p1-name" style="color: white">S1</span>
+          <h3 style="color: var(--accent-blue); text-align: center">
+            <span id="history-p1-name" style="color: var(--text-main)">S1</span>
           </h3>
           <div
+            class="glass-panel"
             style="
-              width: 100%;
               height: 450px;
-              background: #111;
-              border-radius: 8px;
-              border: 1px solid #333;
-              margin-bottom: 10px;
+              padding: 0;
               overflow: hidden;
               position: relative;
-              box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+              margin-bottom: 10px;
             "
           >
             <img
               id="avatar-p1"
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=P1"
+              src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>"
               style="
                 position: absolute;
                 top: 0;
@@ -1067,18 +978,17 @@
                 opacity: 0.5;
               "
             />
-
             <video
               id="video-p1"
               autoplay
               playsinline
               muted
               style="
-                position: relative;
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
                 z-index: 2;
+                position: relative;
               "
             ></video>
           </div>
@@ -1086,33 +996,22 @@
         </div>
 
         <div id="side-history-panel-p2" class="side-history-panel right-panel">
-          <h3
-            style="
-              margin-top: 0;
-              color: var(--accent-blue);
-              text-align: center;
-              font-size: 1.1em;
-              text-transform: uppercase;
-            "
-          >
-            <span id="history-p2-name" style="color: white">S2</span>
+          <h3 style="color: var(--accent-blue); text-align: center">
+            <span id="history-p2-name" style="color: var(--text-main)">S2</span>
           </h3>
           <div
+            class="glass-panel"
             style="
-              width: 100%;
               height: 450px;
-              background: #111;
-              border-radius: 8px;
-              border: 1px solid #333;
-              margin-bottom: 10px;
+              padding: 0;
               overflow: hidden;
               position: relative;
-              box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+              margin-bottom: 10px;
             "
           >
             <img
               id="avatar-p2"
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=P2"
+              src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>"
               style="
                 position: absolute;
                 top: 0;
@@ -1124,18 +1023,17 @@
                 opacity: 0.5;
               "
             />
-
             <video
               id="video-p2"
               autoplay
               playsinline
               muted
               style="
-                position: relative;
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
                 z-index: 2;
+                position: relative;
               "
             ></video>
           </div>
@@ -1144,125 +1042,85 @@
 
         <button
           id="btn-undo-501"
-          class="btn-undo-501"
+          class="undo-btn btn-undo-501"
           onclick="requestUndo()"
           style="display: none"
         >
-          ↩️ Letzten Zug rückgängig
+          Letzten Wurf rückgängig
         </button>
-        <button
-          class="undo-btn"
-          style="
-            margin-top: 10px;
-            background: transparent;
-            border: 1px solid #444;
-          "
-          onclick="cancel501Game()"
-        >
-          🚪 Spiel abbrechen
+        <button class="undo-btn" onclick="cancel501Game()">
+          Spiel abbrechen
         </button>
       </div>
 
-      <div id="party-setup-screen" style="display: none">
-        <h3 style="text-align: center; color: #888">Setup</h3>
-
+      <div id="party-setup-screen" style="display: none; width: 100%">
+        <h3 style="text-align: center; color: var(--text-muted)">Setup</h3>
         <div style="margin-bottom: 20px">
           <label
             style="
-              color: #aaa;
+              color: var(--text-muted);
               font-size: 0.9em;
               text-transform: uppercase;
-              letter-spacing: 1px;
             "
             >Start-Punktzahl:</label
           >
-          <select
-            id="party-starting-score"
-            style="
-              width: 100%;
-              padding: 12px;
-              background: #222;
-              color: white;
-              border: 1px solid #444;
-              border-radius: 8px;
-              font-size: 1.1em;
-              margin-top: 8px;
-              outline: none;
-            "
-          >
+          <select id="party-starting-score" style="margin-top: 8px">
             <option value="301">301</option>
             <option value="501" selected>501</option>
             <option value="701">701</option>
           </select>
         </div>
-
-        <div style="display: flex; gap: 10px; margin-bottom: 25px">
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            align-items: stretch;
+          "
+        >
           <input
             type="text"
             id="party-player-input"
             placeholder="Spielername..."
-            style="
-              flex: 1;
-              padding: 15px;
-              border-radius: 8px;
-              border: 1px solid #333;
-              background: #111;
-              color: white;
-            "
           />
           <button
             onclick="addPartyPlayer()"
-            style="
-              background: var(--accent-green);
-              color: black;
-              font-weight: bold;
-              padding: 0 20px;
-              border-radius: 8px;
-              border: none;
-              cursor: pointer;
-            "
+            class="primary"
+            style="width: auto; margin: 0; padding: 0 20px; white-space: nowrap"
           >
             Add
           </button>
         </div>
-
         <ul
           id="party-player-list"
           style="list-style: none; padding: 0; margin-bottom: 20px"
         ></ul>
-
         <button
-          class="primary"
+          class="btn-glass accent-purple"
+          style="align-items: center; justify-content: center"
           onclick="startPartyGame()"
-          style="background-color: var(--accent-purple); color: black"
         >
           Spiel Starten
         </button>
-        <button class="reset" onclick="goHome()">🏠 Zurück</button>
+        <button class="reset" onclick="goHome()">Zurück</button>
       </div>
 
-      <div id="game-party-screen" class="screen" style="display: none">
+      <div
+        id="game-party-screen"
+        class="screen"
+        style="display: none; width: 100%"
+      >
         <div
           id="party-scoreboard"
           style="
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-top: 15px;
             justify-content: center;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
           "
         ></div>
-
-        <div
-          class="card"
-          style="
-            margin-top: 10px;
-            background: rgba(33, 150, 243, 0.05);
-            text-align: center;
-            padding: 20px;
-          "
-        >
+        <div class="glass-panel" style="text-align: center">
           <div
             id="party-checkout-display"
             style="
@@ -1271,30 +1129,21 @@
               font-size: 1.3em;
               margin: 10px 0;
               min-height: 1.4em;
-              letter-spacing: 1px;
             "
           ></div>
-
           <input
             type="text"
             id="input-display-party"
             readonly
             style="
-              width: 90%;
-              padding: 15px;
-              font-size: 2em;
-              text-align: center;
-              background: #111;
-              border: 2px solid #444;
-              border-radius: 8px;
-              color: var(--accent-purple);
-              font-weight: bold;
               margin-bottom: 20px;
-              outline: none;
+              text-align: center;
+              font-size: 2em;
+              color: var(--accent-purple);
             "
           />
 
-          <div class="preset-grid" style="margin-top: 15px">
+          <div class="preset-grid">
             <button class="preset-btn" onclick="submitPartyScore(26)">
               26
             </button>
@@ -1307,10 +1156,10 @@
             <button class="preset-btn" onclick="submitPartyScore(60)">
               60
             </button>
-            <button class="preset-btn" onclick="submitPartyScore(60)">
+            <button class="preset-btn" onclick="submitPartyScore(81)">
               81
             </button>
-            <button class="preset-btn" onclick="submitPartyScore(60)">
+            <button class="preset-btn" onclick="submitPartyScore(100)">
               100
             </button>
           </div>
@@ -1335,52 +1184,33 @@
           </div>
           <button
             id="btn-undo-party"
-            onclick="requestUndo()"
-            style="
-              display: none;
-              width: 100%;
-              margin-top: 15px;
-              background: #444;
-              color: #aaa;
-              padding: 12px;
-              border: none;
-              border-radius: 8px;
-              font-weight: bold;
-              cursor: pointer;
-            "
-          >
-            ↩️ Letzten Zug rückgängig
-          </button>
-          <button
             class="undo-btn"
-            style="
-              margin-top: 10px;
-              background: transparent;
-              border: 1px solid #444;
-            "
-            onclick="cancelPartyGame()"
+            onclick="requestUndo()"
+            style="display: none"
           >
-            🚪 Spiel abbrechen
+            Letzten Wurf rückgängig
+          </button>
+          <button class="undo-btn" onclick="cancelPartyGame()">
+            Spiel abbrechen
           </button>
         </div>
       </div>
 
-      <div
-        id="bobs-setup-screen"
-        style="display: none; width: 100%; max-width: 600px"
-      >
+      <div id="bobs-setup-screen" style="display: none; width: 100%">
         <div
           style="
             position: relative;
             text-align: center;
             margin-bottom: 20px;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid var(--glass-border);
             padding-bottom: 10px;
-            min-height: 28px;
           "
         >
-          <h3 style="margin: 0; color: #888; display: inline-block">Setup</h3>
-
+          <h3
+            style="margin: 0; color: var(--text-muted); display: inline-block"
+          >
+            Setup
+          </h3>
           <label
             style="
               position: absolute;
@@ -1391,79 +1221,52 @@
               align-items: center;
               gap: 6px;
               cursor: pointer;
-              color: orange;
+              color: var(--accent-orange);
               font-size: 0.8em;
               font-weight: bold;
               text-transform: uppercase;
             "
           >
-            <input
-              type="checkbox"
-              id="chk-bobs-easy"
-              style="
-                width: 16px;
-                height: 16px;
-                accent-color: orange;
-                cursor: pointer;
-                margin: 0;
-              "
-            />
-            Easy Mode
+            <input type="checkbox" id="chk-bobs-easy" /> Easy Mode
           </label>
         </div>
         <p
           style="
             text-align: center;
-            color: #aaa;
+            color: var(--text-muted);
             font-size: 0.9em;
             margin-bottom: 20px;
           "
         >
-          Startpunktzahl: 27. Triff das vorgegebene Doppel. <br />
-          Verfehlst du mit allen 3 Darts, wird der Wert des Doppels abgezogen.
-          <br />Fällst du unter 0, bist du raus!
+          Startpunktzahl: 27. Triff das vorgegebene Doppel.<br />Verfehlst du,
+          wird der Wert abgezogen. Fällst du unter 0, bist du raus!
         </p>
-
         <div style="margin-bottom: 25px">
           <input
             type="text"
             id="bobs-player-input"
             placeholder="Spielername..."
-            style="
-              width: 100%;
-              box-sizing: border-box;
-              padding: 15px;
-              border-radius: 8px;
-              border: 1px solid #333;
-              background: #111;
-              color: white;
-              font-size: 1.1em;
-              text-align: center;
-            "
+            style="text-align: center"
           />
         </div>
-
         <button
-          class="primary"
+          class="btn-glass accent-orange"
+          style="align-items: center; justify-content: center"
           onclick="startBobsGame()"
-          style="background-color: #ff9800; color: black"
         >
           Spiel Starten
         </button>
-        <button class="reset" onclick="goHome()">🏠 Zurück</button>
+        <button class="reset" onclick="goHome()">Zurück</button>
       </div>
 
-      <div
-        id="game-bobs-screen"
-        style="display: none; width: 100%; max-width: 600px"
-      >
+      <div id="game-bobs-screen" style="display: none; width: 100%">
         <div
           style="
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid var(--glass-border);
             padding-bottom: 10px;
           "
         >
@@ -1471,16 +1274,10 @@
             id="side-history-panel-bobs"
             class="side-history-panel right-panel"
           >
-            <h3
-              style="
-                margin-top: 0;
-                color: #ff9800;
-                text-align: center;
-                font-size: 1.1em;
-                text-transform: uppercase;
-              "
-            >
-              Historie <br /><span id="history-bobs-name" style="color: white"
+            <h3 style="color: var(--accent-orange); text-align: center">
+              Historie <br /><span
+                id="history-bobs-name"
+                style="color: var(--text-main)"
                 >Spieler</span
               >
             </h3>
@@ -1488,37 +1285,34 @@
           </div>
           <h2
             id="bobs-turn-indicator"
-            style="color: #ff9800; margin: 0; font-size: 1.4em"
+            style="color: var(--accent-orange); margin: 0; font-size: 1.4em"
           >
-            🎯 Spieler wirft...
+            Spieler wirft...
           </h2>
           <div style="text-align: right">
             <div
-              style="font-size: 0.8em; color: #888; text-transform: uppercase"
+              style="
+                font-size: 0.8em;
+                color: var(--text-muted);
+                text-transform: uppercase;
+              "
             >
               Score
             </div>
             <div
               id="bobs-current-score"
-              style="
-                font-size: 2em;
-                font-weight: bold;
-                color: white;
-                line-height: 1;
-              "
+              style="font-size: 2em; font-weight: bold; line-height: 1"
             >
               27
             </div>
           </div>
         </div>
-
         <div style="text-align: center; margin-bottom: 15px">
           <div
             style="
               font-size: 0.9em;
-              color: #aaa;
+              color: var(--text-muted);
               text-transform: uppercase;
-              letter-spacing: 2px;
             "
           >
             Aktuelles Ziel
@@ -1530,16 +1324,14 @@
             D1
           </div>
         </div>
-
         <div
           id="bobs-dartboard-container"
           style="display: flex; justify-content: center; margin-bottom: 25px"
         ></div>
-
         <div
           style="
             font-size: 0.9em;
-            color: #aaa;
+            color: var(--text-muted);
             text-align: center;
             margin-bottom: 10px;
           "
@@ -1547,23 +1339,14 @@
           Wie oft hast du das Doppel getroffen?
         </div>
 
-        <div class="controls" style="grid-template-columns: repeat(4, 1fr)">
+        <div class="controls">
           <button class="miss" onclick="submitBobsScore(0)">0x</button>
+          <button onclick="submitBobsScore(1)">1x</button>
+          <button onclick="submitBobsScore(2)">2x</button>
           <button
-            onclick="submitBobsScore(1)"
-            style="background: #383838; border: 1px solid #555"
-          >
-            1x
-          </button>
-          <button
-            onclick="submitBobsScore(2)"
-            style="background: #383838; border: 1px solid #555"
-          >
-            2x
-          </button>
-          <button
+            class="hit"
+            style="border-color: var(--accent-green)"
             onclick="submitBobsScore(3)"
-            style="background: var(--accent-green); color: black"
           >
             3x
           </button>
@@ -1571,126 +1354,70 @@
 
         <button
           id="btn-undo-bobs"
+          class="undo-btn"
           onclick="undoBobsTurn()"
-          style="
-            display: none;
-            width: 100%;
-            margin-top: 15px;
-            background: #444;
-            color: #aaa;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-          "
+          style="display: none"
         >
-          ↩ Letzten Wurf rückgängig machen
+          Letzten Wurf rückgängig
         </button>
-        <button
-          onclick="cancelBobsGame()"
-          style="
-            width: 100%;
-            margin-top: 10px;
-            background: none;
-            color: var(--accent-red);
-            border: 1px solid var(--accent-red);
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-          "
-        >
+        <button class="undo-btn" onclick="cancelBobsGame()">
           Spiel abbrechen
         </button>
       </div>
 
-      <div
-        id="rtw-setup-screen"
-        style="display: none; width: 100%; max-width: 600px"
-      >
-        <h3 style="text-align: center; color: #888">Setup</h3>
+      <div id="rtw-setup-screen" style="display: none; width: 100%">
+        <h3 style="text-align: center; color: var(--text-muted)">Setup</h3>
         <p
           style="
             text-align: center;
-            color: #aaa;
+            color: var(--text-muted);
             font-size: 0.9em;
             margin-bottom: 20px;
           "
         >
-          Triff alle Zahlen im Uhrzeigersinn (Start bei 20) und zum Schluss das
-          Bullseye.
+          Triff alle Zahlen im Uhrzeigersinn und zum Schluss das Bullseye.
         </p>
-
         <div style="margin-bottom: 20px">
           <label
             style="
-              color: #aaa;
+              color: var(--text-muted);
               font-size: 0.9em;
               text-transform: uppercase;
-              letter-spacing: 1px;
             "
             >Ziel-Modus:</label
           >
-          <select
-            id="rtw-target-mode"
-            style="
-              width: 100%;
-              padding: 12px;
-              background: #222;
-              color: white;
-              border: 1px solid #444;
-              border-radius: 8px;
-              font-size: 1.1em;
-              margin-top: 8px;
-              outline: none;
-            "
-          >
-            <option value="single">Zahl (Einfache Felder)</option>
-            <option value="double" selected>Double (Doppel-Felder)</option>
-            <option value="triple">Triple (Dreifach-Felder)</option>
+          <select id="rtw-target-mode" style="margin-top: 8px">
+            <option value="single">Zahl (Einfach)</option>
+            <option value="double" selected>Double</option>
+            <option value="triple">Triple</option>
           </select>
         </div>
-
         <div style="margin-bottom: 25px">
           <input
             type="text"
             id="rtw-player-input"
             placeholder="Spielername..."
-            style="
-              width: 100%;
-              box-sizing: border-box;
-              padding: 15px;
-              border-radius: 8px;
-              border: 1px solid #333;
-              background: #111;
-              color: white;
-              font-size: 1.1em;
-              text-align: center;
-            "
+            style="text-align: center"
           />
         </div>
-
         <button
-          class="primary"
+          class="btn-glass accent-cyan"
+          style="align-items: center; justify-content: center"
           onclick="startRtwGame()"
-          style="background-color: powderblue; color: black"
         >
           Spiel Starten
         </button>
-        <button class="reset" onclick="goHome()">🏠 Zurück</button>
+        <button class="reset" onclick="goHome()">Zurück</button>
       </div>
 
-      <div
-        id="game-rtw-screen"
-        style="display: none; width: 100%; max-width: 600px"
-      >
+      <div id="game-rtw-screen" style="display: none; width: 100%">
         <div
           style="
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid var(--glass-border);
             padding-bottom: 10px;
           "
         >
@@ -1698,16 +1425,10 @@
             id="side-history-panel-rtw"
             class="side-history-panel right-panel"
           >
-            <h3
-              style="
-                margin-top: 0;
-                color: var(--accent-blue);
-                text-align: center;
-                font-size: 1.1em;
-                text-transform: uppercase;
-              "
-            >
-              Historie <br /><span id="history-rtw-name" style="color: white"
+            <h3 style="color: var(--accent-blue); text-align: center">
+              Historie <br /><span
+                id="history-rtw-name"
+                style="color: var(--text-main)"
                 >Spieler</span
               >
             </h3>
@@ -1717,35 +1438,32 @@
             id="rtw-turn-indicator"
             style="color: var(--accent-blue); margin: 0; font-size: 1.4em"
           >
-            🎯 Spieler wirft...
+            Spieler wirft...
           </h2>
           <div style="text-align: right">
             <div
-              style="font-size: 0.8em; color: #888; text-transform: uppercase"
+              style="
+                font-size: 0.8em;
+                color: var(--text-muted);
+                text-transform: uppercase;
+              "
             >
               Gesamtpunkte:
             </div>
             <div
               id="rtw-points-count"
-              style="
-                font-size: 2em;
-                font-weight: bold;
-                color: white;
-                line-height: 1;
-              "
+              style="font-size: 2em; font-weight: bold; line-height: 1"
             >
               0
             </div>
           </div>
         </div>
-
         <div style="text-align: center; margin-bottom: 15px">
           <div
             style="
               font-size: 0.9em;
-              color: #aaa;
+              color: var(--text-muted);
               text-transform: uppercase;
-              letter-spacing: 2px;
             "
           >
             Aktuelles Ziel
@@ -1757,40 +1475,29 @@
             1
           </div>
         </div>
-
         <div
           id="rtw-dartboard-container"
           style="display: flex; justify-content: center; margin-bottom: 25px"
         ></div>
-
         <div
           style="
             font-size: 0.9em;
-            color: #aaa;
+            color: var(--text-muted);
             text-align: center;
             margin-bottom: 10px;
           "
         >
-          Was oft hast du das Ziel getroffen?
+          Wie oft hast du das Ziel getroffen?
         </div>
 
-        <div class="controls" style="grid-template-columns: repeat(4, 1fr)">
+        <div class="controls">
           <button class="miss" onclick="submitRtwScore(0)">0</button>
+          <button onclick="submitRtwScore(1)">1</button>
+          <button onclick="submitRtwScore(2)">2</button>
           <button
-            onclick="submitRtwScore(1)"
-            style="background: #383838; border: 1px solid #555"
-          >
-            1
-          </button>
-          <button
-            onclick="submitRtwScore(2)"
-            style="background: #383838; border: 1px solid #555"
-          >
-            2
-          </button>
-          <button
+            class="hit"
+            style="border-color: var(--accent-green)"
             onclick="submitRtwScore(3)"
-            style="background: var(--accent-green); color: black"
           >
             3
           </button>
@@ -1798,128 +1505,155 @@
 
         <button
           id="btn-undo-rtw"
+          class="undo-btn"
           onclick="undoRtwTurn()"
-          style="
-            display: none;
-            width: 100%;
-            margin-top: 15px;
-            background: #444;
-            color: #aaa;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-          "
+          style="display: none"
         >
-          ↩ Letzten Wurf rückgängig machen
+          Letzten Wurf rückgängig
         </button>
-        <button
-          onclick="cancelRtwGame()"
-          style="
-            width: 100%;
-            margin-top: 10px;
-            background: none;
-            color: var(--accent-red);
-            border: 1px solid var(--accent-red);
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-          "
-        >
+        <button class="undo-btn" onclick="cancelRtwGame()">
           Spiel abbrechen
         </button>
       </div>
 
-      <div id="game-secure-screen" style="display: none">
+      <div id="game-secure-screen" style="display: none; width: 100%">
         <button
           id="mic-btn"
+          class="primary glass-panel"
           onclick="toggleVoice()"
-          style="
-            width: 100%;
-            background: #444;
-            margin-bottom: 15px;
-            border: 1px solid #666;
-          "
+          style="margin-bottom: 15px; text-align: center"
         >
-          🎤 Sprachsteuerung: AUS
+          Sprachsteuerung: AUS
         </button>
-        <div id="bot-overlay" style="display: none" class="bot-overlay">
-          <div id="bot-status-text">Bot spielt...</div>
+
+        <div id="bot-overlay" class="bot-overlay" style="display: none">
+          <div
+            id="bot-status-text"
+            style="
+              font-size: 1.5em;
+              font-weight: bold;
+              color: var(--accent-green);
+              margin-bottom: 20px;
+            "
+          >
+            Bot spielt...
+          </div>
           <button
             id="bot-panic-btn"
             class="panic-btn"
             onclick="cancelBotAndUndo()"
           >
-            ✋ STOP / KORREKTUR
+            STOP / KORREKTUR
           </button>
         </div>
-        <div class="info-panel">
-          <span id="current-player-name">Spieler 1</span>
+
+        <div class="info-panel accent-green">
+          <span id="current-player-name" style="font-weight: bold"
+            >Spieler 1</span
+          >
           <span
             >Score:
-            <span id="current-player-score" style="color: white">0</span></span
+            <span
+              id="current-player-score"
+              style="color: var(--text-main); font-weight: bold"
+              >0</span
+            ></span
           >
         </div>
-        <div class="target-wrapper">
-          <div class="target-label">ZIEL</div>
-          <div id="current-target" class="target-display">1</div>
+
+        <div
+          class="glass-panel"
+          style="text-align: center; margin: 20px 0; padding: 10px"
+        >
+          <div
+            style="
+              color: var(--text-muted);
+              font-size: 0.9em;
+              letter-spacing: 2px;
+              text-transform: uppercase;
+            "
+          >
+            ZIEL
+          </div>
+          <div
+            id="current-target"
+            style="
+              font-size: 4em;
+              color: var(--accent-green);
+              font-weight: 800;
+              line-height: 1;
+              text-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+            "
+          >
+            1
+          </div>
         </div>
-        <div class="section-header">
+
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+          "
+        >
           <span>Punkte werfen</span><span id="score-darts-count">0/3</span>
         </div>
         <div
+          id="raw-score"
           style="
             text-align: center;
             font-size: 2em;
             font-weight: bold;
             margin-bottom: 10px;
           "
-          id="raw-score"
         >
           0
         </div>
+
         <div class="controls" id="controls-score">
           <button class="miss" onclick="addRawScore(0)">0</button>
           <button class="hit" onclick="addRawScore(1)">S</button>
           <button class="hit" onclick="addRawScore(2)">D</button>
           <button class="hit" onclick="addRawScore(3)">T</button>
         </div>
-        <div class="section-header">
+
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+          "
+        >
           <span>Sichern (Bull)</span><span id="secure-darts-count">0/3</span>
         </div>
         <div
-          style="text-align: center; margin-bottom: 10px; color: #aaa"
           id="secure-status"
+          style="
+            text-align: center;
+            margin-bottom: 10px;
+            color: var(--text-muted);
+          "
         >
           Offen
         </div>
+
         <div class="controls secure" id="controls-secure">
           <button class="miss" onclick="addSecure(0)">0</button>
-          <button
-            class="bull"
-            style="background: #b71c1c"
-            onclick="addSecure(1)"
-          >
-            25
-          </button>
-          <button
-            class="bull"
-            style="background: #f44336"
-            onclick="addSecure(2)"
-          >
-            50
-          </button>
+          <button class="bull" onclick="addSecure(1)">25</button>
+          <button class="bull" onclick="addSecure(2)">50</button>
         </div>
-        <div
-          style="
-            text-align: center;
-            margin-top: 25px;
-            background: #111;
-            padding: 15px;
-            border-radius: 8px;
-          "
-        >
+
+        <div class="glass-panel" style="text-align: center; margin-top: 25px">
           Runden-Ergebnis:
           <strong
             id="round-result"
@@ -1927,112 +1661,166 @@
             >0</strong
           >
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px">
-          <button class="reset" onclick="resetTurnInputs()">Reset</button>
-          <button class="primary" style="margin-top: 15px" onclick="nextTurn()">
-            Bestätigen ✅
+
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 10px;
+            margin-top: 15px;
+          "
+        >
+          <button class="reset" style="margin: 0" onclick="resetTurnInputs()">
+            Reset
+          </button>
+          <button
+            class="primary"
+            style="
+              margin: 0;
+              background: var(--glass-bg);
+              color: var(--accent-green);
+              font-weight: bold;
+            "
+            onclick="nextTurn()"
+          >
+            Bestätigen
           </button>
         </div>
+
         <button
-          class="undo-btn"
           id="btn-undo"
+          class="undo-btn"
           onclick="undoLastTurn()"
           style="display: none"
         >
-          ↩️ Letzten Zug rückgängig
+          Letzten Wurf rückgängig
         </button>
-        <div class="live-leaderboard">
-          <div class="live-title">Aktueller Spielstand</div>
+
+        <div class="glass-panel" style="margin-top: 30px; padding: 15px">
+          <div
+            style="
+              font-size: 0.8em;
+              text-transform: uppercase;
+              color: var(--text-muted);
+              margin-bottom: 10px;
+              letter-spacing: 1px;
+              border-bottom: 1px solid var(--glass-border);
+              padding-bottom: 5px;
+            "
+          >
+            Aktueller Spielstand
+          </div>
           <div id="live-leaderboard-list"></div>
         </div>
       </div>
 
-      <div id="highscore-screen" style="display: none">
-        <table id="lifetime-table">
-          <thead>
-            <tr id="stats-table-header">
-              <th>#</th>
-              <th>Name</th>
-              <th>Siege</th>
-              <th>3-Dart-Avg</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <button
-          class="primary"
-          style="background: #333; margin-top: 20px"
-          onclick="load501Stats()"
-        >
-          Refresh
-        </button>
+      <div id="highscore-screen" style="display: none; width: 100%">
+        <div class="glass-panel" style="padding: 10px">
+          <table id="lifetime-table">
+            <thead>
+              <tr id="stats-table-header">
+                <th>#</th>
+                <th>Name</th>
+                <th>Siege</th>
+                <th>3-Dart-Avg</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <button class="primary" onclick="load501Stats()">Refresh</button>
       </div>
 
-      <div id="secure-rules-screen" style="display: none" class="rules-content">
-        <h3>📜 Spielregeln</h3>
-        <p>
-          Ziel ist es, die meisten Punkte zu sammeln, während man die Zahlen von
-          <b>1 bis 20</b>, dann <b>25</b> (Single Bull) und <b>50</b> (Bullseye)
-          durchläuft.
-        </p>
-        <h4>1. Punkte Sammeln</h4>
-        <p>
-          In der ersten Phase (3 Darts) wirft man auf die aktuelle Zielzahl. Man
-          sammelt so viele Punkte wie möglich.
-        </p>
-        <ul>
-          <li>Single = Einfache Punktzahl</li>
-          <li>Double = Doppelte Punktzahl</li>
-          <li>Triple = Dreifache Punktzahl</li>
-        </ul>
-        <h4>2. Das Sichern</h4>
-        <p>
-          In der zweiten Phase (3 Darts) muss man die Punkte über das Bullseye
-          "sichern".
-        </p>
-        <ul>
-          <li><b>Single Bull (25):</b> Die Punkte sind gesichert (x1).</li>
-          <li>
-            <b>Bullseye (50):</b> Die Punkte werden gesichert und
-            <b>verdoppelt</b> (x2).
-          </li>
-          <li><b>Nichts getroffen:</b> 0 Punkte für diese Runde.</li>
-        </ul>
-        <div class="example-box">
-          Beispiel: Du triffst 3x die 20 (60 Punkte).<br />
-          Dann triffst du 1x Bullseye.<br />
-          Ergebnis: 60 x 2 = <b>120 Punkte</b>.
+      <div
+        id="secure-rules-screen"
+        class="rules-content"
+        style="display: none; width: 100%"
+      >
+        <div class="glass-panel">
+          <h3
+            style="
+              color: var(--accent-green);
+              border-bottom: 1px solid var(--glass-border);
+              padding-bottom: 10px;
+            "
+          >
+            Spielregeln
+          </h3>
+          <p>
+            Ziel ist es, die meisten Punkte zu sammeln, während man die Zahlen
+            von <b>1 bis 20</b>, dann <b>25</b> (Single Bull) und
+            <b>50</b> (Bullseye) durchläuft.
+          </p>
+          <h4>1. Punkte Sammeln</h4>
+          <p>
+            In der ersten Phase (3 Darts) wirft man auf die aktuelle Zielzahl.
+            Man sammelt so viele Punkte wie möglich.
+          </p>
+          <ul>
+            <li>Single = Einfache Punktzahl</li>
+            <li>Double = Doppelte Punktzahl</li>
+            <li>Triple = Dreifache Punktzahl</li>
+          </ul>
+          <h4>2. Das Sichern</h4>
+          <p>
+            In der zweiten Phase (3 Darts) muss man die Punkte über das Bullseye
+            "sichern".
+          </p>
+          <ul>
+            <li><b>Single Bull (25):</b> Die Punkte sind gesichert (x1).</li>
+            <li>
+              <b>Bullseye (50):</b> Die Punkte werden gesichert und
+              <b>verdoppelt</b> (x2).
+            </li>
+            <li><b>Nichts getroffen:</b> 0 Punkte für diese Runde.</li>
+          </ul>
+          <div class="glass-panel">
+            Beispiel: Du triffst 3x die 20 (60 Punkte).<br />
+            Dann triffst du 1x Bullseye.<br />
+            Ergebnis: 60 x 2 = <b>120 Punkte</b>.
+          </div>
+          <br />
+          <h4>3. Globaler Fortschritt</h4>
+          <p>
+            Alle Spieler werfen auf die gleiche Zahl. Die Zahl erhöht sich erst
+            für alle, wenn <b>mindestens ein Spieler</b> in der Runde
+            erfolgreich gesichert hat.
+          </p>
+          <h4>4. Trainings-Modus</h4>
+          <p>
+            Setze den Haken im Setup. Deine Statistiken werden separat
+            gespeichert und zählen nicht zu deinen offiziellen Siegen.
+          </p>
+          <h4>5. Bot-Gegner</h4>
+          <p>
+            Wähle im Setup einen Bot aus. Bots werden <b>nicht</b> in der
+            Statistik gespeichert.
+          </p>
+          <button
+            class="primary"
+            onclick="document.getElementById('secure-rules-screen').style.display='none'; document.getElementById('secure-setup-screen').style.display='block';"
+          >
+            Zurück zum Setup
+          </button>
         </div>
-        <h4>3. Globaler Fortschritt</h4>
-        <p>
-          Alle Spieler werfen auf die gleiche Zahl. Die Zahl erhöht sich erst
-          für alle, wenn <b>mindestens ein Spieler</b> in der Runde erfolgreich
-          gesichert hat.
-        </p>
-        <h4>4. Trainings-Modus</h4>
-        <p>
-          Setze den Haken im Setup. Deine Statistiken werden separat gespeichert
-          und zählen nicht zu deinen offiziellen Siegen.
-        </p>
-        <h4>5. Bot-Gegner</h4>
-        <p>
-          Wähle im Setup einen Bot aus. Bots werden <b>nicht</b> in der
-          Statistik gespeichert.
-        </p>
-
-        <button
-          class="primary"
-          onclick="document.getElementById('secure-rules-screen').style.display='none'; document.getElementById('secure-setup-screen').style.display='block';"
-          style="margin-top: 30px; background: #444; color: white"
-        >
-          🔙 Zurück zum Setup
-        </button>
       </div>
     </div>
 
-    <div id="stats-modal" class="modal-overlay" onclick="closeStats(event)">
+    <div
+      id="stats-modal"
+      class="modal-overlay"
+      style="display: none"
+      onclick="closeStats(event)"
+    >
       <div class="stats-card">
-        <div class="stats-header">
+        <div
+          class="sidebar-header"
+          style="
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+          "
+        >
           <div style="display: flex; align-items: center; gap: 15px">
             <div
               style="
@@ -2043,17 +1831,16 @@
                 overflow: hidden;
                 border: 2px solid var(--accent-blue);
                 flex-shrink: 0;
-                box-shadow: 0 0 10px rgba(33, 150, 243, 0.3);
               "
             >
               <img
                 id="modal-avatar-preview"
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Guest"
+                src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>"
                 style="
                   width: 100%;
                   height: 100%;
                   object-fit: cover;
-                  background: #222;
+                  background: var(--bg-dark);
                 "
               />
               <input
@@ -2084,7 +1871,13 @@
                 EDIT
               </div>
             </div>
-            <h2 id="modal-name" class="stats-name" style="margin: 0">Name</h2>
+            <h2
+              id="modal-name"
+              class="stats-name"
+              style="margin: 0; color: white"
+            >
+              Name
+            </h2>
             <button
               id="btn-edit-name"
               onclick="enableInlineNameEdit()"
@@ -2093,17 +1886,24 @@
                 background: none;
                 border: none;
                 cursor: pointer;
-                font-size: 1.2em;
                 padding: 0;
                 margin: 0;
-                filter: grayscale(100%);
-                transition: 0.3s;
+                color: var(--text-muted);
               "
-              onmouseover="this.style.filter='none'"
-              onmouseout="this.style.filter='grayscale(100%)'"
               title="Name ändern"
             >
-              ✏️
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"
+                />
+              </svg>
             </button>
           </div>
           <button class="close-btn" onclick="closeStats(event)">×</button>
@@ -2116,67 +1916,64 @@
             justify-content: center;
             gap: 10px;
             margin-bottom: 15px;
+            flex-wrap: wrap;
           "
         >
           <button
-            class="nav-btn"
+            class="nav-btn accent-blue"
             id="modal-btn-501"
-            onclick="switchModalMode('501')"
             style="
-              margin: 0;
               padding: 8px 15px;
-              background: var(--accent-blue);
-              color: white;
+              margin: 0;
               width: auto;
               font-size: 0.9em;
+              border-radius: 8px;
             "
+            onclick="switchModalMode('501')"
           >
-            🎯 501 Stats
+            501 Stats
           </button>
           <button
             class="nav-btn"
             id="modal-btn-secure"
-            onclick="switchModalMode('secure')"
             style="
-              margin: 0;
               padding: 8px 15px;
-              background: #333;
-              color: #aaa;
+              margin: 0;
               width: auto;
               font-size: 0.9em;
+              border-radius: 8px;
             "
+            onclick="switchModalMode('secure')"
           >
-            🎲 Secure Stats
+            Secure Stats
           </button>
           <button
             class="nav-btn"
             id="modal-btn-bobs"
-            onclick="switchModalMode('bobs')"
             style="
-              margin: 0;
               padding: 8px 15px;
-              background: #333;
-              color: #aaa;
+              margin: 0;
               width: auto;
               font-size: 0.9em;
+              border-radius: 8px;
             "
+            onclick="switchModalMode('bobs')"
           >
-            ⭕️ Bob's Stats
+            Bob's Stats
           </button>
           <button
             class="nav-btn"
             id="modal-btn-rtw"
-            onclick="switchModalMode('rtw')"
             style="
-              margin: 0;
               padding: 8px 15px;
-              background: #333;
-              color: #aaa;
+              margin: 0;
               width: auto;
               font-size: 0.9em;
+              border-radius: 8px;
             "
+            onclick="switchModalMode('rtw')"
           >
-            🌎 RTW Stats
+            RTW Stats
           </button>
         </div>
 
@@ -2239,18 +2036,17 @@
                 -
               </div>
             </div>
-
             <div class="kpi-box" id="box-kpi-7" style="display: none">
               <div class="kpi-label">Bestes Leg</div>
-              <div class="kpi-value" id="kpi-7" style="color: white">-</div>
+              <div class="kpi-value" id="kpi-7">-</div>
             </div>
             <div class="kpi-box" id="box-kpi-8" style="display: none">
               <div class="kpi-label">100+</div>
-              <div class="kpi-value" id="kpi-8" style="color: white">-</div>
+              <div class="kpi-value" id="kpi-8">-</div>
             </div>
             <div class="kpi-box" id="box-kpi-9" style="display: none">
               <div class="kpi-label">140+</div>
-              <div class="kpi-value" id="kpi-9" style="color: white">-</div>
+              <div class="kpi-value" id="kpi-9">-</div>
             </div>
             <div class="kpi-box" id="box-kpi-10" style="display: none">
               <div class="kpi-label">180s</div>
@@ -2263,32 +2059,36 @@
               </div>
             </div>
           </div>
-
           <h4
             style="
-              border-bottom: 1px solid #444;
+              border-bottom: 1px solid var(--glass-border);
               padding-bottom: 10px;
               margin-bottom: 15px;
-              color: #aaa;
+              color: var(--text-muted);
             "
           >
-            📊 DURCHSCHNITT PRO ZAHL
+            DURCHSCHNITT PRO ZAHL
           </h4>
-          <div class="chart-container"><canvas id="statsChart"></canvas></div>
           <div
+            class="chart-container"
             style="
-              margin-top: 25px;
-              padding: 15px;
-              background: #2a2a2a;
-              border-radius: 10px;
+              position: relative;
+              height: 200px;
+              width: 100%;
+              margin-top: 10px;
             "
           >
+            <canvas id="statsChart"></canvas>
+          </div>
+          <div class="glass-panel" style="margin-top: 25px; padding: 15px">
             <canvas id="score-dist-chart" style="max-height: 250px"></canvas>
           </div>
         </div>
-
         <div id="tab-history" class="modal-content-area" style="display: none">
-          <div id="history-list" style="text-align: center; color: #888">
+          <div
+            id="history-list"
+            style="text-align: center; color: var(--text-muted)"
+          >
             Lade Verlauf...
           </div>
         </div>
@@ -2296,59 +2096,27 @@
     </div>
 
     <div id="friends-modal" class="modal-overlay" style="display: none">
-      <div class="modal-content" style="max-width: 500px; padding: 20px">
-        <div
-          style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #444;
-            padding-bottom: 15px;
-            margin-bottom: 15px;
-          "
-        >
-          <h2 style="margin: 0; color: white">👥 Freundesliste</h2>
+      <div class="modal-content">
+        <div class="sidebar-header">
+          <h2 style="margin: 0">Freundesliste</h2>
           <button
             onclick="document.getElementById('friends-modal').style.display='none'"
-            style="
-              background: none;
-              border: none;
-              color: #888;
-              font-size: 1.5em;
-              cursor: pointer;
-            "
+            class="close-btn"
           >
-            &times;
+            ×
           </button>
         </div>
-
         <div style="display: flex; gap: 10px; margin-bottom: 10px">
           <input
             type="text"
             id="friend-search-input"
             placeholder="Nach Spielername suchen..."
-            style="
-              flex: 1;
-              padding: 10px;
-              border-radius: 8px;
-              border: 1px solid #444;
-              background: #111;
-              color: white;
-              outline: none;
-            "
             onkeyup="if(event.key === 'Enter') searchPlayers()"
           />
           <button
             onclick="searchPlayers()"
-            style="
-              background: var(--accent-blue);
-              color: white;
-              border: none;
-              border-radius: 8px;
-              padding: 0 15px;
-              font-weight: bold;
-              cursor: pointer;
-            "
+            class="primary"
+            style="width: auto; margin: 0; padding: 0 15px"
           >
             Suchen
           </button>
@@ -2361,6 +2129,7 @@
           <button
             onclick="sendFriendRequest()"
             style="
+              display: none;
               background: var(--accent-blue);
               color: white;
               border: none;
@@ -2368,7 +2137,6 @@
               padding: 0 15px;
               font-weight: bold;
               cursor: pointer;
-              display: none;
             "
           >
             Hinzufügen
@@ -2386,7 +2154,6 @@
               color: white;
               border: none;
               border-radius: 8px;
-              cursor: pointer;
               font-weight: bold;
             "
           >
@@ -2398,11 +2165,10 @@
             style="
               flex: 1;
               padding: 10px;
-              background: #333;
-              color: #aaa;
-              border: none;
+              background: transparent;
+              border: 1px solid var(--glass-border);
+              color: var(--text-muted);
               border-radius: 8px;
-              cursor: pointer;
             "
           >
             Anfragen
@@ -2426,7 +2192,9 @@
           id="friends-list-container"
           style="max-height: 400px; overflow-y: auto"
         >
-          <div style="text-align: center; color: #888; padding: 20px">
+          <div
+            style="text-align: center; color: var(--text-muted); padding: 20px"
+          >
             Lade Freunde...
           </div>
         </div>
@@ -2435,37 +2203,22 @@
 
     <div
       id="bot-setup-overlay"
-      style="
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        z-index: 3000;
-        justify-content: center;
-        align-items: center;
-        backdrop-filter: blur(4px);
-      "
+      class="modal-overlay"
+      style="display: none; align-items: center"
     >
       <div
+        class="modal-content accent-purple"
         style="
-          background: var(--card-bg);
-          padding: 30px;
-          border-radius: 12px;
-          border: 2px solid #673ab7;
-          text-align: center;
           max-width: 350px;
-          width: 90%;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+          text-align: center;
+          justify-content: center;
+          align-items: center;
         "
       >
-        <h2 style="color: white; margin-top: 0">🤖 Bot Setup</h2>
-        <p style="color: #aaa; margin-bottom: 25px; font-size: 0.9em">
+        <h2 style="margin-top: 0">Bot Setup</h2>
+        <p style="color: var(--text-muted); margin-bottom: 25px">
           Wähle den Ziel-Average des Bots:
         </p>
-
         <div
           style="
             display: flex;
@@ -2479,13 +2232,13 @@
             class="nav-btn"
             onclick="changeBotAvg(-10)"
             style="
-              background: #333;
-              color: white;
               width: 60px;
               height: 60px;
               font-size: 2em;
-              margin: 0;
+              padding: 0;
+              text-align: center;
               border-radius: 12px;
+              background: var(--glass-bg);
             "
           >
             -
@@ -2495,7 +2248,7 @@
             style="
               font-size: 3.5em;
               font-weight: bold;
-              color: #673ab7;
+              color: var(--accent-purple);
               width: 100px;
             "
           >
@@ -2505,31 +2258,26 @@
             class="nav-btn"
             onclick="changeBotAvg(10)"
             style="
-              background: #333;
-              color: white;
               width: 60px;
               height: 60px;
               font-size: 2em;
-              margin: 0;
+              padding: 0;
+              text-align: center;
               border-radius: 12px;
+              background: var(--glass-bg);
             "
           >
             +
           </button>
         </div>
-
-        <div style="display: flex; gap: 15px">
-          <button
-            class="nav-btn"
-            onclick="cancelBotSetup()"
-            style="background: #444; color: #ccc; flex: 1; margin: 0"
-          >
+        <div style="display: flex; gap: 15px; width: 100%">
+          <button class="reset" onclick="cancelBotSetup()" style="margin: 0">
             Abbrechen
           </button>
           <button
-            class="nav-btn"
+            class="primary accent-purple"
             onclick="confirmBotSetup()"
-            style="background: #673ab7; color: white; flex: 1; margin: 0"
+            style="margin: 0"
           >
             Startklar!
           </button>
@@ -2559,9 +2307,11 @@
           animation: blink 2s infinite;
         "
       >
-        🔴 LIVE BROADCAST
+        LIVE BROADCAST
       </h2>
-      <p style="color: #888; font-size: 0.9em; margin-bottom: 20px">
+      <p
+        style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 20px"
+      >
         Dieses Gerät fungiert als reine Kamera-Drohne.
       </p>
       <div
@@ -2580,124 +2330,81 @@
           muted
           style="width: 100%; max-width: 400px; display: block"
         ></video>
-        <div style="margin-top: 20px">
+        <div style="margin-top: 20px; padding-bottom: 20px">
           <button
             id="btn-stop-camera"
             onclick="stopCameraStream()"
+            class="primary"
             style="
               background: var(--accent-red);
-              color: white;
+              border: none;
+              width: auto;
               padding: 15px 30px;
-              border: none;
-              border-radius: 8px;
-              font-weight: bold;
-              cursor: pointer;
-              box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
             "
           >
-            🔴 Kamera stoppen & Beenden
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div id="cancel-modal" class="modal-overlay" style="display: none">
-      <div
-        class="modal-content"
-        style="
-          border: 2px solid var(--accent-red);
-          background: #111;
-          text-align: center;
-          max-width: 350px;
-        "
-      >
-        <h2 style="color: var(--accent-red); margin-top: 0">
-          Spiel abbrechen?
-        </h2>
-        <p style="color: #ccc; margin-bottom: 25px">
-          Möchtest du das aktuelle Spiel wirklich beenden? Dein Fortschritt geht
-          verloren.
-        </p>
-
-        <div style="display: flex; gap: 10px; flex-direction: column">
-          <button
-            id="confirm-cancel-btn"
-            style="
-              background: var(--accent-red);
-              color: white;
-              padding: 12px;
-              border: none;
-              border-radius: 8px;
-              font-weight: bold;
-              cursor: pointer;
-            "
-          >
-            Ja, Spiel abbrechen
-          </button>
-          <button
-            onclick="closeCancelModal()"
-            style="
-              background: #333;
-              color: white;
-              padding: 12px;
-              border: none;
-              border-radius: 8px;
-              font-weight: bold;
-              cursor: pointer;
-            "
-          >
-            Nein, weiterspielen
+            Kamera stoppen & Beenden
           </button>
         </div>
       </div>
     </div>
 
     <div
-      id="generic-confirm-modal"
+      id="cancel-modal"
       class="modal-overlay"
-      style="display: none; z-index: 100000"
+      style="display: none; align-items: center"
     >
       <div
-        class="modal-content"
-        style="
-          border: 2px solid var(--accent-red);
-          background: #111;
-          text-align: center;
-          max-width: 350px;
-        "
+        class="modal-content accent-red"
+        style="text-align: center; max-width: 350px"
+      >
+        <h2 style="color: var(--accent-red); margin-top: 0">
+          Spiel abbrechen?
+        </h2>
+        <p style="color: var(--text-muted); margin-bottom: 25px">
+          Dein Fortschritt geht verloren.
+        </p>
+        <button
+          id="confirm-cancel-btn"
+          class="primary"
+          style="
+            background: var(--accent-red);
+            border: none;
+            margin-bottom: 10px;
+          "
+        >
+          Ja, abbrechen
+        </button>
+        <button class="reset" style="margin: 0" onclick="closeCancelModal()">
+          Nein, weiterspielen
+        </button>
+      </div>
+    </div>
+
+    <div
+      id="generic-confirm-modal"
+      class="modal-overlay"
+      style="display: none; z-index: 100000; align-items: center"
+    >
+      <div
+        class="modal-content accent-red"
+        style="text-align: center; max-width: 350px"
       >
         <h2 style="color: var(--accent-red); margin-top: 0">Achtung!</h2>
-        <p id="generic-confirm-text" style="color: #ccc; margin-bottom: 25px">
+        <p
+          id="generic-confirm-text"
+          style="color: var(--text-muted); margin-bottom: 25px"
+        >
           Möchtest du das wirklich tun?
         </p>
-
         <div style="display: flex; gap: 10px; flex-direction: column">
           <button
             id="generic-confirm-yes-btn"
-            style="
-              background: var(--accent-red);
-              color: white;
-              padding: 12px;
-              border: none;
-              border-radius: 8px;
-              font-weight: bold;
-              cursor: pointer;
-            "
+            class="primary"
+            style="background: var(--accent-red); border: none; margin: 0"
           >
-            Ja, unwiderruflich löschen
+            Ja, bestätigen
           </button>
-          <button
-            onclick="closeConfirmModal()"
-            style="
-              background: #333;
-              color: white;
-              padding: 12px;
-              border: none;
-              border-radius: 8px;
-              font-weight: bold;
-              cursor: pointer;
-            "
-          >
+          <button onclick="closeConfirmModal()" class="reset" style="margin: 0">
             Abbrechen
           </button>
         </div>

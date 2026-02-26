@@ -5,98 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Kontakt - Secure-Darts</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <style>
-      :root {
-        --bg-color: #1a1a1a;
-        --text-color: #f0f0f0;
-        --card-bg: #2d2d2d;
-        --accent-blue: #2196f3;
-        --accent-green: #4caf50;
-        --accent-red: #f44336;
-      }
-      body {
-        font-family: sans-serif;
-        background-color: var(--bg-color);
-        color: var(--text-color);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px;
-        margin: 0;
-      }
-      .container {
-        background: var(--card-bg);
-        padding: 30px;
-        border-radius: 12px;
-        width: 100%;
-        max-width: 500px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-        margin-top: 20px;
-        box-sizing: border-box;
-      }
-      input,
-      textarea {
-        width: 100%;
-        padding: 15px;
-        margin-bottom: 20px;
-        border-radius: 8px;
-        border: 1px solid #444;
-        background: #111;
-        color: white;
-        box-sizing: border-box;
-        font-family: inherit;
-        font-size: 1em;
-      }
-      input:focus,
-      textarea:focus {
-        outline: none;
-        border-color: var(--accent-blue);
-      }
-      button.submit-btn {
-        width: 100%;
-        padding: 15px;
-        background: var(--accent-blue);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: bold;
-        font-size: 1.1em;
-        cursor: pointer;
-        transition: 0.3s;
-      }
-      button.submit-btn:hover {
-        background: #1976d2;
-      }
-      .btn-home {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        text-decoration: none;
-        background-color: #444;
-        color: white;
-        padding: 10px 15px;
-        border-radius: 6px;
-        font-weight: bold;
-        margin-bottom: 20px;
-        transition: 0.3s;
-      }
-      .btn-home:hover {
-        background-color: #555;
-      }
-    </style>
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <a href="index.html" class="btn-home">🏠 Zurück zur App</a>
+    <div
+      class="container glass-panel accent-blue"
+      style="margin-top: 4vh; max-width: 500px; padding: 30px"
+    >
+      <a
+        href="index.html"
+        class="reset"
+        style="
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          text-decoration: none;
+          width: auto;
+          margin-top: 0;
+          margin-bottom: 30px;
+        "
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        ZURÜCK ZUR APP
+      </a>
 
-    <div class="container">
-      <h2 style="text-align: center; color: var(--accent-blue); margin-top: 0">
-        ✉️ Kontakt
-      </h2>
+      <h1
+        style="
+          color: var(--accent-blue);
+          text-align: center;
+          margin-bottom: 10px;
+        "
+      >
+        KONTAKT
+      </h1>
       <p
         style="
           text-align: center;
-          color: #aaa;
+          color: var(--text-muted);
           font-size: 0.95em;
           margin-bottom: 25px;
           line-height: 1.5;
@@ -106,22 +63,47 @@
         Admin-Panel gespeichert und per E-Mail an uns weitergeleitet.
       </p>
 
-      <input type="text" id="contact-name" placeholder="Dein Name (Optional)" />
+      <input
+        type="text"
+        id="contact-name"
+        placeholder="Dein Name (Optional)"
+        style="margin-bottom: 15px"
+      />
       <input
         type="email"
         id="contact-email"
         placeholder="Deine E-Mail Adresse *"
         required
+        style="margin-bottom: 15px"
       />
       <textarea
         id="contact-message"
         rows="6"
         placeholder="Deine Nachricht *"
         required
+        style="
+          width: 100%;
+          padding: 15px;
+          border-radius: 8px;
+          border: 1px solid var(--glass-border);
+          background: rgba(0, 0, 0, 0.2);
+          color: var(--text-main);
+          font-size: 1.1em;
+          transition: border-color 0.3s, box-shadow 0.3s;
+          outline: none;
+          font-family: inherit;
+          resize: vertical;
+          margin-bottom: 20px;
+        "
       ></textarea>
 
-      <button id="btn-submit" class="submit-btn" onclick="submitContactForm()">
-        Nachricht Senden
+      <button
+        id="btn-submit"
+        class="primary accent-blue"
+        style="margin: 0; text-align: center; justify-content: center"
+        onclick="submitContactForm()"
+      >
+        NACHRICHT SENDEN
       </button>
     </div>
 
@@ -143,20 +125,18 @@
       const SUPABASE_KEY = "sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy";
       const { createClient } = supabase;
       const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-      const FORMSPREE_URL = "https://formspree.io/f/mnjboqwo"; // Deine Formspree ID
+      const FORMSPREE_URL = "https://formspree.io/f/mnjboqwo";
 
-      // TOAST NOTIFICATION
+      // Modern Glass Toast
       function showToast(message, type = "success") {
         const container = document.getElementById("toast-container");
         if (!container) return;
         const toast = document.createElement("div");
-        const bgColor =
+        const borderColor =
           type === "success" ? "var(--accent-green)" : "var(--accent-red)";
-        const color = type === "success" ? "black" : "white";
-        const icon = type === "success" ? "✅" : "⚠️";
 
-        toast.style.cssText = `background: ${bgColor}; color: ${color}; padding: 12px 20px; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.6); font-weight: bold; font-size: 0.9em; display: flex; align-items: center; gap: 10px; transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);`;
-        toast.innerHTML = `<span style="font-size: 1.2em;">${icon}</span> <span>${message}</span>`;
+        toast.style.cssText = `background: var(--glass-bg); color: var(--text-main); border: 1px solid var(--glass-border); border-left: 4px solid ${borderColor}; padding: 12px 20px; border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); font-weight: bold; font-size: 0.9em; transform: translateX(120%); transition: transform 0.4s ease-out;`;
+        toast.innerHTML = `<span>${message}</span>`;
         container.appendChild(toast);
         requestAnimationFrame(() => (toast.style.transform = "translateX(0)"));
         setTimeout(() => {
@@ -165,7 +145,6 @@
         }, 2500);
       }
 
-      // AUTO-FILL
       window.addEventListener("DOMContentLoaded", async () => {
         const {
           data: { session },
@@ -180,7 +159,6 @@
         }
       });
 
-      // ABSENDEN LOGIK
       async function submitContactForm() {
         const name = document.getElementById("contact-name").value.trim();
         const email = document.getElementById("contact-email").value.trim();
@@ -194,17 +172,15 @@
           return showToast("Deine Nachricht darf nicht leer sein!", "error");
 
         const btn = document.getElementById("btn-submit");
-        btn.innerText = "Wird gesendet...";
+        btn.innerText = "WIRD GESENDET...";
         btn.disabled = true;
 
         try {
-          // 1. In Supabase speichern (für dein Admin-Panel)
           const { error: sbError } = await _supabase
             .from("contact_messages")
             .insert([{ name: name, email: email, message: message }]);
           if (sbError) throw new Error("Supabase Fehler: " + sbError.message);
 
-          // 2. An Formspree senden (für deine E-Mail Benachrichtigung)
           const response = await fetch(FORMSPREE_URL, {
             method: "POST",
             body: JSON.stringify({ name, email, message }),
@@ -226,7 +202,7 @@
         } catch (err) {
           showToast(err.message, "error");
         } finally {
-          btn.innerText = "Nachricht Senden";
+          btn.innerText = "NACHRICHT SENDEN";
           btn.disabled = false;
         }
       }
