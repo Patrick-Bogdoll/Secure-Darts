@@ -4,7 +4,7 @@ async function handleGoogleLogin() {
   });
 
   if (error) {
-    alert("Google Login fehlgeschlagen: " + error.message);
+    showToast("Google Login fehlgeschlagen: " + error.message, "error");
     console.error(error);
   }
   // Supabase leitet den Browser jetzt automatisch zu Google weiter.
@@ -14,15 +14,17 @@ async function handleGoogleLogin() {
 async function handleRegister() {
   const email = document.getElementById("auth-email").value.trim();
   const password = document.getElementById("auth-password").value.trim();
-  if (!email || !password) return alert("Bitte E-Mail und Passwort eingeben.");
+  if (!email || !password)
+    return showToast("Bitte E-Mail und Passwort eingeben.", "error");
 
   const { data, error } = await _supabase.auth.signUp({
     email,
     password,
   });
-  if (error) return alert("Registrierung fehlgeschlagen: " + error.message);
+  if (error)
+    return showToast("Registrierung fehlgeschlagen: " + error.message, "error");
 
-  alert("Erfolgreich registriert und eingeloggt!");
+  showToast("Erfolgreich registriert und eingeloggt!", "success");
   currentUser = data.user;
   isGuest = false;
   initPresence();
@@ -53,13 +55,15 @@ async function handleLogout() {
 async function handleLogin() {
   const email = document.getElementById("auth-email").value.trim();
   const password = document.getElementById("auth-password").value.trim();
-  if (!email || !password) return alert("Bitte E-Mail und Passwort eingeben.");
+  if (!email || !password)
+    return showToast("Bitte E-Mail und Passwort eingeben.", "error");
 
   const { data, error } = await _supabase.auth.signInWithPassword({
     email,
     password,
   });
-  if (error) return alert("Login fehlgeschlagen: " + error.message);
+  if (error)
+    return showToast("Login fehlgeschlagen: " + error.message, "error");
 
   currentUser = data.user;
   isGuest = false;
@@ -69,8 +73,11 @@ async function handleLogin() {
 }
 
 async function changeUsername() {
-  if (isGuest || !currentUser)
+  if (isGuest || !currentUser) {
+    if (typeof showToast === "function")
+      return showToast("Als Gast kannst du keinen Namen speichern.", "error");
     return alert("Als Gast kannst du keinen Namen speichern.");
+  }
 
   let currentName = currentUser.email.split("@")[0];
   if (currentUser.user_metadata && currentUser.user_metadata.display_name) {
@@ -82,17 +89,57 @@ async function changeUsername() {
   let newName = prompt("Wie lautet dein gewünschter Darts-Name?", currentName);
 
   if (newName && newName.trim() !== "" && newName !== currentName) {
-    // Speichert den Namen im Hintergrund in deinem Account
+    const cleanName = newName.trim();
+    const lowerName = cleanName.toLowerCase();
+
+    // 1. Prüfen, ob der Name ein verbotenes Wort enthält
+    const forbiddenWords = [
+      "admin",
+      "administrator",
+      "moderator",
+      "system",
+      "support",
+    ];
+    const isForbidden = forbiddenWords.some((word) => lowerName.includes(word));
+
+    // 2. Wenn es ein verbotenes Wort ist, prüfen wir, ob der User wirklich Admin ist
+    if (isForbidden) {
+      // Admin-Status aus der DB holen (Passe den Tabellennamen an, falls nötig)
+      const { data: adminData } = await _supabase
+        .from("stats_501") // <-- Hier liegt laut app.js dein is_admin Flag
+        .select("is_admin")
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
+
+      const isRealAdmin = adminData && adminData.is_admin === true;
+
+      // Nur blockieren, wenn er das Wort nutzt UND KEIN echter Admin ist
+      if (!isRealAdmin) {
+        if (typeof showToast === "function")
+          return showToast(
+            "Dieser Name ist für Administratoren reserviert.",
+            "error"
+          );
+        return alert("Dieser Name ist für Administratoren reserviert.");
+      }
+    }
+
+    // 3. Wenn wir hier ankommen, ist alles okay (entweder sauberer Name oder echter Admin)
     const { data, error } = await _supabase.auth.updateUser({
-      data: { display_name: newName.trim() },
+      data: { display_name: cleanName },
     });
 
     if (error) {
-      alert("Fehler beim Speichern: " + error.message);
+      if (typeof showToast === "function")
+        showToast("Fehler beim Speichern: " + error.message, "error");
+      else alert("Fehler beim Speichern: " + error.message);
     } else {
       currentUser = data.user;
-      alert("Name erfolgreich geändert auf: " + newName.trim());
-      showMainApp(); // Refresht die Inputs sofort!
+      if (typeof showToast === "function")
+        showToast("Name erfolgreich geändert auf: " + cleanName, "success");
+      else alert("Name erfolgreich geändert auf: " + cleanName);
+
+      if (typeof showMainApp === "function") showMainApp();
     }
   }
 }
