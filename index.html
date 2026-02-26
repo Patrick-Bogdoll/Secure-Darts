@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
@@ -1411,7 +1411,7 @@
             <option value="single">Zahl (Einfach)</option>
             <option value="double" selected>Double</option>
             <option value="triple">Triple</option>
-            <option value="all">All</option>
+            <option value="all">Beliebig</option>
           </select>
         </div>
         <div style="margin-bottom: 25px">
@@ -2014,113 +2014,78 @@
         </div>
 
         <div id="tab-overview" class="modal-content-area">
+          
           <div class="kpi-grid">
-            <div class="kpi-box">
-              <div class="kpi-label" id="lbl-kpi-1">Siege</div>
-              <div
-                class="kpi-value"
-                id="kpi-1"
-                style="color: var(--accent-green)"
-              >
-                -
-              </div>
+            <div class="kpi-box" id="box-kpi-1" style="display: none;">
+              <div class="kpi-label" id="lbl-kpi-1">-</div>
+              <div class="kpi-value" id="kpi-1" style="color: var(--accent-green)">-</div>
             </div>
-            <div class="kpi-box">
-              <div class="kpi-label" id="lbl-kpi-2">Highscore</div>
-              <div
-                class="kpi-value"
-                id="kpi-2"
-                style="color: var(--accent-purple)"
-              >
-                -
-              </div>
+            <div class="kpi-box" id="box-kpi-2" style="display: none;">
+              <div class="kpi-label" id="lbl-kpi-2">-</div>
+              <div class="kpi-value" id="kpi-2" style="color: var(--accent-purple)">-</div>
             </div>
-            <div class="kpi-box">
-              <div class="kpi-label" id="lbl-kpi-3">Winrate</div>
+            <div class="kpi-box" id="box-kpi-3" style="display: none;">
+              <div class="kpi-label" id="lbl-kpi-3">-</div>
               <div class="kpi-value" id="kpi-3">-</div>
             </div>
-            <div class="kpi-box">
-              <div class="kpi-label" id="lbl-kpi-4">Ø Score</div>
+            <div class="kpi-box" id="box-kpi-4" style="display: none;">
+              <div class="kpi-label" id="lbl-kpi-4">-</div>
               <div class="kpi-value" id="kpi-4">-</div>
             </div>
-            <div class="kpi-box">
-              <div class="kpi-label" id="lbl-kpi-5">Secure Rate</div>
-              <div
-                class="kpi-value"
-                id="kpi-5"
-                style="color: var(--accent-blue)"
-              >
-                -
-              </div>
+            <div class="kpi-box" id="box-kpi-5" style="display: none;">
+              <div class="kpi-label" id="lbl-kpi-5">-</div>
+              <div class="kpi-value" id="kpi-5" style="color: var(--accent-blue)">-</div>
             </div>
-            <div class="kpi-box">
-              <div class="kpi-label" id="lbl-kpi-6">Double Rate</div>
-              <div
-                class="kpi-value"
-                id="kpi-6"
-                style="color: var(--accent-red)"
-              >
-                -
-              </div>
+            <div class="kpi-box" id="box-kpi-6" style="display: none;">
+              <div class="kpi-label" id="lbl-kpi-6">-</div>
+              <div class="kpi-value" id="kpi-6" style="color: var(--accent-red)">-</div>
             </div>
-            <div class="kpi-box" id="box-kpi-7" style="display: none">
-              <div class="kpi-label">Bestes Leg</div>
-              <div class="kpi-value" id="kpi-7">-</div>
+            <div class="kpi-box" id="box-kpi-7" style="display: none;">
+              <div class="kpi-label" id="lbl-kpi-7">-</div>
+              <div class="kpi-value" id="kpi-7" style="color: var(--accent-red)">-</div>
             </div>
-            <div class="kpi-box" id="box-kpi-8" style="display: none">
-              <div class="kpi-label">100+</div>
-              <div class="kpi-value" id="kpi-8">-</div>
+            <div class="kpi-box" id="box-kpi-8" style="display: none;">
+              <div class="kpi-label" id="lbl-kpi-8">-</div>
+              <div class="kpi-value" id="kpi-8" style="color: var(--accent-red)">-</div>
             </div>
-            <div class="kpi-box" id="box-kpi-9" style="display: none">
-              <div class="kpi-label">140+</div>
-              <div class="kpi-value" id="kpi-9">-</div>
+            <div class="kpi-box" id="box-kpi-9" style="display: none;">
+              <div class="kpi-label" id="lbl-kpi-9">-</div>
+              <div class="kpi-value" id="kpi-9" style="color: var(--accent-red)">-</div>
             </div>
-            <div class="kpi-box" id="box-kpi-10" style="display: none">
-              <div class="kpi-label">180s</div>
-              <div
-                class="kpi-value"
-                id="kpi-10"
-                style="color: var(--accent-green)"
-              >
-                -
-              </div>
+            <div class="kpi-box" id="box-kpi-10" style="display: none;">
+              <div class="kpi-label" id="lbl-kpi-10">-</div>
+              <div class="kpi-value" id="kpi-10" style="color: var(--accent-red)">-</div>
             </div>
-          </div>
-          <h4
-            style="
-              border-bottom: 1px solid var(--glass-border);
-              padding-bottom: 10px;
-              margin-bottom: 15px;
-              color: var(--text-muted);
-            "
-          >
+          </div> <h4 style="border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; margin-bottom: 15px; color: var(--text-muted);">
             DURCHSCHNITT PRO ZAHL
           </h4>
-          <div
-            class="chart-container"
-            style="
-              position: relative;
-              height: 200px;
-              width: 100%;
-              margin-top: 10px;
-            "
-          >
+          
+          <div class="chart-container" style="position: relative; height: 200px; width: 100%; margin-top: 10px;">
             <canvas id="statsChart"></canvas>
           </div>
+          
           <div class="glass-panel" style="margin-top: 25px; padding: 15px">
             <canvas id="score-dist-chart" style="max-height: 250px"></canvas>
           </div>
-        </div>
-        <div id="tab-history" class="modal-content-area" style="display: none">
-          <div
-            id="history-list"
-            style="text-align: center; color: var(--text-muted)"
-          >
-            Lade Verlauf...
+
+          <div id="tab-history" class="modal-content-area" style="display: none">
+
+            <div
+  
+              id="history-list"
+  
+              style="text-align: center; color: var(--text-muted)"
+  
+            >
+  
+              Lade Verlauf...
+  
+            </div>
+  
           </div>
+          
         </div>
-      </div>
-    </div>
+    
 
     <div id="friends-modal" class="modal-overlay" style="display: none">
       <div class="modal-content">

@@ -93,7 +93,7 @@ const STATS_CONFIG = {
       "Single Modus",
       "Double Modus",
       "Triple Modus",
-      "Alle Modus",
+      "Beliebig Modus",
     ],
     chartColor: "#06b6d4", // accent-cyan
     chartInteraction: "index",
@@ -198,7 +198,7 @@ async function renderUniversalStats(
   mode,
   rawData,
   extraChartData,
-  isSwitching,
+  isSwitching
 ) {
   const conf = STATS_CONFIG[mode];
   const isArray = Array.isArray(rawData);
@@ -382,7 +382,7 @@ function parseSecureData(data) {
   for (let i = 1; i <= 20; i++) allTargets.push(i.toString());
   allTargets.push("25", "50");
   const cLabels = allTargets.map((t) =>
-    t === "25" ? "BULL" : t === "50" ? "B-EYE" : t,
+    t === "25" ? "BULL" : t === "50" ? "B-EYE" : t
   );
   const numStats = data.number_stats || {};
   const cValues = allTargets.map((key) => {
@@ -430,7 +430,7 @@ function parseBobsData(data) {
     let winColor = game.is_win ? "var(--accent-green)" : "var(--accent-red)";
     let safeData = encodeURIComponent(JSON.stringify(game)).replace(
       /'/g,
-      "%27",
+      "%27"
     );
 
     // Detail-Tabelle generieren
@@ -445,8 +445,8 @@ function parseBobsData(data) {
               turn.target === 25 ? "BULL" : `D${turn.target}`
             }</b> (${turn.hits}x)</span>
             <span style="color: ${hitColor}; font-weight: bold;">${
-              turn.points > 0 ? "+" : ""
-            }${turn.points}</span>
+          turn.points > 0 ? "+" : ""
+        }${turn.points}</span>
           </div>`;
       });
     } else {
@@ -462,8 +462,8 @@ function parseBobsData(data) {
         <div class="history-summary" onclick="toggleHistoryDetails(this)" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
           <div style="text-align:left;">
             <div style="font-weight:bold; color:${winColor}">${
-              game.is_win ? "SIEG" : "BUST"
-            }</div>
+      game.is_win ? "SIEG" : "BUST"
+    }</div>
             <div class="history-date">${dateStr}</div>
           </div>
           <div style="display:flex; align-items:center; gap:15px;">
@@ -501,7 +501,7 @@ function parseRtwData(data) {
   let avgScore =
     totalGames > 0
       ? Math.round(
-          data.reduce((sum, g) => sum + g.total_points, 0) / totalGames,
+          data.reduce((sum, g) => sum + g.total_points, 0) / totalGames
         )
       : 0;
 
@@ -517,6 +517,10 @@ function parseRtwData(data) {
     {
       val: data.filter((g) => g.mode === "triple").length,
       color: "var(--accent-purple)",
+    },
+    {
+      val: data.filter((g) => g.mode === "all").length,
+      color: "var(--text-main)",
     },
   ];
 
@@ -534,16 +538,16 @@ function parseRtwData(data) {
     });
     let safeData = encodeURIComponent(JSON.stringify(game)).replace(
       /'/g,
-      "%27",
+      "%27"
     );
     let modeText =
       game.mode === "single"
         ? "Single"
         : game.mode === "double"
-          ? "Double"
-          : game.mode === "triple"
-            ? "Triple"
-            : "Alle";
+        ? "Double"
+        : game.mode === "triple"
+        ? "Triple"
+        : "Alle";
 
     let detailsHTML = `<div style="border-top: 1px solid #444; margin-top: 10px; padding-top: 5px;">`;
     if (game.details && Array.isArray(game.details)) {
@@ -678,7 +682,7 @@ async function save501Stats(
   matchDarts,
   matchScore,
   finalFinish,
-  trackerObj,
+  trackerObj
 ) {
   if (playerName.includes("[BOT]")) return;
 
@@ -806,7 +810,7 @@ async function save501MatchHistory(
   matchAvg,
   darts,
   finish,
-  matchLog,
+  matchLog
 ) {
   if (playerName.includes("[BOT]")) return;
   let payload = {
@@ -839,7 +843,7 @@ async function loadHighscores() {
     const safeData = encodeURIComponent(JSON.stringify(entry));
     let dName = entry.name.replace(
       " (Training)",
-      ' <span style="color:#d500f9; font-size:0.8em;">(Training)</span>',
+      ' <span style="color:#d500f9; font-size:0.8em;">(Training)</span>'
     );
     let tr = document.createElement("tr");
     tr.innerHTML = `<td style="color:#666">${rank}.</td><td><a href="#" class="clickable-name" onclick="openMatchStats('secure', '${safeData}')">${dName}</a></td><td>${entry.wins}</td><td>${entry.highscore}</td>`;
@@ -921,8 +925,8 @@ async function loadMatchHistory() {
             round.target === 25
               ? "BULL"
               : round.target === 50
-                ? "BULLSEYE"
-                : round.target;
+              ? "BULLSEYE"
+              : round.target;
           let secureText = round.secured
             ? `<span style="color:var(--accent-green)">Gesichert (x${round.multiplier})</span>`
             : `<span style="color:var(--accent-red)">Verfehlt</span>`;
@@ -958,10 +962,10 @@ async function loadMatchHistory() {
               m.is_win ? "var(--accent-green)" : "var(--accent-red)"
             }">
               ${m.is_win ? "SIEG" : "NIEDERLAGE"} ${
-                m.is_training
-                  ? '<span style="color:var(--accent-purple); font-size:0.8em;">(Training)</span>'
-                  : ""
-              }
+        m.is_training
+          ? '<span style="color:var(--accent-purple); font-size:0.8em;">(Training)</span>'
+          : ""
+      }
             </div>
             <div class="history-date">${date}</div>
           </div>
@@ -1022,8 +1026,8 @@ async function loadMatchHistory() {
               <div style="text-align:center; font-weight:bold; color:var(--accent-blue); margin-bottom:15px; text-transform:uppercase; letter-spacing:1px;">LEG ${
                 leg.leg_number
               } (${
-                leg.winner === currentModalPlayer ? "GEWONNEN" : "VERLOREN"
-              })</div>
+            leg.winner === currentModalPlayer ? "GEWONNEN" : "VERLOREN"
+          })</div>
               <div style="display:grid; grid-template-columns: 20% 20% 20% 20% 20%; text-align:center; font-size:0.7em; color:#888; margin-bottom:10px; text-transform:uppercase;">
                 <div>Darts<br><b style="color:white; font-size:1.3em;">${myDarts}</b></div>
                 <div>Avg<br><b style="color:white; font-size:1.3em;">${
@@ -1053,7 +1057,7 @@ async function loadMatchHistory() {
 
           const maxTurns = Math.max(
             myHistory?.length || 0,
-            oppHistory?.length || 0,
+            oppHistory?.length || 0
           );
           for (let i = 0; i < maxTurns; i++) {
             legsHTML += `
@@ -1112,7 +1116,7 @@ async function loadPlayerSuggestions() {
   if (error || !playersDB) return;
   const uniqueNames = new Set();
   playersDB.forEach((p) =>
-    uniqueNames.add(p.name.replace(" (Training)", "").trim()),
+    uniqueNames.add(p.name.replace(" (Training)", "").trim())
   );
 
   const datalist = document.getElementById("player-suggestions");
@@ -1241,7 +1245,7 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
               if (updatedFreq[key]) {
                 updatedFreq[key] = Math.max(
                   0,
-                  updatedFreq[key] - scoresToRemove[key],
+                  updatedFreq[key] - scoresToRemove[key]
                 );
                 if (updatedFreq[key] === 0) delete updatedFreq[key];
               }
@@ -1253,35 +1257,35 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
                 wins: Math.max(0, (currentStats.wins || 0) - legsWonInMatch), // <-- GEFIXT: Zieht Legs ab!
                 games_played: Math.max(
                   0,
-                  (currentStats.games_played || 0) - legsCount,
+                  (currentStats.games_played || 0) - legsCount
                 ),
                 total_darts_thrown: Math.max(
                   0,
-                  (currentStats.total_darts_thrown || 0) - m.darts_thrown,
+                  (currentStats.total_darts_thrown || 0) - m.darts_thrown
                 ),
                 total_score_thrown: Math.max(
                   0,
-                  (currentStats.total_score_thrown || 0) - totalPointsInMatch,
+                  (currentStats.total_score_thrown || 0) - totalPointsInMatch
                 ),
                 checkout_hits: Math.max(
                   0,
-                  (currentStats.checkout_hits || 0) - legsWonInMatch,
+                  (currentStats.checkout_hits || 0) - legsWonInMatch
                 ), // <-- GEFIXT
                 count_100: Math.max(
                   0,
-                  (currentStats.count_100 || 0) - t100ToRemove,
+                  (currentStats.count_100 || 0) - t100ToRemove
                 ),
                 count_140: Math.max(
                   0,
-                  (currentStats.count_140 || 0) - t140ToRemove,
+                  (currentStats.count_140 || 0) - t140ToRemove
                 ),
                 count_180: Math.max(
                   0,
-                  (currentStats.count_180 || 0) - t180ToRemove,
+                  (currentStats.count_180 || 0) - t180ToRemove
                 ),
                 count_busts: Math.max(
                   0,
-                  (currentStats.count_busts || 0) - bustsToRemove,
+                  (currentStats.count_busts || 0) - bustsToRemove
                 ),
                 score_frequencies: updatedFreq,
               })
@@ -1316,11 +1320,11 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
               if (mStats[k]) {
                 mStats[k].points = Math.max(
                   0,
-                  mStats[k].points - numStatsSub[k].points,
+                  mStats[k].points - numStatsSub[k].points
                 );
                 mStats[k].count = Math.max(
                   0,
-                  mStats[k].count - numStatsSub[k].count,
+                  mStats[k].count - numStatsSub[k].count
                 );
               }
             }
@@ -1329,24 +1333,24 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
               .update({
                 wins: Math.max(
                   0,
-                  (currentStats.wins || 0) - (m.is_win ? 1 : 0),
+                  (currentStats.wins || 0) - (m.is_win ? 1 : 0)
                 ),
                 games_played: Math.max(0, (currentStats.games_played || 0) - 1),
                 total_points: Math.max(
                   0,
-                  (currentStats.total_points || 0) - (m.final_score || 0),
+                  (currentStats.total_points || 0) - (m.final_score || 0)
                 ),
                 rounds_played: Math.max(
                   0,
-                  (currentStats.rounds_played || 0) - roundsCount,
+                  (currentStats.rounds_played || 0) - roundsCount
                 ),
                 secure_count: Math.max(
                   0,
-                  (currentStats.secure_count || 0) - secureCount,
+                  (currentStats.secure_count || 0) - secureCount
                 ),
                 double_count: Math.max(
                   0,
-                  (currentStats.double_count || 0) - doubleCount,
+                  (currentStats.double_count || 0) - doubleCount
                 ),
                 number_stats: mStats,
               })
@@ -1363,7 +1367,7 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
       } catch (err) {
         showToast("Fehler beim Löschen: " + err.message, "error");
       }
-    },
+    }
   );
 }
 
