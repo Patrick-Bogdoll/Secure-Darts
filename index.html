@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
@@ -246,7 +246,11 @@
       <button
         class="nav-btn accent-blue"
         id="tab-stats"
-        onclick="showScreen('stats'); toggleMenu(); load501Stats();"
+        onclick="
+          showScreen('stats');
+          toggleMenu();
+          load501Stats();
+        "
       >
         Statistiken
       </button>
@@ -279,24 +283,36 @@
 
       <button
         class="nav-btn accent-cyan"
-        onclick="openMyProfile(); toggleMenu();"
+        onclick="
+          openMyProfile();
+          toggleMenu();
+        "
       >
         Mein Profil
       </button>
       <button
         id="admin-btn"
         class="nav-btn accent-orange"
-        onclick="window.location.href='admin.html'"
+        onclick="window.location.href = 'admin.html'"
         style="display: none"
       >
         Admin
       </button>
-      <button class="nav-btn" onclick="goHome(); toggleMenu();">
+      <button
+        class="nav-btn"
+        onclick="
+          goHome();
+          toggleMenu();
+        "
+      >
         Modus wechseln
       </button>
       <button
         class="nav-btn accent-red"
-        onclick="handleLogout(); toggleMenu();"
+        onclick="
+          handleLogout();
+          toggleMenu();
+        "
       >
         Logout
       </button>
@@ -454,7 +470,12 @@
         <button class="reset" onclick="goHome()">Zurück</button>
         <button
           class="reset"
-          onclick="document.getElementById('secure-setup-screen').style.display='none'; document.getElementById('secure-rules-screen').style.display='block';"
+          onclick="
+            document.getElementById('secure-setup-screen').style.display =
+              'none';
+            document.getElementById('secure-rules-screen').style.display =
+              'block';
+          "
         >
           Spielregeln lesen
         </button>
@@ -1390,6 +1411,7 @@
             <option value="single">Zahl (Einfach)</option>
             <option value="double" selected>Double</option>
             <option value="triple">Triple</option>
+            <option value="all">All</option>
           </select>
         </div>
         <div style="margin-bottom: 25px">
@@ -1798,7 +1820,12 @@
           </p>
           <button
             class="primary"
-            onclick="document.getElementById('secure-rules-screen').style.display='none'; document.getElementById('secure-setup-screen').style.display='block';"
+            onclick="
+              document.getElementById('secure-rules-screen').style.display =
+                'none';
+              document.getElementById('secure-setup-screen').style.display =
+                'block';
+            "
           >
             Zurück zum Setup
           </button>
@@ -2100,7 +2127,9 @@
         <div class="sidebar-header">
           <h2 style="margin: 0">Freundesliste</h2>
           <button
-            onclick="document.getElementById('friends-modal').style.display='none'"
+            onclick="
+              document.getElementById('friends-modal').style.display = 'none'
+            "
             class="close-btn"
           >
             ×
@@ -2111,7 +2140,7 @@
             type="text"
             id="friend-search-input"
             placeholder="Nach Spielername suchen..."
-            onkeyup="if(event.key === 'Enter') searchPlayers()"
+            onkeyup="if (event.key === 'Enter') searchPlayers();"
           />
           <button
             onclick="searchPlayers()"

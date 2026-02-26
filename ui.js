@@ -262,6 +262,11 @@ function renderUniversalDartboard(containerId, activeTarget, mode = "single") {
         doubleClass = ' class="blinking-target"';
       } else if (mode === "triple") {
         tripleClass = ' class="blinking-target"';
+      } else if (mode === "all") {
+        innerSingleClass = ' class="blinking-target"';
+        outerSingleClass = ' class="blinking-target"';
+        doubleClass = ' class="blinking-target"';
+        tripleClass = ' class="blinking-target"';
       }
     }
 
@@ -269,25 +274,25 @@ function renderUniversalDartboard(containerId, activeTarget, mode = "single") {
       rOuterBull,
       rTripleInner,
       startAngle,
-      endAngle
+      endAngle,
     )}" fill="${colorSingle}" stroke="${strokeColor}" stroke-width="0.5" />`;
     slicesHTML += `<path${tripleClass} d="${createArc(
       rTripleInner,
       rTripleOuter,
       startAngle,
-      endAngle
+      endAngle,
     )}" fill="${colorDoubleTriple}" stroke="${strokeColor}" stroke-width="0.5" />`;
     slicesHTML += `<path${outerSingleClass} d="${createArc(
       rTripleOuter,
       rDoubleInner,
       startAngle,
-      endAngle
+      endAngle,
     )}" fill="${colorSingle}" stroke="${strokeColor}" stroke-width="0.5" />`;
     slicesHTML += `<path${doubleClass} d="${createArc(
       rDoubleInner,
       rDoubleOuter,
       startAngle,
-      endAngle
+      endAngle,
     )}" fill="${colorDoubleTriple}" stroke="${strokeColor}" stroke-width="0.5" />`;
 
     const textRad = ((startAngle + angleStep / 2 - 90) * Math.PI) / 180;
@@ -304,7 +309,7 @@ function renderUniversalDartboard(containerId, activeTarget, mode = "single") {
       outerBullClass = ' class="blinking-target"';
     } else if (mode === "double" || mode === "triple") {
       innerBullClass = ' class="blinking-target"';
-    } else if (mode === "bobs") {
+    } else if (mode === "bobs" || mode === "all") {
       outerBullClass = ' class="blinking-target"';
       innerBullClass = ' class="blinking-target"';
     }
@@ -475,7 +480,7 @@ function renderUniversalMiniGameHistory(
   nameLabelId,
   playerName,
   pointsTable,
-  mode
+  mode,
 ) {
   const container = document.getElementById(containerId);
   const nameLabel = document.getElementById(nameLabelId);
@@ -491,14 +496,14 @@ function renderUniversalMiniGameHistory(
         entry.target === 25
           ? "BULL"
           : mode === "bobs"
-          ? `D${entry.target}`
-          : entry.target;
+            ? `D${entry.target}`
+            : entry.target;
       let hitColor =
         entry.hits > 0
           ? "var(--accent-green)"
           : mode === "bobs"
-          ? "var(--accent-red)"
-          : "#888";
+            ? "var(--accent-red)"
+            : "#888";
 
       // Bei Bob's zeigen wir die Punkte an (+40), bei RTW die Treffer (2 Treffer)
       let suffix =
