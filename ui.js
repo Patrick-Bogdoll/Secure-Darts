@@ -543,7 +543,8 @@ function openFriendsModal() {
   }
 }
 
-function closeFriendsModal() {
-  const modal = document.getElementById("friends-modal");
-  if (modal) modal.style.display = "none";
+function closeFriendsModal(e) {
+  if (e.target.id === "friends-modal" || e.target.className === "close-btn") {
+    document.getElementById("friends-modal").style.display = "none";
+  }
 }
