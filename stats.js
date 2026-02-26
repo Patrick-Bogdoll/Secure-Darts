@@ -426,40 +426,21 @@ function parseBobsData(data) {
       minute: "2-digit",
     });
     let winColor = game.is_win ? "var(--accent-green)" : "var(--accent-red)";
-
-    let detailsHTML = `<div style="padding-top: 10px; border-top: 1px solid #444; margin-top: 10px;">`;
-    if (game.details && Array.isArray(game.details)) {
-      game.details.forEach((turn) => {
-        let hitColor =
-          turn.hits > 0 ? "var(--accent-green)" : "var(--accent-red)";
-        detailsHTML += `
-          <div style="display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 4px;">
-            <span style="color: #888;">Feld <b style="color: white;">${
-              turn.target === 25 ? "BULL" : `D${turn.target}`
-            }</b> (${turn.hits}x)</span>
-            <span style="color: ${hitColor}; font-weight: bold;">${
-          turn.points > 0 ? "+" : ""
-        }${turn.points}</span>
-          </div>`;
-      });
-    } else {
-      detailsHTML += `<div style="color: #888; font-size: 0.85em;">Keine Wurf-Details verfügbar.</div>`;
-    }
-    detailsHTML += `</div>`;
-
-    // ---> DRY: Hier ist der Bobs Mülleimer
     let safeData = encodeURIComponent(JSON.stringify(game)).replace(
       /'/g,
       "%27"
     );
+
     historyHtml += `
-      <div style="background: #2a2a2a; border-radius: 8px; margin-bottom: 8px; overflow: hidden;">
-        <div onclick="toggleHistoryDetails(this)" style="padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'">
-          <div style="text-align: left;">
-            <span style="color: #aaa; font-size: 0.8em;">${dateStr}</span>
-            <div style="font-weight: bold; color: ${winColor};">${
-      game.is_win ? "SIEG" : "BUST"
-    }</div>
+      <div class="history-item ${
+        game.is_win ? "win" : "lose"
+      }" style="background: var(--glass-bg); margin-bottom: 8px;">
+        <div class="history-summary" onclick="toggleHistoryDetails(this)" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+          <div style="text-align:left;">
+            <div style="font-weight:bold; color:${winColor}">
+              ${game.is_win ? "SIEG" : "BUST"}
+            </div>
+            <div class="history-date">${dateStr}</div>
           </div>
           <div style="display:flex; align-items:center; gap:15px;">
             <div style="font-size: 1.5em; font-weight: bold; color: white;">
@@ -470,17 +451,22 @@ function parseBobsData(data) {
             ${
               currentUser &&
               (game.user_id === currentUser.id || game.name === myOnlineName)
-                ? `<button onclick="event.stopPropagation(); deleteUniversalMatch('bobs', ${game.id}, '${safeData}')" style="background:none; border:none; cursor:pointer; color:var(--text-muted);">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-    </button>`
+                ? `
+              <button onclick="event.stopPropagation(); deleteUniversalMatch('bobs', ${game.id}, '${safeData}')" 
+                      style="background:none; border:none; cursor:pointer; color:var(--text-muted); display:flex; align-items:center; padding:0;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>`
                 : ""
             }
           </div>
         </div>
-        <div class="history-details" style="display: none; padding: 0 15px 15px 15px; background: #222;">${detailsHTML}</div>
+        <div class="history-details" style="display: none; padding: 10px; border-top: 1px solid #333; margin-top: 10px;">
+          </div>
       </div>`;
   });
-
   return { kpis, chart: { labels: cLabels, values: cValues }, historyHtml };
 }
 
@@ -521,63 +507,45 @@ function parseRtwData(data) {
       hour: "2-digit",
       minute: "2-digit",
     });
-    let modeText =
-      game.mode === "single"
-        ? "Single"
-        : game.mode === "double"
-        ? "Double"
-        : "Triple";
-
-    let detailsHTML = `<div style="padding-top: 10px; border-top: 1px solid #444; margin-top: 10px;">`;
-    if (game.details && Array.isArray(game.details)) {
-      game.details.forEach((turn) => {
-        detailsHTML += `
-          <div style="display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 4px;">
-            <span style="color: #888;">Feld <b style="color: white;">${
-              turn.target === 25 ? "BULL" : turn.target
-            }</b></span>
-            <span style="color: ${
-              turn.hits > 0 ? "var(--accent-green)" : "#888"
-            }; font-weight: bold;">${turn.hits} Treffer</span>
-          </div>`;
-      });
-    } else {
-      detailsHTML += `<div style="color: #888; font-size: 0.85em;">Keine Wurf-Details verfügbar.</div>`;
-    }
-    detailsHTML += `</div>`;
-
-    // ---> DRY: Hier ist der RTW Mülleimer
     let safeData = encodeURIComponent(JSON.stringify(game)).replace(
       /'/g,
       "%27"
     );
+
     historyHtml += `
-      <div style="background: #2a2a2a; border-radius: 8px; margin-bottom: 8px; overflow: hidden;">
-        <div onclick="toggleHistoryDetails(this)" style="padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#333'" onmouseout="this.style.background='transparent'">
-          <div style="text-align: left;">
-            <span style="color: #aaa; font-size: 0.8em;">${dateStr}</span>
-            <div style="color: var(--accent-blue); font-weight: bold;">Modus: ${modeText}</div>
+      <div class="history-item win" style="background: var(--glass-bg); margin-bottom: 8px; border-left: 4px solid var(--accent-blue);">
+        <div class="history-summary" onclick="toggleHistoryDetails(this)" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+          <div style="text-align:left;">
+            <div style="font-weight:bold; color:var(--accent-blue)">
+              MODUS: ${game.mode.toUpperCase()}
+            </div>
+            <div class="history-date">${dateStr}</div>
           </div>
           <div style="display:flex; align-items:center; gap:15px;">
-  <div style="font-size: 1.5em; font-weight: bold; color: white;">
-    ${
-      game.total_points
-    } <span style="font-size: 0.6em; color: var(--text-muted); font-weight: normal; margin-left: 2px;">Treffer</span>
-  </div>
-  ${
-    currentUser &&
-    (game.user_id === currentUser.id || game.name === myOnlineName)
-      ? `<button onclick="event.stopPropagation(); deleteUniversalMatch('rtw', ${game.id}, '${safeData}')" style="background:none; border:none; cursor:pointer; color:var(--text-muted); display:flex; align-items:center;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-        </button>`
-      : ""
-  }
-</div>
+            <div style="font-size: 1.5em; font-weight: bold; color: white;">
+              ${
+                game.total_points
+              } <span style="font-size: 0.5em; color: #888; font-weight: normal;">Treffer</span>
+            </div>
+            ${
+              currentUser &&
+              (game.user_id === currentUser.id || game.name === myOnlineName)
+                ? `
+              <button onclick="event.stopPropagation(); deleteUniversalMatch('rtw', ${game.id}, '${safeData}')" 
+                      style="background:none; border:none; cursor:pointer; color:var(--text-muted); display:flex; align-items:center; padding:0;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>`
+                : ""
+            }
+          </div>
         </div>
-        <div class="history-details" style="display: none; padding: 0 15px 15px 15px; background: #222;">${detailsHTML}</div>
+        <div class="history-details" style="display: none; padding: 10px; border-top: 1px solid #333; margin-top: 10px;">
+           </div>
       </div>`;
   });
-
   return { kpis, chart: { labels: cLabels, values: cValues }, historyHtml };
 }
 
