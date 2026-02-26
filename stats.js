@@ -126,7 +126,7 @@ async function initUniversalModal(mode, encodedData, isSwitching = false) {
       .select("match_details, created_at")
       .eq("player_name", data.name)
       .order("created_at", { ascending: false })
-      .limit(15);
+      .limit(50);
     extraChartData = mData;
   }
 
@@ -181,7 +181,7 @@ async function switchModalMode(mode) {
         .select("match_details, created_at")
         .eq("player_name", currentModalRawName)
         .order("created_at", { ascending: false })
-        .limit(15);
+        .limit(50);
       extraChartData = mData;
     }
     await renderUniversalStats(mode, data, extraChartData, true);
@@ -347,11 +347,6 @@ function parse501Data(data, extraChartData) {
     cLabels = ["Keine Daten"];
     cValues = [0];
   }
-  if (cValues.length > 15) {
-    cValues = cValues.slice(-15);
-    cLabels = cLabels.slice(-15);
-  }
-
   return {
     kpis,
     chart: { labels: cLabels, values: cValues },
@@ -605,6 +600,20 @@ function parseRtwData(data) {
 // ==========================================
 function renderChart(labels, dataArray, conf) {
   if (statsChart) statsChart.destroy();
+
+  // --- NEU: Dynamische Breite für den Scroll-Effekt ---
+  const container = document.querySelector(".chart-container");
+  const scrollWrapper = document.getElementById("chart-scroll-wrapper");
+
+  // Wenn es mehr als 15 Legs sind, machen wir den Container breiter (ca. 45px pro Leg)
+  // Bei <= 15 Legs bleibt er 100% breit, damit er den Bildschirm schön füllt
+  if (labels.length > 15) {
+    container.style.width = labels.length * 45 + "px";
+  } else {
+    container.style.width = "100%";
+  }
+  // --------------------------------------------------
+
   const ctx = document.getElementById("statsChart").getContext("2d");
 
   let tooltipCallback = {};
@@ -670,6 +679,11 @@ function renderChart(labels, dataArray, conf) {
       },
     },
   });
+  if (scrollWrapper) {
+    setTimeout(() => {
+      scrollWrapper.scrollLeft = scrollWrapper.scrollWidth;
+    }, 100);
+  }
 }
 
 // ==========================================
@@ -896,7 +910,7 @@ async function loadMatchHistory() {
       .select("*")
       .eq("player_name", currentModalPlayer)
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(50);
 
     if (error || !matches || matches.length === 0) {
       container.innerHTML = "Noch keine Spiele aufgezeichnet.";
@@ -996,7 +1010,7 @@ async function loadMatchHistory() {
       .select("*")
       .eq("player_name", currentModalPlayer)
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(50);
     if (error || !matches || matches.length === 0) {
       container.innerHTML = "Noch keine Spiele aufgezeichnet.";
       return;

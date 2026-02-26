@@ -613,6 +613,12 @@ function update501Display() {
     let activeName = "Dein Wurf...";
     if (isLocal501) {
       activeName = localCurrentTurn === 1 ? localP1Name : localP2Name;
+
+      // NEU: Kürzt den Bot-Namen im großen Display ab!
+      if (activeName.includes("[BOT]")) {
+        activeName = "Bot";
+      }
+
       display.innerText = `${activeName} wirft...`;
     } else {
       display.innerText = activeName;
