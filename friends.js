@@ -253,9 +253,9 @@ async function fetchAndRenderFriends() {
               </div>
             </div>
             <div style="display:flex; gap:8px;">
-              <button onclick="challengeFriend('${friendProf.name}')" style="background:var(--accent-purple); color:white; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-weight:bold; display:flex; align-items:center; gap:5px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Spielen
-              </button>
+              <button onclick="challengeFriend('${friendId}', '${friendProf.name}')" style="background:var(--accent-purple); color:white; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-weight:bold; display:flex; align-items:center; gap:5px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Spielen
+</button>
               <button onclick="removeFriend('${rel.id}')" style="background:transparent; color:var(--text-muted); border:1px solid var(--glass-border); border-radius:6px; padding:6px 10px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
@@ -323,7 +323,112 @@ async function removeFriend(relationId) {
   if (!error) fetchAndRenderFriends();
 }
 
-// Platzhalter für Phase 2 (Live-Herausforderung)
-function challengeFriend(friendName) {
-  alert(`Du forderst ${friendName} heraus! (Das Live-System kommt in Phase 2)`);
+let notificationChannel = null;
+
+// Wird aufgerufen, sobald der User eingeloggt ist (am besten am Ende von initAuth)
+function initNotifications() {
+  if (!currentUser || isGuest) return;
+
+  if (notificationChannel) _supabase.removeChannel(notificationChannel);
+
+  // Jeder User lauscht auf seinem EIGENEN Kanal
+  notificationChannel = _supabase.channel(`user-${currentUser.id}`);
+
+  notificationChannel
+    .on("broadcast", { event: "game-challenge" }, (payload) => {
+      handleIncomingChallenge(payload.payload);
+    })
+    .on("broadcast", { event: "challenge-declined" }, (payload) => {
+      if (typeof showToast === "function") {
+        showToast(`${payload.payload.declinerName} hat abgelehnt.`, "error");
+      } else {
+        alert(`${payload.payload.declinerName} hat abgelehnt.`);
+      }
+      // Wenn wir in der Lobby warten, brechen wir diese ab
+      if (currentAppMode === "501" && isOnlineHost) {
+        cancelLobby();
+      }
+    })
+    .subscribe();
+}
+
+// 1. Der Sender klickt auf "Spielen"
+function challengeFriend(targetUserId, targetUserName) {
+  // Modal schließen
+  document.getElementById("friends-modal").style.display = "none";
+
+  // Raumcode generieren & Lobby als Host betreten
+  const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+  myOnlineName =
+    currentUser.user_metadata?.display_name || currentUser.email.split("@")[0];
+  currentRoomCode = roomCode;
+  amIPlayer1 = true;
+  isLocal501 = false;
+  currentAppMode = "501";
+
+  openOnlineLobby(roomCode, myOnlineName, null, true);
+
+  // Herausforderung via Broadcast absenden
+  const targetChannel = _supabase.channel(`user-${targetUserId}`);
+  targetChannel.subscribe((status) => {
+    if (status === "SUBSCRIBED") {
+      targetChannel.send({
+        type: "broadcast",
+        event: "game-challenge",
+        payload: {
+          senderId: currentUser.id,
+          senderName: myOnlineName,
+          roomCode: roomCode,
+        },
+      });
+      showToast(`Herausforderung an ${targetUserName} gesendet!`, "success");
+    }
+  });
+}
+
+// 2. Der Empfänger bekommt die Anfrage
+function handleIncomingChallenge(data) {
+  // Wir nutzen dein schickes generisches Bestätigungs-Modal
+  const textEl = document.getElementById("generic-confirm-text");
+  const btnYes = document.getElementById("generic-confirm-yes-btn");
+  const modal = document.getElementById("generic-confirm-modal");
+
+  textEl.innerHTML = `<b style="color:white;">${data.senderName}</b> fordert dich zu 501 heraus!`;
+  btnYes.innerText = "Annehmen";
+  btnYes.style.background = "var(--accent-green)";
+  btnYes.style.color = "black";
+
+  // JA-Klick
+  btnYes.onclick = () => {
+    modal.style.display = "none";
+    document.getElementById("friends-modal").style.display = "none";
+
+    // Ins Input Feld eintragen und direkt den Beitritt triggern
+    const joinInput = document.getElementById("join-room-code");
+    if (joinInput) joinInput.value = data.roomCode;
+    joinOnlineGame();
+  };
+
+  // NEIN-Klick (Wir greifen uns den Abbrechen-Button)
+  const btnCancel = textEl.nextElementSibling.querySelector(".reset");
+  const originalCancel = btnCancel.onclick; // Backup
+
+  btnCancel.onclick = () => {
+    modal.style.display = "none";
+    // Sende Absage zurück
+    const senderChannel = _supabase.channel(`user-${data.senderId}`);
+    senderChannel.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        senderChannel.send({
+          type: "broadcast",
+          event: "challenge-declined",
+          payload: { declinerName: myOnlineName },
+        });
+      }
+    });
+    btnCancel.onclick = originalCancel; // Reset für andere Modals
+  };
+
+  modal.style.display = "flex";
+  modal.style.zIndex = "100000";
 }

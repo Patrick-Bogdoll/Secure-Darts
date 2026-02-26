@@ -138,6 +138,7 @@ async function initAuth() {
     currentUser = session.user;
     isGuest = false;
     initPresence();
+    if (typeof initNotifications === "function") initNotifications();
     showMainApp();
   } else {
     showAuthScreen();
