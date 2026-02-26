@@ -39,12 +39,10 @@ function cancelRtwGame() {
 function updateRtwUI() {
   const targetVal = rtwTargets[rtwPlayer.targetIndex];
 
-  document.getElementById(
-    "rtw-turn-indicator"
-  ).innerText = `${rtwPlayer.name} wirft...`;
-  document.getElementById(
-    "rtw-points-count"
-  ).innerText = `${rtwPlayer.totalPoints}`;
+  document.getElementById("rtw-turn-indicator").innerText =
+    `${rtwPlayer.name} wirft...`;
+  document.getElementById("rtw-points-count").innerText =
+    `${rtwPlayer.totalPoints}`;
 
   let targetDisplay = targetVal;
 
@@ -52,10 +50,13 @@ function updateRtwUI() {
     targetDisplay =
       rtwTargetMode === "double" || rtwTargetMode === "triple"
         ? "BULLSEYE"
-        : "SINGLE BULL";
+        : rtwTargetMode === "all"
+          ? "BULL"
+          : "SINGLE BULL";
   } else {
     if (rtwTargetMode === "double") targetDisplay = "D" + targetVal;
     else if (rtwTargetMode === "triple") targetDisplay = "T" + targetVal;
+    else if (rtwTargetMode === "all") targetDisplay = "" + targetVal;
   }
 
   document.getElementById("rtw-target-display").innerText = targetDisplay;
@@ -71,7 +72,7 @@ function updateRtwHistoryUI() {
     "history-rtw-name",
     rtwPlayer.name,
     rtwPlayer.pointsTable,
-    "rtw"
+    "rtw",
   );
 }
 
@@ -96,7 +97,7 @@ async function saveRtwStatsBackground() {
       console.error("Fehler beim Speichern der RTW-Stats:", error.message);
     } else {
       console.log(
-        "✅ RTW-Stats erfolgreich im Hintergrund in Supabase gespeichert!"
+        "✅ RTW-Stats erfolgreich im Hintergrund in Supabase gespeichert!",
       );
     }
   } catch (err) {
