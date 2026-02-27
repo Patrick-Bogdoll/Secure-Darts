@@ -568,6 +568,7 @@ async function loadOpenLobbies() {
     )
     .eq("status", "waiting")
     .is("player2_name", null)
+    .eq("is_public", true)
     .order("created_at", { ascending: false });
 
   if (error) {
