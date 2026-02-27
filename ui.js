@@ -608,8 +608,11 @@ async function loadOpenLobbies() {
     html += `
       <div class="glass-panel" style="padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-color: var(--glass-border);">
         <div style="text-align: left;">
-          <div style="font-weight: bold; font-size: 1.1em; color: white; display: flex; align-items: center;">
-            ${lobby.player1_name} ${avgDisplay}
+          <div style="font-weight: bold; font-size: 1.1em; display: flex; align-items: center;">
+            <a href="#" onclick="event.preventDefault(); openPlayerStatsFromName('${lobby.player1_name}')" style="color: white; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='white'">
+              ${lobby.player1_name}
+            </a> 
+            ${avgDisplay}
           </div>
           <div style="font-size: 0.85em; color: var(--text-muted); margin-top: 5px; display: flex; align-items: center;">
             Best of ${lobby.best_of_legs} Legs ${camBadge}
@@ -621,6 +624,34 @@ async function loadOpenLobbies() {
   });
 
   container.innerHTML = html;
+}
+
+async function openPlayerStatsFromName(playerName) {
+  // 1. Versuche zuerst die 501 Stats zu laden (da wir uns im 501 Modus befinden)
+  let { data: stats501 } = await _supabase
+    .from("stats_501")
+    .select("*")
+    .eq("name", playerName)
+    .maybeSingle();
+
+  if (stats501) {
+    // Öffnet das 501-Stats-Modal mit den geladenen Daten
+    open501Stats(encodeURIComponent(JSON.stringify(stats501)));
+  } else {
+    // 2. Fallback: Falls der Spieler noch nie 501 gespielt hat, probiere Secure Darts
+    let { data: statsSecure } = await _supabase
+      .from("stats_secure")
+      .select("*")
+      .eq("name", playerName)
+      .maybeSingle();
+
+    if (statsSecure) {
+      openProStats(encodeURIComponent(JSON.stringify(statsSecure)));
+    } else {
+      // 3. Wenn gar keine Daten existieren
+      showToast("Dieser Spieler hat noch keine Statistiken.", "info");
+    }
+  }
 }
 
 function joinSpecificLobby(roomCode) {
