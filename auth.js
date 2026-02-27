@@ -106,7 +106,7 @@ async function changeUsername() {
     if (isForbidden) {
       // Admin-Status aus der DB holen (Passe den Tabellennamen an, falls nötig)
       const { data: adminData } = await _supabase
-        .from("stats_501") // <-- Hier liegt laut app.js dein is_admin Flag
+        .from("profiles")
         .select("is_admin")
         .eq("user_id", currentUser.id)
         .maybeSingle();

@@ -469,7 +469,7 @@
         } = await _supabase.auth.getSession();
         if (!session) window.location.href = "index.html";
         const { data } = await _supabase
-          .from("stats_501")
+          .from("profiles")
           .select("is_admin")
           .eq("user_id", session.user.id)
           .maybeSingle();

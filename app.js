@@ -223,7 +223,7 @@ async function showMainApp() {
   const adminBtn = document.getElementById("admin-btn");
   if (adminBtn && currentUser && !isGuest) {
     const { data } = await _supabase
-      .from("stats_501")
+      .from("profiles")
       .select("is_admin")
       .eq("user_id", currentUser.id)
       .maybeSingle();
