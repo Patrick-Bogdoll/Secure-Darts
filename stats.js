@@ -832,6 +832,18 @@ async function save501MatchHistory(
   matchLog
 ) {
   if (playerName.includes("[BOT]")) return;
+
+  // --- NEUER FAIL-SAFE ---
+  // Behalte nur die Legs, die ordnungsgemäß beendet wurden (jemand hat 0 Rest)
+  let cleanMatchLog = matchLog.filter(
+    (leg) => leg.p1_rest === 0 || leg.p2_rest === 0
+  );
+
+  // Sicherheits-Check: Falls nach der Bereinigung gar kein gültiges Leg mehr existiert,
+  // brechen wir ab, damit keine leeren Einträge in der Datenbank landen.
+  if (cleanMatchLog.length === 0) return;
+  // -----------------------
+
   let payload = {
     player_name: playerName,
     opponent_name: opponentName,
@@ -839,8 +851,9 @@ async function save501MatchHistory(
     match_average: matchAvg,
     darts_thrown: darts,
     highest_finish: finish,
-    match_details: matchLog,
+    match_details: cleanMatchLog, // <--- Hier nutzen wir jetzt das saubere Array!
   };
+
   if (!isGuest && currentUser) payload.user_id = currentUser.id;
   await _supabase.from("match_history_501").insert([payload]);
 }
@@ -1100,8 +1113,14 @@ async function loadMatchHistory() {
         });
       }
 
-      // ---> DRY: Hier ist der 501 Mülleimer
       let safeData = encodeURIComponent(JSON.stringify(m)).replace(/'/g, "%27");
+
+      // NEU: Berechnet die Anzahl der Legs für dieses Match
+      let legCount =
+        m.match_details && Array.isArray(m.match_details)
+          ? m.match_details.length
+          : 0;
+
       div.innerHTML = `
   <div class="history-summary" onclick="toggleHistoryDetails(this)" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
     <div style="flex:1;">
@@ -1110,7 +1129,11 @@ async function loadMatchHistory() {
       }">${m.is_win ? "Match-Sieg" : "Match-Niederlage"} gegen <b>${
         m.opponent_name
       }</b></div>
-      <div class="history-date">${date} | Avg: ${m.match_average}</div>
+      
+      <div class="history-date">${date} | Avg: ${
+        m.match_average
+      } | Legs: ${legCount}</div>
+      
     </div>
     
     ${
