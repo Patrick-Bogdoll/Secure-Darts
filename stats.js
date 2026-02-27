@@ -329,6 +329,10 @@ function parse501Data(data, extraChartData) {
   let cLabels = [],
     cValues = [];
   if (extraChartData && extraChartData.length > 0) {
+    console.log(
+      "Matches für Graph (IDs & Zeit): ",
+      extraChartData.map((m) => ({ id: m.id, date: m.created_at }))
+    );
     let legCount = 1;
     extraChartData.reverse().forEach((match) => {
       if (match.match_details && Array.isArray(match.match_details)) {
