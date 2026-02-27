@@ -196,6 +196,16 @@ async function showMainApp() {
   }
 
   if (!isGuest && myOnlineName) {
+    // ---> NEU: Veraltete Spiele (älter als 1 Stunden) gnadenlos löschen <---
+    const fourHoursAgo = new Date(
+      Date.now() - 4 * 60 * 60 * 1000
+    ).toISOString();
+    await _supabase
+      .from("live_matches")
+      .delete()
+      .or(`player1_name.eq."${myOnlineName}",player2_name.eq."${myOnlineName}"`)
+      .lt("created_at", fourHoursAgo); // lt = less than (älter als)
+
     let { data: room, error } = await _supabase
       .from("live_matches")
       .select("*")

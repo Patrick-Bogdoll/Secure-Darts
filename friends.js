@@ -265,7 +265,7 @@ async function fetchAndRenderFriends() {
               </div>
             </div>
             <div style="display:flex; gap:8px;">
-              <button onclick="challengeFriend('${friendId}', '${
+              <button onclick="openChallengeSetup('${friendId}', '${
           friendProf.name
         }')" style="background:var(--accent-purple); color:white; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-weight:bold; display:flex; align-items:center; gap:5px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Spielen
@@ -369,8 +369,27 @@ function initNotifications() {
 }
 
 // 1. Der Sender klickt auf "Spielen"
-async function challengeFriend(targetUserId, targetUserName) {
-  // 1. Modal sofort zu
+let currentChallengeTargetId = null;
+let currentChallengeTargetName = null;
+
+function openChallengeSetup(targetUserId, targetUserName) {
+  currentChallengeTargetId = targetUserId;
+  currentChallengeTargetName = targetUserName;
+
+  document.getElementById("challenge-target-name").innerText = targetUserName;
+  document.getElementById("challenge-setup-modal").style.display = "flex";
+
+  // Dem "Start"-Button im Menü seine Aufgabe geben
+  document.getElementById("btn-execute-challenge").onclick = () => {
+    const mode = document.getElementById("challenge-mode-select").value;
+    const legs = document.getElementById("challenge-legs-select").value;
+    executeChallenge(targetUserId, targetUserName, mode, parseInt(legs));
+  };
+}
+
+async function executeChallenge(targetUserId, targetUserName, mode, legs) {
+  // 1. Beide Modals ausblenden
+  document.getElementById("challenge-setup-modal").style.display = "none";
   document.getElementById("friends-modal").style.display = "none";
 
   // 2. RoomCode & Daten vorbereiten
@@ -378,34 +397,39 @@ async function challengeFriend(targetUserId, targetUserName) {
   myOnlineName =
     currentUser.user_metadata?.display_name || currentUser.email.split("@")[0];
 
-  // 3. Lobby in Supabase eröffnen (damit der Gegner beitreten kann)
+  // ---> NEU: Zombie-Räume aufräumen! <---
+  // Löscht alle Lobbies, bei denen du Host bist und die noch im Status "waiting" feststecken
+  await _supabase
+    .from("live_matches")
+    .delete()
+    .eq("player1_name", myOnlineName)
+    .eq("status", "waiting");
+
+  // 3. Lobby eröffnen & die ausgewählten LEGS in der Datenbank speichern!
   const { error } = await _supabase.from("live_matches").insert([
     {
       room_code: roomCode,
       player1_name: myOnlineName,
       status: "waiting",
+      best_of_legs: legs, // <--- HIER übergeben wir dein Setting!
       last_action: "Herausforderung gesendet",
     },
   ]);
 
   if (error) return showToast("Lobby-Fehler: " + error.message, "error");
 
-  // 4. App-Status auf Online-Modus setzen
+  // 4. Globale Spiel-Parameter setzen
   currentRoomCode = roomCode;
   amIPlayer1 = true;
   isLocal501 = false;
-  currentAppMode = "501";
+  currentAppMode = mode;
+  bestOfLegs = legs; // Ganz wichtig für den Start
 
-  // 5. DEINE BESTEHENDE LOBBY-UI ÖFFNEN
-  // Dies zeigt den Screen mit dem Raumcode und dem "Spiel Starten" Button an
+  // 5. Ab in die Online Lobby
   openOnlineLobby(roomCode, myOnlineName, null, true);
+  if (typeof listenForOpponent === "function") listenForOpponent(roomCode);
 
-  // 6. WICHTIG: Deine App muss jetzt auf den Beitritt warten
-  if (typeof listenForOpponent === "function") {
-    listenForOpponent(roomCode);
-  }
-
-  // 7. Die Einladung per Realtime-Broadcast "rauspusten"
+  // 6. Push-Nachricht an den Gegner mit allen Infos
   const targetChannel = _supabase.channel(`user-${targetUserId}`);
   targetChannel.subscribe((status) => {
     if (status === "SUBSCRIBED") {
@@ -416,21 +440,31 @@ async function challengeFriend(targetUserId, targetUserName) {
           senderId: currentUser.id,
           senderName: myOnlineName,
           roomCode: roomCode,
+          mode: mode,
+          legs: legs, // <-- Wir sagen dem Gegner, wie viele Legs wir wollen
         },
       });
       showToast(`Herausforderung an ${targetUserName} gesendet!`, "success");
+      setTimeout(() => {
+        _supabase.removeChannel(targetChannel);
+      }, 1500);
     }
   });
 }
 
 // 2. Der Empfänger bekommt die Anfrage
 function handleIncomingChallenge(data) {
-  // Wir nutzen dein schickes generisches Bestätigungs-Modal
   const textEl = document.getElementById("generic-confirm-text");
   const btnYes = document.getElementById("generic-confirm-yes-btn");
   const modal = document.getElementById("generic-confirm-modal");
 
-  textEl.innerHTML = `<b style="color:white;">${data.senderName}</b> fordert dich zu 501 heraus!`;
+  // NEU: Den Modus und die Legs elegant formatieren
+  const modeText = data.mode === "501" ? "501 Darts" : data.mode;
+  const legsText = data.legs ? `(Best of ${data.legs})` : "";
+
+  // NEU: Anzeige aktualisieren
+  textEl.innerHTML = `<b style="color:white;">${data.senderName}</b> fordert dich zu ${modeText} <span style="color:var(--accent-purple)">${legsText}</span> heraus!`;
+
   btnYes.innerText = "Annehmen";
   btnYes.style.background = "var(--accent-green)";
   btnYes.style.color = "black";
@@ -461,6 +495,9 @@ function handleIncomingChallenge(data) {
           event: "challenge-declined",
           payload: { declinerName: myOnlineName },
         });
+        setTimeout(() => {
+          _supabase.removeChannel(senderChannel);
+        }, 1500);
       }
     });
     btnCancel.onclick = originalCancel; // Reset für andere Modals
