@@ -337,6 +337,7 @@ function parse501Data(data, extraChartData) {
     extraChartData.reverse().forEach((match) => {
       if (match.match_details && Array.isArray(match.match_details)) {
         match.match_details.forEach((leg) => {
+          if (leg.p1_rest !== 0 && leg.p2_rest !== 0) return;
           cLabels.push(`Leg ${legCount++}`);
           let isP1 = leg.p1_name === currentModalPlayer;
           let darts = isP1 ? leg.p1_darts : leg.p2_darts;
