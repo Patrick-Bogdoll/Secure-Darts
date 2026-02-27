@@ -118,8 +118,6 @@ function hideAllScreens() {
 function openGameSetup(screenId, title, inputId = null) {
   hideAllScreens();
   document.getElementById(screenId).style.display = "block";
-  let titleEl = document.getElementById("app-title");
-  if (titleEl) titleEl.innerText = title;
 
   if (inputId) {
     let inputEl = document.getElementById(inputId);
@@ -258,7 +256,6 @@ function goHome() {
   isOnlineHost = false;
 
   document.getElementById("home-screen").style.display = "block";
-  document.getElementById("app-title").innerText = "SECURE DARTS";
   document.body.classList.remove("training-active");
 
   let cancelModal = document.getElementById("cancel-modal");
@@ -269,10 +266,6 @@ function enterMode(mode) {
   currentAppMode = mode;
   document.getElementById("home-screen").style.display = "none";
   document.getElementById("hamburger-btn").style.display = "block";
-
-  if (mode === "501")
-    document.getElementById("app-title").innerText = "501 DARTS";
-  else document.getElementById("app-title").innerText = "SECURE DARTS";
 
   showScreen("play");
 }

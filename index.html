@@ -6,7 +6,8 @@
     <title>Secure Darts</title>
     <link
       rel="icon"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' stroke='white' stroke-width='8' fill='none'/><circle cx='50' cy='50' r='15' fill='%2310b981'/></svg>"
+      href="assets\public\secure_darts_logo_transparent.svg"
+      type="image/svg+xml"
     />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -18,16 +19,17 @@
       class="container glass-panel"
       style="text-align: center; margin-top: 4vh; max-width: 420px"
     >
-      <h1
-        style="
-          font-size: 2em;
-          margin-bottom: 5px;
-          color: white;
-          text-shadow: 0 0 15px rgba(174, 219, 204, 0.3);
-        "
-      >
-        SECURE DARTS
-      </h1>
+      <div>
+        <img
+          src="assets\public\secure_darts_logo_transparent.svg"
+          alt="Logo"
+          style="width: 28px; height: 28px"
+        />
+
+        <h1 id="app-title" style="margin: 0; color: var(--text-main)">
+          SECURE DARTS
+        </h1>
+      </div>
       <h2 style="color: var(--text-main); margin-bottom: 10px">Willkommen</h2>
       <p
         style="
@@ -212,12 +214,23 @@
           <line x1="3" y1="18" x2="21" y2="18"></line>
         </svg>
       </button>
-      <h1
-        id="app-title"
-        style="margin: 0; display: inline-block; color: var(--text-main)"
+      <div
+        style="
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+        "
       >
-        SECURE DARTS
-      </h1>
+        <img
+          src="assets\public\secure_darts_logo_transparent.svg"
+          alt="Logo"
+          style="width: 50px; height: 50px"
+        />
+        <h1 id="app-title" style="margin: 0; color: var(--text-main)">
+          SECURE DARTS
+        </h1>
+      </div>
     </div>
 
     <div
@@ -227,7 +240,23 @@
     ></div>
     <div class="nav-tabs" id="main-nav">
       <div class="sidebar-header">
-        <h2 style="margin: 0; font-size: 1.2em">Menü</h2>
+        <div
+          style="
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+          "
+        >
+          <img
+            src="assets\public\secure_darts_logo_transparent.svg"
+            alt="Logo"
+            style="width: 28px; height: 28px"
+          />
+          <h2 id="app-title" style="margin: 0; color: var(--text-main)">
+            Menü
+          </h2>
+        </div>
         <button
           onclick="toggleMenu()"
           style="
@@ -1451,7 +1480,7 @@
             >Ziel-Modus:</label
           >
           <select id="rtw-target-mode" style="margin-top: 8px">
-            <option value="single">Zahl (Einfach)</option>
+            <option value="single">Single</option>
             <option value="double" selected>Double</option>
             <option value="triple">Triple</option>
             <option value="all">Beliebig</option>
