@@ -536,3 +536,111 @@ function closeFriendsModal(e) {
     document.getElementById("friends-modal").style.display = "none";
   }
 }
+
+function openOpenLobbiesModal() {
+  if (isGuest || !currentUser) {
+    showToast("Bitte logge dich ein, um offene Lobbies zu sehen.", "error");
+    return;
+  }
+  document.getElementById("open-lobbies-modal").style.display = "flex";
+  loadOpenLobbies();
+}
+
+function closeOpenLobbiesModal(e) {
+  if (
+    e.target.id === "open-lobbies-modal" ||
+    e.target.className === "close-btn"
+  ) {
+    document.getElementById("open-lobbies-modal").style.display = "none";
+  }
+}
+
+async function loadOpenLobbies() {
+  const container = document.getElementById("open-lobbies-list");
+  container.innerHTML =
+    '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Lade Lobbies...</div>';
+
+  // Lade alle Lobbies im Status 'waiting', bei denen noch kein Spieler 2 existiert
+  const { data, error } = await _supabase
+    .from("live_matches")
+    .select(
+      "room_code, player1_name, best_of_legs, camera_required, host_avg, created_at"
+    )
+    .eq("status", "waiting")
+    .is("player2_name", null)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    container.innerHTML =
+      '<div style="text-align: center; color: var(--accent-red); padding: 20px;">Fehler beim Laden der Lobbies.</div>';
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    container.innerHTML =
+      '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Aktuell keine offenen Lobbies verfügbar.</div>';
+    return;
+  }
+
+  let html = "";
+  data.forEach((lobby) => {
+    // 1. Kamera-Badge formatieren
+    let camBadge = lobby.camera_required
+      ? `<span style="background: var(--accent-red); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; margin-left: 8px; font-weight: bold;">Kamera Req.</span>`
+      : "";
+
+    // 2. Average robust formatieren (Fängt null, undefined und 0 sauber ab)
+    let avgDisplay =
+      lobby.host_avg !== null && lobby.host_avg !== undefined
+        ? `<span style="color: var(--accent-blue); font-size: 0.85em; margin-left: 8px; font-weight: bold;">(Avg: ${Number(
+            lobby.host_avg
+          ).toFixed(2)})</span>`
+        : `<span style="color: var(--text-muted); font-size: 0.85em; margin-left: 8px;">(Avg: -)</span>`;
+
+    // 3. Eigene Lobby Check (damit man sich nicht selbst joint)
+    let isMyLobby = lobby.player1_name === myOnlineName;
+
+    let actionButton = isMyLobby
+      ? `<button class="reset" style="margin: 0; padding: 10px 20px; width: auto; font-size: 0.9em; opacity: 0.6; cursor: not-allowed;" disabled>Eigene Lobby</button>`
+      : `<button class="primary accent-green" style="margin: 0; padding: 10px 20px; width: auto; font-size: 0.9em;" onclick="joinSpecificLobby('${lobby.room_code}')">Join</button>`;
+
+    html += `
+      <div class="glass-panel" style="padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-color: var(--glass-border);">
+        <div style="text-align: left;">
+          <div style="font-weight: bold; font-size: 1.1em; color: white; display: flex; align-items: center;">
+            ${lobby.player1_name} ${avgDisplay}
+          </div>
+          <div style="font-size: 0.85em; color: var(--text-muted); margin-top: 5px; display: flex; align-items: center;">
+            Best of ${lobby.best_of_legs} Legs ${camBadge}
+          </div>
+        </div>
+        ${actionButton}
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+function joinSpecificLobby(roomCode) {
+  let nameInput = document.getElementById("online-player-name");
+
+  // Modal schließen
+  document.getElementById("open-lobbies-modal").style.display = "none";
+
+  // Sicherstellen, dass der Nutzer seinen Namen eingetragen hat
+  if (!nameInput.value.trim()) {
+    showToast("Bitte gib zuerst deinen Namen ein!", "error");
+    document.getElementById("home-screen").style.display = "none";
+    document.getElementById("online-lobby-screen").style.display = "block";
+    nameInput.focus();
+    return;
+  }
+
+  // Raumcode in das Feld setzen und die existierende Join-Funktion auslösen
+  let codeInput = document.getElementById("join-room-code");
+  if (codeInput) {
+    codeInput.value = roomCode;
+  }
+  joinOnlineGame();
+}

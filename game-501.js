@@ -379,6 +379,26 @@ async function hostOnlineGame() {
     myAvatar = currentUser.user_metadata.avatar_url;
   }
 
+  // --- NEU: Kamera & Host Average ---
+  let cameraReqEl = document.getElementById("chk-camera-required");
+  let cameraRequired = cameraReqEl ? cameraReqEl.checked : false;
+
+  let hostAvg = null;
+  if (!isGuest && currentUser) {
+    // Wir holen uns die Punkte und Darts, anstatt eines festen Averages
+    const { data: statsData } = await _supabase
+      .from("stats_501")
+      .select("total_score_thrown, total_darts_thrown")
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+
+    // Berechne den Average, wenn Darts geworfen wurden (verhindert Division durch 0)
+    if (statsData && statsData.total_darts_thrown > 0) {
+      hostAvg =
+        (statsData.total_score_thrown / statsData.total_darts_thrown) * 3;
+    }
+  }
+
   const { error } = await _supabase.from("live_matches").insert([
     {
       room_code: currentRoomCode,
@@ -390,6 +410,8 @@ async function hostOnlineGame() {
       player2_legs: 0,
       player1_last_score: "-",
       player2_last_score: "-",
+      camera_required: cameraRequired, // NEU
+      host_avg: hostAvg, // NEU
     },
   ]);
 

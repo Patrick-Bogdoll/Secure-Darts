@@ -254,6 +254,13 @@
       </button>
       <button
         class="nav-btn accent-blue"
+        id="openLobbies"
+        onclick="openOpenLobbiesModal(); toggleMenu();"
+      >
+        Offene Lobbies
+      </button>
+      <button
+        class="nav-btn accent-blue"
         id="tab-stats"
         onclick="
           showScreen('stats');
@@ -609,6 +616,21 @@
               placeholder="Dein Online-Name..."
               style="text-align: center; width: 100%"
             />
+            <label
+              class="checkbox-wrapper"
+              style="
+                display: flex;
+                justify-content: center;
+                margin-bottom: 20px;
+                color: var(--text-muted);
+                font-size: 0.9em;
+              "
+            >
+              <input type="checkbox" id="chk-camera-required" />
+              <span style="margin-left: 8px"
+                >Kamera für dieses Match erforderlich</span
+              >
+            </label>
           </div>
 
           <div style="display: flex; gap: 15px; align-items: stretch">
@@ -2758,6 +2780,59 @@
             Abbrechen
           </button>
         </div>
+      </div>
+    </div>
+
+    <div
+      id="open-lobbies-modal"
+      class="modal-overlay"
+      style="display: none; z-index: 2500"
+      onclick="closeOpenLobbiesModal(event);"
+    >
+      <div
+        class="modal-content"
+        style="
+          max-height: 80vh;
+          display: flex;
+          flex-direction: column;
+          width: 90%;
+          max-width: 500px;
+        "
+      >
+        <div
+          class="sidebar-header"
+          style="
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+          "
+        >
+          <h2 style="margin: 0; color: white">Offene Lobbies</h2>
+          <button
+            onclick="document.getElementById('open-lobbies-modal').style.display = 'none'"
+            class="close-btn"
+            style="margin: 0"
+          >
+            ×
+          </button>
+        </div>
+        <div
+          id="open-lobbies-list"
+          style="overflow-y: auto; flex: 1; margin-bottom: 15px"
+        >
+          <div
+            style="text-align: center; color: var(--text-muted); padding: 20px"
+          >
+            Lade Lobbies...
+          </div>
+        </div>
+        <button
+          class="primary accent-orange"
+          onclick="loadOpenLobbies()"
+          style="margin: 0"
+        >
+          Aktualisieren
+        </button>
       </div>
     </div>
 
