@@ -108,7 +108,7 @@ async function changeUsername() {
       const { data: adminData } = await _supabase
         .from("profiles")
         .select("is_admin")
-        .eq("user_id", currentUser.id)
+        .eq("id", currentUser.id)
         .maybeSingle();
 
       const isRealAdmin = adminData && adminData.is_admin === true;

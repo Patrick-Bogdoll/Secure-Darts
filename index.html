@@ -244,6 +244,15 @@
         </button>
       </div>
       <button
+        class="nav-btn"
+        onclick="
+          goHome();
+          toggleMenu();
+        "
+      >
+        Hauptmenü
+      </button>
+      <button
         class="nav-btn accent-blue"
         id="tab-stats"
         onclick="
@@ -297,15 +306,6 @@
         style="display: none"
       >
         Admin
-      </button>
-      <button
-        class="nav-btn"
-        onclick="
-          goHome();
-          toggleMenu();
-        "
-      >
-        Modus wechseln
       </button>
       <button
         class="nav-btn accent-red"
@@ -1747,7 +1747,7 @@
         <div class="glass-panel" style="padding: 10px">
           <table id="lifetime-table">
             <thead>
-              <tr id="stats-table-header">
+              <tr id="stats-table-header" style="align-items: center">
                 <th>#</th>
                 <th>Name</th>
                 <th>501 Siege</th>
@@ -1853,9 +1853,11 @@
             border-bottom: 1px solid var(--glass-border);
             padding-bottom: 10px;
             margin-bottom: 15px;
+            display: flex;
+            align-items: center;
           "
         >
-          <div style="display: flex; align-items: center; gap: 15px">
+          <div style="display: flex; align-items: center; gap: 15px; flex: 1">
             <div
               style="
                 position: relative;
@@ -1905,6 +1907,7 @@
                 EDIT
               </div>
             </div>
+
             <h2
               id="modal-name"
               class="stats-name"
@@ -1912,6 +1915,7 @@
             >
               Name
             </h2>
+
             <button
               id="btn-edit-name"
               onclick="enableInlineNameEdit()"
@@ -1939,8 +1943,48 @@
                 />
               </svg>
             </button>
+
+            <button
+              id="btn-compare-stats"
+              class="btn-glass accent-blue"
+              style="
+                display: none;
+                padding: 6px 12px;
+                font-size: 0.85em;
+                margin: 0;
+                height: auto;
+                width: max-content;
+                flex: 0 0 auto;
+                white-space: nowrap;
+              "
+              onclick="openCompareModal()"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style="vertical-align: middle; margin-right: 4px"
+              >
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+              Vergleichen
+            </button>
           </div>
-          <button class="close-btn" onclick="closeStats(event)">×</button>
+
+          <button
+            class="close-btn"
+            onclick="closeStats(event)"
+            style="margin: 0"
+          >
+            ×
+          </button>
         </div>
 
         <div
@@ -2494,6 +2538,142 @@
         gap: 10px;
       "
     ></div>
+
+    <div
+      id="compare-modal"
+      class="modal-overlay"
+      style="display: none; z-index: 2000"
+      onclick="if(event.target===this) this.style.display='none'"
+    >
+      <div
+        class="stats-card"
+        style="
+          max-width: 650px;
+          width: 90%;
+          background: var(--bg-dark);
+          border: 1px solid var(--glass-border);
+        "
+      >
+        <div
+          class="sidebar-header"
+          style="
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+          "
+        >
+          <h2 style="margin: 0; font-size: 1.2em; color: white">
+            Vergleich:
+            <span id="comp-title-me" style="color: var(--accent-green)"
+              >Ich</span
+            >
+            vs
+            <span id="comp-title-them" style="color: var(--accent-red)"
+              >Gegner</span
+            >
+          </h2>
+          <button
+            class="close-btn"
+            onclick="document.getElementById('compare-modal').style.display='none'"
+          >
+            ×
+          </button>
+        </div>
+
+        <div
+          style="
+            padding: 0;
+            background: #222;
+            border-bottom: 1px solid var(--glass-border);
+            border-radius: 8px 8px 0 0;
+          "
+        >
+          <table
+            style="width: 100%; border-collapse: collapse; font-size: 0.9em"
+          >
+            <thead>
+              <tr style="color: #aaa">
+                <th
+                  style="
+                    padding: 10px;
+                    width: 33%;
+                    text-align: right;
+                    font-size: 1.1em;
+                    color: var(--accent-green);
+                  "
+                  id="comp-th-me"
+                >
+                  Ich
+                </th>
+                <th
+                  style="
+                    padding: 10px;
+                    width: 33%;
+                    text-align: center;
+                    font-weight: normal;
+                    font-size: 0.75em;
+                    letter-spacing: 1px;
+                    text-transform: uppercase;
+                  "
+                >
+                  Statistik
+                </th>
+                <th
+                  style="
+                    padding: 10px;
+                    width: 33%;
+                    text-align: left;
+                    font-size: 1.1em;
+                    color: var(--accent-red);
+                  "
+                  id="comp-th-them"
+                >
+                  Gegner
+                </th>
+              </tr>
+            </thead>
+          </table>
+        </div>
+
+        <div
+          class="glass-panel"
+          style="
+            padding: 0;
+            overflow-y: auto;
+            max-height: 250px;
+            margin-bottom: 20px;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+          "
+        >
+          <table
+            style="width: 100%; border-collapse: collapse; font-size: 0.9em"
+          >
+            <tbody id="compare-kpi-body"></tbody>
+          </table>
+        </div>
+
+        <h4
+          style="
+            color: #aaa;
+            text-align: center;
+            margin-top: 20px;
+            font-weight: normal;
+            letter-spacing: 1px;
+            font-size: 0.8em;
+            text-transform: uppercase;
+          "
+        >
+          Performance Graph
+        </h4>
+        <div
+          class="chart-container"
+          style="position: relative; height: 250px; width: 100%"
+        >
+          <canvas id="compareChart"></canvas>
+        </div>
+      </div>
+    </div>
 
     <script src="app.js"></script>
     <script src="auth.js"></script>

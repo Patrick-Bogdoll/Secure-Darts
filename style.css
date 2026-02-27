@@ -831,3 +831,15 @@ td {
   margin-bottom: 15px; /* Abstand nach unten (zum Numpad) */
   box-sizing: border-box; /* Padding/Border nicht zur Breite dazurechnen */
 }
+
+.clickable-friend-name {
+  font-weight: bold;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: color 0.2s ease, text-decoration 0.2s ease;
+}
+
+.clickable-friend-name:hover {
+  color: var(--accent-blue);
+  text-decoration: underline;
+}

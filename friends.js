@@ -244,19 +244,35 @@ async function fetchAndRenderFriends() {
         html += `
           <div style="display:flex; justify-content:space-between; align-items:center; background:var(--glass-bg); padding:10px; border-radius:8px; margin-bottom:8px; border:1px solid var(--glass-border);">
             <div style="display:flex; align-items:center; gap:10px;">
-              <img src="${friendProf.avatar_url}" style="width:40px; height:40px; border-radius:50%; background:#111; object-fit:cover;">
+              <img src="${
+                friendProf.avatar_url
+              }" style="width:40px; height:40px; border-radius:50%; background:#111; object-fit:cover;">
               <div>
-                <div style="font-weight:bold; color:var(--text-main);">${friendProf.name}</div>
+                <div 
+                  class="clickable-friend-name"
+                  onclick="
+                  document.getElementById('friends-modal').style.display='none'; 
+                  openMatchStats('501', '${encodeURIComponent(
+                    JSON.stringify({ name: friendProf.name })
+                  )}');
+                     "
+                    >
+                    ${friendProf.name}
+                    </div>
                 <div style="font-size:0.8em; color:${statusColor}; display:flex; align-items:center; gap:4px;">
                   <svg width="8" height="8" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4" fill="${statusFill}" stroke="currentColor" stroke-width="2"/></svg> ${statusText}
                 </div> 
               </div>
             </div>
             <div style="display:flex; gap:8px;">
-              <button onclick="challengeFriend('${friendId}', '${friendProf.name}')" style="background:var(--accent-purple); color:white; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-weight:bold; display:flex; align-items:center; gap:5px;">
+              <button onclick="challengeFriend('${friendId}', '${
+          friendProf.name
+        }')" style="background:var(--accent-purple); color:white; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-weight:bold; display:flex; align-items:center; gap:5px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Spielen
-</button>
-              <button onclick="removeFriend('${rel.id}')" style="background:transparent; color:var(--text-muted); border:1px solid var(--glass-border); border-radius:6px; padding:6px 10px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                </button>
+              <button onclick="removeFriend('${
+                rel.id
+              }')" style="background:transparent; color:var(--text-muted); border:1px solid var(--glass-border); border-radius:6px; padding:6px 10px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
             </div>

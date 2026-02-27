@@ -107,9 +107,12 @@ const STATS_CONFIG = {
 // ==========================================
 
 // Einstiegspunkt, wenn aus dem Leaderboard oder Profil geklickt wird
+// Einstiegspunkt, wenn aus dem Leaderboard oder Profil geklickt wird
 async function initUniversalModal(mode, encodedData, isSwitching = false) {
   currentModalType = mode;
-  const data = JSON.parse(decodeURIComponent(encodedData));
+
+  // WICHTIG: Aus 'const' wurde 'let', damit wir die Daten überschreiben können
+  let data = JSON.parse(decodeURIComponent(encodedData));
 
   if (!isSwitching) {
     currentModalPlayer = data.name;
@@ -118,13 +121,37 @@ async function initUniversalModal(mode, encodedData, isSwitching = false) {
       .replace(" (501)", "");
   }
 
+  // --- NEUER FIX: DATEN NACHLADEN ---
+  // Wenn wir aus der Freundesliste kommen, fehlen die ganzen Stats (data.wins etc. ist undefined).
+  // In dem Fall holen wir den kompletten Datensatz frisch aus der Datenbank.
+  if (data.wins === undefined && data.total_points === undefined) {
+    const conf = STATS_CONFIG[mode];
+
+    if (conf.fetchType === "single") {
+      let { data: dbData } = await _supabase
+        .from(conf.table)
+        .select("*")
+        .eq("name", currentModalRawName)
+        .maybeSingle();
+      if (dbData) data = dbData;
+    } else {
+      let { data: dbData } = await _supabase
+        .from(conf.table)
+        .select("*")
+        .eq("name", currentModalRawName)
+        .order("created_at", { ascending: false });
+      if (dbData && dbData.length > 0) data = dbData; // data wird dann ein Array
+    }
+  }
+  // ----------------------------------
+
   // Für 501 brauchen wir zusätzlich die Historie für den Chart
   let extraChartData = null;
   if (mode === "501") {
     let { data: mData } = await _supabase
       .from("match_history_501")
       .select("match_details, created_at")
-      .eq("player_name", data.name)
+      .eq("player_name", data.name || currentModalRawName)
       .order("created_at", { ascending: false })
       .limit(50);
     extraChartData = mData;
@@ -207,14 +234,18 @@ async function renderUniversalStats(
   // --- Avatar & Edit UI ---
   let editBtn = document.getElementById("btn-edit-name");
   let editAvatarBtn = document.getElementById("btn-edit-avatar");
+  let compareBtn = document.getElementById("btn-compare-stats");
 
-  // Edit-Buttons nur anzeigen, wenn man sein eigenes Profil ansieht
+  // Edit-Buttons nur anzeigen, wenn man sein eigenes Profil ansieht. Compare-Button nur bei anderen.
   if (!isGuest && currentUser && firstRecord.user_id === currentUser.id) {
     if (editBtn) editBtn.style.display = "block";
     if (editAvatarBtn) editAvatarBtn.style.display = "block";
+    if (compareBtn) compareBtn.style.display = "none";
   } else {
     if (editBtn) editBtn.style.display = "none";
     if (editAvatarBtn) editAvatarBtn.style.display = "none";
+    if (!isGuest && currentUser && compareBtn)
+      compareBtn.style.display = "block";
   }
 
   document.getElementById("modal-name").innerText = currentModalRawName;
@@ -890,29 +921,50 @@ async function loadHighscores() {
 async function load501Stats() {
   const tbody = document.querySelector("#lifetime-table tbody");
   tbody.innerHTML = '<tr><td colspan="4">Lade 501 Daten...</td></tr>';
-  let { data: stats501, error } = await _supabase
-    .from("stats_501")
-    .select("*")
-    .order("wins", { ascending: false });
+
+  // 1. Daten holen (Ohne .order(), da wir gleich in JS nach Average sortieren)
+  let { data: stats501, error } = await _supabase.from("stats_501").select("*");
+
   if (error) return;
 
-  tbody.innerHTML = "";
-  let rank = 1;
-  stats501.forEach((entry) => {
-    if (entry.name.includes("[BOT]")) return;
-    let avg =
+  // 2. Bots rausfiltern und den Average für jeden Spieler vorberechnen
+  let players = stats501.filter((entry) => !entry.name.includes("[BOT]"));
+
+  players.forEach((entry) => {
+    // Wenn Darts geworfen wurden, Average berechnen, ansonsten 0
+    entry.computedAvg =
       entry.total_darts_thrown > 0
         ? (entry.total_score_thrown / entry.total_darts_thrown) * 3
         : 0;
+  });
+
+  // 3. Sortieren nach berechnetem 3-Dart-Avg (absteigend)
+  players.sort((a, b) => b.computedAvg - a.computedAvg);
+
+  // 4. Tabelle aufbauen
+  tbody.innerHTML = "";
+  let rank = 1;
+  players.forEach((entry) => {
     const safeData = encodeURIComponent(JSON.stringify(entry));
     let tr = document.createElement("tr");
-    tr.innerHTML = `<td style="color:#666">${rank}.</td><td style="font-weight:bold;"><a href="#" class="clickable-name" style="color:white;" onclick="openMatchStats('501', '${safeData}')">${
-      entry.name
-    }</a></td><td>${
-      entry.wins
-    }</td><td style="color:var(--accent-green)">${avg.toFixed(2)}</td>`;
-    tbody.appendChild(tr);
-    rank++;
+
+    // Kleiner Bonus: Nur Spieler mit > 0 Darts anzeigen (damit "Leichen" ohne Avg nicht auftauchen)
+    if (entry.total_darts_thrown > 0) {
+      tr.innerHTML = `
+        <td style="color:#666">${rank}.</td>
+        <td style="font-weight:bold;">
+          <a href="#" class="clickable-name" style="color:white;" onclick="openMatchStats('501', '${safeData}')">${
+        entry.name
+      }</a>
+        </td>
+        <td>${entry.wins}</td>
+        <td style="color:var(--accent-green)">${entry.computedAvg.toFixed(
+          2
+        )}</td>
+      `;
+      tbody.appendChild(tr);
+      rank++;
+    }
   });
 }
 
@@ -1481,6 +1533,149 @@ function renderScoreDistributionChart(frequencies) {
             grid: { display: false },
           },
         },
+      },
+    },
+  });
+}
+
+// ==========================================
+// 7. VERGLEICHS-MODUS LOGIK
+// ==========================================
+let compareChart = null;
+
+async function openCompareModal() {
+  document.getElementById("compare-modal").style.display = "flex";
+
+  const myName = myOnlineName || "Ich";
+  const theirName = currentModalRawName;
+
+  document.getElementById("comp-title-me").innerText = myName;
+  document.getElementById("comp-title-them").innerText = theirName;
+  document.getElementById("comp-th-me").innerText = myName;
+  document.getElementById("comp-th-them").innerText = theirName;
+
+  // Lädt ab sofort automatisch und ausschließlich 501
+  await loadCompareData();
+}
+
+async function loadCompareData() {
+  const conf = STATS_CONFIG["501"];
+  const myName = myOnlineName || "Ich";
+  const theirName = currentModalRawName;
+
+  // Beide Profile laden
+  let queryMe = _supabase.from(conf.table).select("*").eq("name", myName);
+  let queryThem = _supabase.from(conf.table).select("*").eq("name", theirName);
+
+  let { data: myData } = await queryMe.maybeSingle();
+  let { data: theirData } = await queryThem.maybeSingle();
+
+  if (!myData) myData = {};
+  if (!theirData) theirData = {};
+
+  // History für den Graphen
+  let { data: myExtra } = await _supabase
+    .from("match_history_501")
+    .select("match_details")
+    .eq("player_name", myName)
+    .order("created_at", { ascending: false })
+    .limit(15);
+  let { data: theirExtra } = await _supabase
+    .from("match_history_501")
+    .select("match_details")
+    .eq("player_name", theirName)
+    .order("created_at", { ascending: false })
+    .limit(15);
+
+  let myParsed = parse501Data(myData, myExtra);
+  let theirParsed = parse501Data(theirData, theirExtra);
+
+  // 1. KPI Tabelle
+  let tbody = document.getElementById("compare-kpi-body");
+  tbody.innerHTML = "";
+
+  for (let i = 0; i < conf.kpiLabels.length; i++) {
+    let label = conf.kpiLabels[i];
+    if (!label) continue;
+
+    let myValStr = myParsed.kpis[i] ? myParsed.kpis[i].val : "-";
+    let theirValStr = theirParsed.kpis[i] ? theirParsed.kpis[i].val : "-";
+
+    let myNum = parseFloat(String(myValStr).replace(/[^\d.-]/g, ""));
+    let theirNum = parseFloat(String(theirValStr).replace(/[^\d.-]/g, ""));
+
+    let myColor = "white";
+    let theirColor = "white";
+
+    // Bessere KPI grün markieren (für die Tabelle)
+    if (!isNaN(myNum) && !isNaN(theirNum)) {
+      if (myNum > theirNum) {
+        myColor = "var(--accent-green)";
+      } else if (theirNum > myNum) {
+        theirColor = "var(--accent-green)";
+      }
+    }
+
+    tbody.innerHTML += `
+       <tr style="border-bottom: 1px solid var(--glass-border);">
+         <td style="padding:10px; font-weight:bold; color:${myColor}; text-align:right;">${myValStr}</td>
+         <td style="padding:10px; color:#888; font-size:0.8em; text-align:center; text-transform:uppercase; letter-spacing:1px;">${label}</td>
+         <td style="padding:10px; font-weight:bold; color:${theirColor}; text-align:left;">${theirValStr}</td>
+       </tr>
+     `;
+  }
+
+  // 2. Chart (Feste Farben: Ich = Grün, Gegner = Rot)
+  if (compareChart) compareChart.destroy();
+  const ctx = document.getElementById("compareChart").getContext("2d");
+
+  let labels =
+    myParsed.chart.labels.length > theirParsed.chart.labels.length
+      ? myParsed.chart.labels
+      : theirParsed.chart.labels;
+
+  compareChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: myName,
+          data: myParsed.chart.values,
+          borderColor: "#10b981", // Grün
+          backgroundColor: "rgba(16, 185, 129, 0.15)", // Leicht transparente Füllung
+          borderWidth: 3,
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: "#10b981",
+        },
+        {
+          label: theirName,
+          data: theirParsed.chart.values,
+          borderColor: "#ff5252", // Rot
+          backgroundColor: "rgba(255, 82, 82, 0.15)", // Leicht transparente Füllung
+          borderWidth: 3,
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: "#ff5252",
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }, // <--- Legende deaktiviert
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: "rgba(255,255,255,0.05)" },
+          ticks: { color: "#888" },
+        },
+        x: { grid: { display: false }, ticks: { color: "#888" } },
       },
     },
   });

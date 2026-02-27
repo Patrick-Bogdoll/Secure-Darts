@@ -225,7 +225,7 @@ async function showMainApp() {
     const { data } = await _supabase
       .from("profiles")
       .select("is_admin")
-      .eq("user_id", currentUser.id)
+      .eq("id", currentUser.id)
       .maybeSingle();
     adminBtn.style.display = data && data.is_admin ? "block" : "none";
   }
