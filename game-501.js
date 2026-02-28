@@ -15,6 +15,8 @@ function resetStatsTracker() {
       checkoutAttempts: 0,
       checkoutHits: 0,
       scoreFrequencies: {},
+      first9Score: 0,
+      first9Darts: 0,
     },
     p2: {
       dartsCurrentLeg: 0,
@@ -27,6 +29,8 @@ function resetStatsTracker() {
       checkoutAttempts: 0,
       checkoutHits: 0,
       scoreFrequencies: {},
+      first9Score: 0,
+      first9Darts: 0,
     },
   };
 }
@@ -320,6 +324,7 @@ function getCheckoutPath(score) {
 }
 
 function undo501Turn() {
+  if (document.activeElement) document.activeElement.blur();
   if (history501Stack.length === 0) return;
 
   // 1. Bot sofort stoppen, bevor wir den State ändern
@@ -846,22 +851,34 @@ async function submit501Score(presetScore = null) {
 
   // 1. ZUERST POPUPS FRAGEN (mit Möglichkeit zum Abbrechen!)
   if (isBust) {
+    // NEU: Zuerst fragen, wie viele Darts überhaupt geworfen wurden!
+    let ansDarts = isBotThrow
+      ? botDartsThrownThisTurn
+      : await askCheckoutOverlay(
+          "Bust!\nMit dem wievielten Dart überworfen?",
+          1,
+          3,
+          true
+        );
+
+    if (ansDarts === "CANCEL") {
+      current501Input = "";
+      update501Display();
+      return;
+    }
+    dartsThrownThisTurn = ansDarts;
+
+    // Danach (falls man auf einem Finish stand), fragen wie viele davon aufs Doppel gingen
     if (isOnFinish) {
-      let ans = isBotThrow
+      let ansDouble = isBotThrow
         ? botDoubleAttempts
         : await askCheckoutOverlay(
-            "Bust! Wie viele Darts gingen aufs Doppel?",
+            `Bust! Wie viele der ${dartsThrownThisTurn} Darts gingen aufs Doppel?`,
             0,
-            3,
-            true
+            dartsThrownThisTurn, // Max Darts sind die geworfenen Darts
+            false // Kein Cancel mehr nötig
           );
-
-      if (ans === "CANCEL") {
-        current501Input = "";
-        update501Display();
-        return; // Bricht den Wurf lautlos ab!
-      }
-      doubleDarts = ans;
+      doubleDarts = ansDouble;
     }
   } else if (isFinished) {
     let ansDarts = isBotThrow
@@ -934,6 +951,24 @@ async function submit501Score(presetScore = null) {
     pStats.checkoutAttempts += doubleDarts;
   } else {
     pStats.checkoutAttempts += doubleDarts;
+  }
+
+  let dartsBeforeTurn = pStats.dartsCurrentLeg;
+  if (dartsBeforeTurn < 9) {
+    // Errechnet, wie viele Darts DIESER Aufnahme noch zu den ersten 9 gehören
+    let allowedDarts = Math.min(dartsThrownThisTurn, 9 - dartsBeforeTurn);
+    pStats.first9Darts += allowedDarts;
+
+    // Fällt die komplette Aufnahme in die ersten 9 Darts?
+    if (allowedDarts === dartsThrownThisTurn) {
+      pStats.first9Score += thrownVal;
+    } else {
+      // Falls die Aufnahme die Grenze überschreitet (z.B. Darts 8, 9, 10 der Runde)
+      // -> Rechnen wir den Score anteilig runter, da wir Einzeldarts nicht kennen.
+      pStats.first9Score += Math.round(
+        (thrownVal / dartsThrownThisTurn) * allowedDarts
+      );
+    }
   }
 
   pStats.dartsCurrentLeg += dartsThrownThisTurn;

@@ -31,10 +31,10 @@ const STATS_CONFIG = {
     alertText: "Noch keine 501-Daten für {name} vorhanden.",
     fetchType: "single",
     kpiLabels: [
-      "Geworfene Darts",
       "Legs Gespielt",
       "Legs Winrate%",
-      "Lifetime Avg",
+      "First-9 Avg",
+      "Match Avg",
       "High Finish",
       "Double Rate",
       "Bestes Leg",
@@ -335,58 +335,101 @@ async function renderUniversalStats(
 function parse501Data(data, extraChartData) {
   let gp = data.games_played || 0;
   let winrate = gp > 0 ? Math.round((data.wins / gp) * 100) + "%" : "0%";
-  let lifetimeAvg =
+
+  let matchAvg =
     data.total_darts_thrown > 0
       ? ((data.total_score_thrown / data.total_darts_thrown) * 3).toFixed(2)
       : "0.00";
+
+  let first9Avg =
+    data.first9_darts > 0
+      ? ((data.first9_score / data.first9_darts) * 3).toFixed(2)
+      : "0.00";
+
   let doubleRate =
     data.checkout_attempts > 0
       ? Math.round((data.checkout_hits / data.checkout_attempts) * 100) + "%"
       : "0%";
 
+  // Das Array ist jetzt exakt auf deine neue STATS_CONFIG abgestimmt
   let kpis = [
-    { val: data.total_darts_thrown || 0, color: "white" },
-    { val: gp, color: "white" },
-    { val: winrate, color: "white" },
-    { val: lifetimeAvg, color: "var(--accent-green)" },
-    { val: data.highest_finish || 0, color: "white" },
-    { val: doubleRate, color: "var(--accent-red)" },
-    { val: data.best_leg > 0 ? data.best_leg : "-", color: "white" },
-    { val: data.count_100 || 0, color: "white" },
-    { val: data.count_140 || 0, color: "white" },
-    { val: data.count_180 || 0, color: "var(--accent-green)" },
+    { val: gp, color: "white" }, // 1. Legs Gespielt
+    { val: winrate, color: "white" }, // 2. Legs Winrate%
+    { val: first9Avg, color: "var(--accent-blue)" }, // 3. First-9 Avg
+    { val: matchAvg, color: "var(--accent-green)" }, // 4. Match Avg
+    { val: data.highest_finish || 0, color: "white" }, // 5. High Finish
+    { val: doubleRate, color: "var(--accent-red)" }, // 6. Double Rate
+    { val: data.best_leg > 0 ? data.best_leg : "-", color: "white" }, // 7. Bestes Leg
+    { val: data.count_100 || 0, color: "white" }, // 8. 100+
+    { val: data.count_140 || 0, color: "white" }, // 9. 140+
+    { val: data.count_180 || 0, color: "var(--accent-green)" }, // 10. 180s
   ];
 
   let cLabels = [],
     cValues = [];
+
+  // Sichere Namenserkennung für den aktuellen Datensatz (Löst den "AVG von 501" Bug im Graphen!)
+  let playerName = data.name || currentModalPlayer;
+  let playerRawName = playerName
+    .replace(" (Training)", "")
+    .replace(" (501)", "");
+
   if (extraChartData && extraChartData.length > 0) {
-    console.log(
-      "Matches für Graph (IDs & Zeit): ",
-      extraChartData.map((m) => ({ id: m.id, date: m.created_at }))
-    );
     let legCount = 1;
     extraChartData.reverse().forEach((match) => {
       if (match.match_details && Array.isArray(match.match_details)) {
         match.match_details.forEach((leg) => {
           if (leg.p1_rest !== 0 && leg.p2_rest !== 0) return;
           cLabels.push(`Leg ${legCount++}`);
-          let isP1 = leg.p1_name === currentModalPlayer;
-          let darts = isP1 ? leg.p1_darts : leg.p2_darts;
-          let score = isP1 ? 501 - leg.p1_rest : 501 - leg.p2_rest;
-          let avg = darts > 0 ? ((score / darts) * 3).toFixed(2) : 0;
-          cValues.push(parseFloat(avg));
+
+          // Der gefixte, bombensichere Namens-Check:
+          let isP1 =
+            leg.p1_name === playerName || leg.p1_name === playerRawName;
+
+          let myHistory = isP1 ? leg.p1_history : leg.p2_history;
+
+          let f9Score = 0;
+          let f9Darts = 0;
+
+          // Berechnet dynamisch den First-9 Average für den Graphen
+          if (myHistory && Array.isArray(myHistory)) {
+            let limit = Math.min(3, myHistory.length);
+            for (let i = 0; i < limit; i++) {
+              let val =
+                myHistory[i].thrown === "Bust"
+                  ? 0
+                  : parseInt(myHistory[i].thrown);
+              if (!isNaN(val)) {
+                f9Score += val;
+                f9Darts += 3; // Wir werten die ersten 3 Aufnahmen strikt mit 3 Darts
+              }
+            }
+          }
+
+          // Fallback für ganz alte Matches ohne Wurf-Historie
+          if (f9Darts === 0) {
+            let darts = isP1 ? leg.p1_darts : leg.p2_darts;
+            let score = isP1 ? 501 - leg.p1_rest : 501 - leg.p2_rest;
+            let avg = darts > 0 ? ((score / darts) * 3).toFixed(2) : 0;
+            cValues.push(parseFloat(avg));
+          } else {
+            let f9Avg = ((f9Score / f9Darts) * 3).toFixed(2);
+            cValues.push(parseFloat(f9Avg));
+          }
         });
       }
     });
   }
+
   if (cValues.length === 0) {
     cLabels = ["Keine Daten"];
     cValues = [0];
   }
+
   return {
     kpis,
     chart: { labels: cLabels, values: cValues },
-    scoreFrequencies: data.score_frequencies || {}, // <--- NEU
+    scoreFrequencies: data.score_frequencies || {},
   };
 }
 
@@ -798,6 +841,8 @@ async function save501Stats(
       checkout_attempts: tr.checkoutAttempts || 0,
       checkout_hits: tr.checkoutHits || 0,
       score_frequencies: tr.scoreFrequencies || {}, // <-- Neu: Beim Insert speichern
+      first9_score: tr.first9Score || 0,
+      first9_darts: tr.first9Darts || 0,
     };
     if (isMe) payload.user_id = currentUser.id;
     const { error: insErr } = await _supabase
@@ -834,7 +879,9 @@ async function save501Stats(
       checkout_attempts:
         (ex.checkout_attempts || 0) + (tr.checkoutAttempts || 0),
       checkout_hits: (ex.checkout_hits || 0) + (tr.checkoutHits || 0),
-      score_frequencies: mergedFreq, // <-- Neu: Gemergte Frequenzen updaten
+      score_frequencies: mergedFreq,
+      first9_score: (ex.first9_score || 0) + (tr.first9Score || 0),
+      first9_darts: (ex.first9_darts || 0) + (tr.first9Darts || 0),
     };
 
     if (isMe) {
@@ -1100,10 +1147,16 @@ async function loadMatchHistory() {
       let legsHTML = "";
       if (m.match_details && Array.isArray(m.match_details)) {
         m.match_details.forEach((leg) => {
-          const isP1 = leg.p1_name === currentModalPlayer;
+          // NEU: Robusterer Namens-Check
+          const isP1 =
+            leg.p1_name === currentModalPlayer ||
+            leg.p1_name === currentModalRawName;
           const myHistory = isP1 ? leg.p1_history : leg.p2_history;
           const oppHistory = isP1 ? leg.p2_history : leg.p1_history;
           const myDarts = isP1 ? leg.p1_darts : leg.p2_darts;
+
+          // NEU: Den exakten Score dynamisch für P1 oder P2 berechnen
+          const myScore = isP1 ? 501 - leg.p1_rest : 501 - leg.p2_rest;
 
           legsHTML += `
             <div class="leg-detail-container" style="margin-top:15px; border-top:1px solid #444; padding-top:10px;">
@@ -1116,7 +1169,7 @@ async function loadMatchHistory() {
                 <div>Darts<br><b style="color:white; font-size:1.3em;">${myDarts}</b></div>
                 <div>Avg<br><b style="color:white; font-size:1.3em;">${
                   myDarts > 0
-                    ? (((501 - leg.p1_rest) / myDarts) * 3).toFixed(1)
+                    ? ((myScore / myDarts) * 3).toFixed(1) // <--- HIER GEFIXT!
                     : "0"
                 }</b></div>
                 <div>Rest<br><b style="color:var(--accent-blue); font-size:1.3em;">${
