@@ -1,11 +1,39 @@
 let isOnlineHost = false;
-const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
-let peerConnection = null;
 let camChannel = null;
-let localDronePeer = null;
-let boardPeers = { host: null, guest: null };
 let currentCameraStream = null;
-let camStatusInterval = null;
+
+// --- NEU: LiveKit Variablen ---
+let livekitRoom = null;
+let livekitLobbyRoom = null;
+
+// ==========================================
+// HILFSFUNKTION: LIVEKIT TOKEN HOLEN
+// ==========================================
+// Diese Funktion ruft dein Token von deinem Backend/Supabase Edge Function ab.
+// ==========================================
+// HILFSFUNKTION: LIVEKIT TOKEN HOLEN (via Supabase)
+// ==========================================
+async function fetchLiveKitToken(roomCode, participantName, isCamera) {
+  try {
+    // _supabase.functions.invoke hängt automatisch deine sicheren Keys an!
+    const { data, error } = await _supabase.functions.invoke("accesslivekit", {
+      body: {
+        roomName: roomCode,
+        participantName: participantName,
+        isCamera: isCamera,
+      },
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data.token;
+  } catch (err) {
+    console.error("Fehler beim Abrufen des LiveKit Tokens:", err);
+    return null;
+  }
+}
 
 function openOnlineLobby(roomCode, hostName, guestName = null, isHost = false) {
   isOnlineHost = isHost;
@@ -54,6 +82,9 @@ function updateLobbyCameraStatus(isHostCam, isConnected) {
   if (isConnected) {
     el.innerHTML = "✅ Kamera Aktiv";
     el.style.color = "var(--accent-green)";
+  } else {
+    el.innerHTML = "❌ Offline";
+    el.style.color = "#ff4a4a";
   }
 }
 
@@ -96,15 +127,14 @@ async function triggerOnlineMatchStart() {
     .eq("room_code", currentRoomCode);
 }
 
-// Handy-Kamera Sender
+// ==========================================
+// HANDY-KAMERA SENDER (LIVEKIT)
+// ==========================================
 async function startCompanionMode(roomCode, role) {
-  // ==========================================
-  // 1. RIGOROSES AUFRÄUMEN (Login-Screen blockieren)
-  // ==========================================
   if (typeof hideAllScreens === "function") hideAllScreens();
 
   const authScreen = document.getElementById("auth-screen");
-  if (authScreen) authScreen.remove(); // Zerstört den Login-Screen komplett für die Kamera!
+  if (authScreen) authScreen.remove();
 
   const topHeader = document.getElementById("top-header");
   if (topHeader) topHeader.style.display = "none";
@@ -115,21 +145,18 @@ async function startCompanionMode(roomCode, role) {
   companionScreen.style.top = "0";
   companionScreen.style.left = "0";
   companionScreen.style.width = "100vw";
-  // FIX: Wir nehmen die ECHTE, sichtbare Höhe des Handys, nicht 100vh!
   companionScreen.style.height = window.innerHeight + "px";
   companionScreen.style.zIndex = "99999";
   companionScreen.style.backgroundColor = "black";
   companionScreen.style.overflow = "hidden";
 
-  // --- DEN SCHLIESSEN-BUTTON IMMER SICHTBAR MACHEN ---
   const closeBtn = companionScreen.querySelector("button");
   if (closeBtn) {
     closeBtn.style.position = "absolute";
-    closeBtn.style.top = "30px"; // 30px von ganz oben
+    closeBtn.style.top = "30px";
     closeBtn.style.left = "50%";
-    closeBtn.style.transform = "translateX(-50%)"; // Perfekt zentriert
-    closeBtn.style.zIndex = "100000"; // GANZ nach vorne!
-    // Optional: Ein bisschen hübscher machen, damit man ihn gut sieht
+    closeBtn.style.transform = "translateX(-50%)";
+    closeBtn.style.zIndex = "100000";
     closeBtn.style.padding = "12px 24px";
     closeBtn.style.backgroundColor = "#ff4a4a";
     closeBtn.style.color = "white";
@@ -140,20 +167,18 @@ async function startCompanionMode(roomCode, role) {
   }
 
   try {
-    // --- WAKELOCK ERZINGEN (Benötigt eine Berührung) ---
     document.addEventListener("touchstart", requestWakeLock, { once: true });
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") requestWakeLock();
     });
-    // ---------------------------------------------------
 
-    // 1. MAXIMALE AUFLÖSUNG ANFORDERN (Macht digitalen Zoom extrem scharf!)
+    // 1. KAMERA STARTEN
     currentCameraStream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: "environment",
-        width: { min: 1280, ideal: 1920 }, // Ensures it never drops below 720p
+        width: { min: 1280, ideal: 1920 },
         height: { min: 720, ideal: 1080 },
-        frameRate: { ideal: 30, max: 30 }, // High FPS is less important than resolution
+        frameRate: { ideal: 30, max: 30 },
       },
       audio: false,
     });
@@ -161,7 +186,6 @@ async function startCompanionMode(roomCode, role) {
     const videoPreview = document.getElementById("local-camera-preview");
     videoPreview.srcObject = currentCameraStream;
 
-    // --- VIDEO STRIKT IN DEN HINTERGRUND LEGEN ---
     videoPreview.style.position = "absolute";
     videoPreview.style.top = "0";
     videoPreview.style.left = "0";
@@ -172,10 +196,9 @@ async function startCompanionMode(roomCode, role) {
     videoPreview.style.transformOrigin = "center center";
     videoPreview.style.zIndex = "1";
 
-    // --- NEU: HARDWARE ZOOM CAPABILITIES AUSLESEN ---
     const videoTrack = currentCameraStream.getVideoTracks()[0];
     if ("contentHint" in videoTrack) {
-      videoTrack.contentHint = "detail"; // Optimizes for sharp edges and static detail
+      videoTrack.contentHint = "detail";
     }
     const capabilities =
       typeof videoTrack.getCapabilities === "function"
@@ -185,9 +208,13 @@ async function startCompanionMode(roomCode, role) {
     const hwZoomMin = hasHwZoom ? capabilities.zoom.min : 1;
     const hwZoomMax = hasHwZoom ? capabilities.zoom.max : 1;
 
-    // ==========================================
-    // 2. DIGITALE PAN & ZOOM LOGIK
-    // ==========================================
+    // 2. SUPABASE CHANNEL NUR NOCH FÜR ZOOM-SYNC
+    camChannel = _supabase.channel(`camera-${roomCode}`, {
+      config: { broadcast: { self: true } },
+    });
+    camChannel.subscribe();
+
+    // 3. DIGITALE PAN & ZOOM LOGIK
     let isDragging = false;
     let startPixelX = 0,
       startPixelY = 0;
@@ -203,9 +230,7 @@ async function startCompanionMode(roomCode, role) {
     });
 
     function updateCameraView() {
-      // Grenzen werden IMMER durch den digitalen Zoom definiert
       const maxPercent = (currentDigitalZoom - 1) * 50;
-
       percentX = Math.max(-maxPercent, Math.min(maxPercent, percentX));
       percentY = Math.max(-maxPercent, Math.min(maxPercent, percentY));
 
@@ -239,13 +264,10 @@ async function startCompanionMode(roomCode, role) {
       if (!isDragging || e.touches.length !== 1) return;
       e.preventDefault();
       const { w, h } = getBaseDims();
-
       let deltaPixelX = e.touches[0].clientX - startPixelX;
       let deltaPixelY = e.touches[0].clientY - startPixelY;
-
       percentX = startPercentX + (deltaPixelX / w) * 100;
       percentY = startPercentY + (deltaPixelY / h) * 100;
-
       updateCameraView();
     });
 
@@ -253,28 +275,16 @@ async function startCompanionMode(roomCode, role) {
       isDragging = false;
     });
 
-    // ==========================================
-    // 3. HYBRID ZOOM SLIDER (HW + DIGITAL)
-    // ==========================================
+    // 4. HYBRID ZOOM SLIDER
     const existingSlider = document.getElementById("camera-zoom-slider");
     if (existingSlider) existingSlider.remove();
 
     const zoomControl = document.createElement("input");
     zoomControl.type = "range";
     zoomControl.id = "camera-zoom-slider";
-
-    zoomControl.style.cssText = `
-        position: absolute; 
-        bottom: 15%; 
-        left: 10%; 
-        width: 80%; 
-        height: 40px; 
-        z-index: 100000;
-        opacity: 0.9;
-      `;
+    zoomControl.style.cssText = `position: absolute; bottom: 15%; left: 10%; width: 80%; height: 40px; z-index: 100000; opacity: 0.9;`;
 
     const maxTotalZoom = Math.max(5, hwZoomMax * 2);
-
     zoomControl.min = 1;
     zoomControl.max = maxTotalZoom;
     zoomControl.step = 0.05;
@@ -282,14 +292,9 @@ async function startCompanionMode(roomCode, role) {
 
     zoomControl.oninput = async (e) => {
       let totalZoom = parseFloat(e.target.value);
-
-      // HYBRID-LOGIK:
-      // Wir lassen den digitalen Zoom bis max 2.5x laufen (garantiert perfekten Panning-Spielraum).
-      // Alles, was darüber hinausgeht, übernimmt die Hardware-Linse!
       let desiredDigital = Math.min(totalZoom, 2);
       let desiredHw = totalZoom / desiredDigital;
 
-      // Wenn das Handy Hardware-Zoom hat, wenden wir ihn an
       if (hasHwZoom) {
         desiredHw = Math.max(hwZoomMin, Math.min(desiredHw, hwZoomMax));
         try {
@@ -300,106 +305,34 @@ async function startCompanionMode(roomCode, role) {
           console.warn("Hardware Zoom Limit erreicht", err);
         }
       } else {
-        desiredHw = 1; // Fallback für ältere Handys (reiner Digital-Zoom)
+        desiredHw = 1;
       }
-
-      // Wir berechnen den echten digitalen Zoom-Wert für unser Panning und Senden an PC
       currentDigitalZoom = totalZoom / desiredHw;
       updateCameraView();
     };
-
     companionScreen.appendChild(zoomControl);
 
     // ==========================================
-    // 4. WEBRTC & SIGNALING LOGIK (Verbindung zur Lobby)
+    // 5. LIVEKIT VERBINDUNG (SENDEN)
     // ==========================================
-    camChannel = _supabase.channel(`camera-${roomCode}`, {
-      config: { broadcast: { self: true } },
+    const token = await fetchLiveKitToken(roomCode, role + "_camera", true);
+    if (!token) throw new Error("Konnte kein LiveKit Token abrufen.");
+
+    livekitRoom = new LivekitClient.Room();
+    await livekitRoom.connect(
+      "wss://secure-darts-2dyhbs8x.livekit.cloud",
+      token
+    );
+
+    // Video an LiveKit senden
+    await livekitRoom.localParticipant.publishTrack(videoTrack, {
+      name: role, // wichtig: so erkennt der PC, wer sendet (host oder guest)
     });
-
-    camChannel
-      .on("broadcast", { event: "webrtc-signal" }, async (payload) => {
-        const data = payload.payload;
-        if (data.target !== role) return;
-
-        if (data.type === "request-offer") {
-          localDronePeer = new RTCPeerConnection(rtcConfig);
-          currentCameraStream.getTracks().forEach((track) => {
-            // 1. Capture the sender reference
-            const sender = localDronePeer.addTrack(track, currentCameraStream);
-
-            // 2. Set degradation preference to maintain resolution
-            if (track.kind === "video") {
-              const params = sender.getParameters();
-              if (!params.encodings) params.encodings = [{}];
-              params.encodings[0].degradationPreference = "maintain-resolution";
-
-              sender.setParameters(params).catch((err) => {
-                console.error("Could not set degradation preference:", err);
-              });
-            }
-          }); // This correctly closes the forEach loop
-
-          // Logic continues INSIDE the "request-offer" if-block
-          const offer = await localDronePeer.createOffer();
-          let sdp = offer.sdp;
-
-          // Inject bitrate constraints into the SDP
-          sdp = sdp.replace(
-            /a=fmtp:(.*) \r\n/g,
-            `a=fmtp:$1 x-google-min-bitrate=2000; x-google-max-bitrate=4000; \r\n`
-          );
-          offer.sdp = sdp;
-
-          await localDronePeer.setLocalDescription(offer);
-          camChannel.send({
-            type: "broadcast",
-            event: "webrtc-signal",
-            payload: {
-              target: data.from,
-              type: "offer",
-              offer: offer,
-              from: role,
-            },
-          });
-        } else if (data.type === "answer") {
-          await localDronePeer.setRemoteDescription(
-            new RTCSessionDescription(data.answer)
-          );
-
-          // Sofortiges Syncen an den PC, wenn die Verbindung steht
-          setTimeout(() => updateCameraView(), 1000);
-        } else if (data.type === "ice-candidate" && localDronePeer) {
-          await localDronePeer.addIceCandidate(
-            new RTCIceCandidate(data.candidate)
-          );
-        }
-      })
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          // Das ist der Herzschlag (Ping), der der PC-Lobby sagt: "Ich bin da!"
-          camStatusInterval = setInterval(() => {
-            if (camChannel) {
-              camChannel.send({
-                type: "broadcast",
-                event: "cam-status",
-                payload: { role: role },
-              });
-            }
-          }, 3000);
-
-          // Ein sofortiger Ping direkt beim Start
-          camChannel.send({
-            type: "broadcast",
-            event: "cam-status",
-            payload: { role: role },
-          });
-        }
-      });
+    console.log("Kamera ist über LiveKit online!");
   } catch (err) {
     if (typeof showToast === "function")
-      showToast("Kamera blockiert: " + err.message, "error");
-    else alert("Kamera blockiert: " + err.message);
+      showToast("Kamera Fehler: " + err.message, "error");
+    else alert("Kamera Fehler: " + err.message);
   }
 }
 
@@ -411,153 +344,17 @@ function toggleVideoAvatar(playerId, showVideo) {
   if (avatarEl) avatarEl.style.display = showVideo ? "none" : "block";
 }
 
-// Globale Variable für die Timer, damit sie nicht den Scope verlieren
-window.camWatchdogs = window.camWatchdogs || { host: null, guest: null };
-
-function initCameraReceiver(roomCode, myRole) {
+// ==========================================
+// PC LOBBY EMPFÄNGER (LIVEKIT)
+// ==========================================
+async function initCameraReceiver(roomCode, myRole) {
+  // 1. Supabase Channel für den Zoom-Sync beibehalten
   if (camChannel) _supabase.removeChannel(camChannel);
-  boardPeers = { host: null, guest: null };
-
-  // --- NEUE HILFSFUNKTION FÜR DEN HARTEN ABBRUCH ---
-  const forceDropCamera = (camRole) => {
-    console.log(`Verbindung zu ${camRole} abgerissen (Timeout/Drop).`);
-    const isHost = camRole === "host";
-    const activeId = isHost ? "p1" : "p2";
-
-    // 1. UI auf Avatar zurücksetzen
-    toggleVideoAvatar(activeId, false);
-    updateLobbyCameraStatus(isHost, false);
-
-    // 2. Eingefrorenes Bild zwingend löschen
-    const videoEl = document.getElementById(isHost ? "video-p1" : "video-p2");
-    if (videoEl) {
-      videoEl.srcObject = null;
-      videoEl.style.transform = "none";
-    }
-
-    // 3. WebRTC Peer sauber schließen
-    if (boardPeers[camRole]) {
-      boardPeers[camRole].close();
-      boardPeers[camRole] = null;
-    }
-  };
-
   camChannel = _supabase.channel(`camera-${roomCode}`, {
     config: { broadcast: { self: true } },
   });
 
   camChannel
-    .on("broadcast", { event: "cam-status" }, (payload) => {
-      const data = payload.payload;
-      const camRole = data.role;
-
-      // --- WATCHDOG RESET ---
-      if (camRole && window.camWatchdogs[camRole]) {
-        clearTimeout(window.camWatchdogs[camRole]);
-      }
-
-      if (data.offline || !camRole) {
-        if (camRole) forceDropCamera(camRole);
-        return;
-      }
-
-      const isHost = camRole === "host";
-      const activeId = isHost ? "p1" : "p2";
-      updateLobbyCameraStatus(isHost, true);
-      toggleVideoAvatar(activeId, true);
-
-      // --- WATCHDOG START (30 Sekunden) ---
-      window.camWatchdogs[camRole] = setTimeout(() => {
-        forceDropCamera(camRole);
-      }, 30000);
-
-      if (
-        !boardPeers[camRole] ||
-        boardPeers[camRole].connectionState !== "connected"
-      ) {
-        if (!boardPeers[camRole])
-          boardPeers[camRole] = { connectionState: "connecting" };
-        camChannel.send({
-          type: "broadcast",
-          event: "webrtc-signal",
-          payload: { target: camRole, type: "request-offer", from: myRole },
-        });
-      }
-    })
-    .on("broadcast", { event: "webrtc-signal" }, async (payload) => {
-      const data = payload.payload;
-      if (data.target !== myRole) return;
-      const fromCam = data.from;
-
-      if (data.type === "offer") {
-        const peer = new RTCPeerConnection(rtcConfig);
-        boardPeers[fromCam] = peer;
-
-        // --- SOFORT-ABBRUCH WENN DIE LEITUNG REISST ---
-        peer.onconnectionstatechange = () => {
-          if (
-            ["disconnected", "failed", "closed"].includes(peer.connectionState)
-          ) {
-            forceDropCamera(fromCam);
-          }
-        };
-        // Backup: Reagiert manchmal sogar noch schneller als connectionState
-        peer.oniceconnectionstatechange = () => {
-          if (
-            ["disconnected", "failed", "closed"].includes(
-              peer.iceConnectionState
-            )
-          ) {
-            forceDropCamera(fromCam);
-          }
-        };
-
-        peer.ontrack = (event) => {
-          const videoId = fromCam === "host" ? "video-p1" : "video-p2";
-          const videoEl = document.getElementById(videoId);
-          if (videoEl) {
-            videoEl.srcObject = event.streams[0];
-            toggleVideoAvatar(fromCam === "host" ? "p1" : "p2", true);
-          }
-        };
-
-        peer.onicecandidate = (e) => {
-          if (e.candidate)
-            camChannel.send({
-              type: "broadcast",
-              event: "webrtc-signal",
-              payload: {
-                target: fromCam,
-                type: "ice-candidate",
-                candidate: e.candidate,
-                from: myRole,
-              },
-            });
-        };
-
-        await peer.setRemoteDescription(new RTCSessionDescription(data.offer));
-        const answer = await peer.createAnswer();
-        await peer.setLocalDescription(answer);
-        camChannel.send({
-          type: "broadcast",
-          event: "webrtc-signal",
-          payload: {
-            target: fromCam,
-            type: "answer",
-            answer: answer,
-            from: myRole,
-          },
-        });
-      } else if (
-        data.type === "ice-candidate" &&
-        boardPeers[fromCam] &&
-        boardPeers[fromCam].addIceCandidate
-      ) {
-        await boardPeers[fromCam].addIceCandidate(
-          new RTCIceCandidate(data.candidate)
-        );
-      }
-    })
     .on("broadcast", { event: "cam-transform" }, (payload) => {
       const data = payload.payload;
       const videoId = data.role === "host" ? "video-p1" : "video-p2";
@@ -576,6 +373,55 @@ function initCameraReceiver(roomCode, myRole) {
       }
     })
     .subscribe();
+
+  // 2. LIVEKIT VERBINDUNG (EMPFANGEN)
+  try {
+    const token = await fetchLiveKitToken(roomCode, myRole + "_lobby", false);
+    if (!token) return console.error("Konnte kein Receiver-Token laden.");
+
+    livekitLobbyRoom = new LivekitClient.Room();
+
+    // Event: Wenn eine Kamera (Host oder Guest) online kommt
+    livekitLobbyRoom.on(
+      LivekitClient.RoomEvent.TrackSubscribed,
+      (track, publication, participant) => {
+        console.log("STREAM ANGEKOMMEN VON:", participant.identity);
+
+        if (track.kind === "video") {
+          // NEU: .includes() nutzen, weil der Name jetzt "host_camera" oder "guest_camera" ist
+          const isHostCam = participant.identity.includes("host");
+
+          const videoId = isHostCam ? "video-p1" : "video-p2";
+          const videoEl = document.getElementById(videoId);
+
+          if (videoEl) {
+            track.attach(videoEl);
+            updateLobbyCameraStatus(isHostCam, true);
+            toggleVideoAvatar(isHostCam ? "p1" : "p2", true);
+          }
+        }
+      }
+    );
+
+    // Event: Wenn jemand die Kamera zumacht oder das Internet verliert
+    livekitLobbyRoom.on(
+      LivekitClient.RoomEvent.TrackUnsubscribed,
+      (track, publication, participant) => {
+        const isHostCam = participant.identity.includes("host");
+        track.detach();
+        updateLobbyCameraStatus(isHostCam, false);
+        toggleVideoAvatar(isHostCam ? "p1" : "p2", false);
+      }
+    );
+
+    await livekitLobbyRoom.connect(
+      "wss://secure-darts-2dyhbs8x.livekit.cloud",
+      token
+    );
+    console.log("Lobby empfängt jetzt via LiveKit!");
+  } catch (error) {
+    console.error("LiveKit Lobby Fehler:", error);
+  }
 }
 
 function cleanupWebRTC() {
@@ -583,14 +429,9 @@ function cleanupWebRTC() {
     _supabase.removeChannel(camChannel);
     camChannel = null;
   }
-  if (typeof boardPeers !== "undefined") {
-    if (boardPeers.host && boardPeers.host.close) boardPeers.host.close();
-    if (boardPeers.guest && boardPeers.guest.close) boardPeers.guest.close();
-    boardPeers = { host: null, guest: null };
-  }
-  if (typeof localDronePeer !== "undefined" && localDronePeer) {
-    localDronePeer.close();
-    localDronePeer = null;
+  if (livekitLobbyRoom) {
+    livekitLobbyRoom.disconnect();
+    livekitLobbyRoom = null;
   }
   let v1 = document.getElementById("video-p1");
   let v2 = document.getElementById("video-p2");
@@ -601,11 +442,10 @@ function cleanupWebRTC() {
 // ==========================================
 // AVATAR UPLOAD & COMPRESSION ENGINE
 // ==========================================
-
-let isUploadingAvatar = false; // Verhindert doppelte Uploads durch Klick-Spam
+let isUploadingAvatar = false;
 
 async function handleAvatarUpload(event) {
-  if (isUploadingAvatar) return; // Blockiert, wenn schon ein Upload läuft
+  if (isUploadingAvatar) return;
 
   const file = event.target.files[0];
   if (!file) return;
@@ -618,15 +458,12 @@ async function handleAvatarUpload(event) {
       data: { session },
       error: sessionError,
     } = await _supabase.auth.getSession();
-
     if (!session || sessionError)
       throw new Error(
         "Deine Login-Sitzung ist ungültig. Bitte logge dich einmal aus und wieder ein!"
       );
 
     const compressedImageBlob = await compressImage(file, 500);
-
-    // FIX 1: Fester Dateiname, damit 'upsert' das alte Bild überschreibt!
     const fileName = `${currentUser.id}.jpg`;
 
     const { data: uploadData, error: uploadError } = await _supabase.storage
@@ -641,8 +478,6 @@ async function handleAvatarUpload(event) {
     const {
       data: { publicUrl },
     } = _supabase.storage.from("avatars").getPublicUrl(fileName);
-
-    // FIX 2: Cache-Buster an die URL hängen, damit das UI sofort updatet
     const freshUrl = `${publicUrl}?t=${Date.now()}`;
 
     const { error: updateError } = await _supabase.auth.updateUser({
@@ -670,8 +505,6 @@ async function handleAvatarUpload(event) {
     else alert(error.message);
   } finally {
     document.getElementById("btn-edit-avatar").innerText = "EDIT";
-
-    // FIX 3: Setzt das Input-Feld zurück, damit man dasselbe Bild nochmal wählen kann
     event.target.value = "";
     isUploadingAvatar = false;
   }
@@ -686,41 +519,24 @@ function compressImage(file, targetSize) {
       img.src = event.target.result;
       img.onload = () => {
         const canvas = document.createElement("canvas");
-
-        // 1. Die kürzere Seite des Originals finden, um ein perfektes Quadrat zu bilden
         const minSize = Math.min(img.width, img.height);
-
-        // 2. Den perfekten Mittelpunkt für den Zuschnitt berechnen (Center-Crop)
         const startX = (img.width - minSize) / 2;
         const startY = (img.height - minSize) / 2;
-
-        // 3. Das Canvas starr auf dein Wunschmaß (500x500) nageln
         canvas.width = targetSize;
         canvas.height = targetSize;
-
         const ctx = canvas.getContext("2d");
-
-        // 4. Zeichnen: Nimm aus dem Original das Quadrat ab startX/Y
-        // und skaliere es exakt in das Canvas
         ctx.drawImage(
           img,
           startX,
           startY,
           minSize,
-          minSize, // Wo im Original ausgeschnitten wird
+          minSize,
           0,
           0,
           targetSize,
-          targetSize // Wo auf dem Canvas gezeichnet wird
+          targetSize
         );
-
-        canvas.toBlob(
-          (blob) => {
-            resolve(blob);
-          },
-          "image/jpeg",
-          0.85 // Qualität leicht angehoben für die 500x500 Auflösung
-        );
+        canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.85);
       };
     };
     reader.onerror = (error) => reject(error);
@@ -728,32 +544,23 @@ function compressImage(file, targetSize) {
 }
 
 async function stopCameraStream() {
-  if (camStatusInterval) {
-    clearInterval(camStatusInterval);
-    camStatusInterval = null;
-  }
-  if (localDronePeer) {
-    localDronePeer.close();
-    localDronePeer = null;
-  }
   if (currentCameraStream) {
     currentCameraStream.getTracks().forEach((track) => track.stop());
     currentCameraStream = null;
+  }
+
+  // LiveKit Verbindung der Kamera trennen
+  if (livekitRoom) {
+    livekitRoom.disconnect();
+    livekitRoom = null;
   }
 
   const videoEl = document.getElementById("local-camera-preview");
   if (videoEl) videoEl.srcObject = null;
 
   if (camChannel) {
-    await camChannel.send({
-      type: "broadcast",
-      event: "cam-status",
-      payload: { role: null, offline: true },
-    });
-    setTimeout(async () => {
-      await _supabase.removeChannel(camChannel);
-      camChannel = null;
-    }, 500);
+    await _supabase.removeChannel(camChannel);
+    camChannel = null;
   }
 
   document.getElementById("companion-screen").innerHTML = `
