@@ -151,8 +151,9 @@ async function startCompanionMode(roomCode, role) {
     currentCameraStream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: "environment",
-        width: { ideal: 1920 }, // Zwingt den Browser zu Full-HD (oder höher)
-        height: { ideal: 1080 },
+        width: { min: 1280, ideal: 1920 }, // Ensures it never drops below 720p
+        height: { min: 720, ideal: 1080 },
+        frameRate: { ideal: 30, max: 30 }, // High FPS is less important than resolution
       },
       audio: false,
     });
@@ -173,6 +174,9 @@ async function startCompanionMode(roomCode, role) {
 
     // --- NEU: HARDWARE ZOOM CAPABILITIES AUSLESEN ---
     const videoTrack = currentCameraStream.getVideoTracks()[0];
+    if ("contentHint" in videoTrack) {
+      videoTrack.contentHint = "detail"; // Optimizes for sharp edges and static detail
+    }
     const capabilities =
       typeof videoTrack.getCapabilities === "function"
         ? videoTrack.getCapabilities()
@@ -320,26 +324,33 @@ async function startCompanionMode(roomCode, role) {
 
         if (data.type === "request-offer") {
           localDronePeer = new RTCPeerConnection(rtcConfig);
-          currentCameraStream
-            .getTracks()
-            .forEach((track) =>
-              localDronePeer.addTrack(track, currentCameraStream)
-            );
+          currentCameraStream.getTracks().forEach((track) => {
+            // 1. Capture the sender reference
+            const sender = localDronePeer.addTrack(track, currentCameraStream);
 
-          localDronePeer.onicecandidate = (e) => {
-            if (e.candidate)
-              camChannel.send({
-                type: "broadcast",
-                event: "webrtc-signal",
-                payload: {
-                  target: data.from,
-                  type: "ice-candidate",
-                  candidate: e.candidate,
-                  from: role,
-                },
+            // 2. Set degradation preference to maintain resolution
+            if (track.kind === "video") {
+              const params = sender.getParameters();
+              if (!params.encodings) params.encodings = [{}];
+              params.encodings[0].degradationPreference = "maintain-resolution";
+
+              sender.setParameters(params).catch((err) => {
+                console.error("Could not set degradation preference:", err);
               });
-          };
+            }
+          }); // This correctly closes the forEach loop
+
+          // Logic continues INSIDE the "request-offer" if-block
           const offer = await localDronePeer.createOffer();
+          let sdp = offer.sdp;
+
+          // Inject bitrate constraints into the SDP
+          sdp = sdp.replace(
+            /a=fmtp:(.*) \r\n/g,
+            `a=fmtp:$1 x-google-min-bitrate=2000; x-google-max-bitrate=4000; \r\n`
+          );
+          offer.sdp = sdp;
+
           await localDronePeer.setLocalDescription(offer);
           camChannel.send({
             type: "broadcast",

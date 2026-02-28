@@ -143,3 +143,71 @@ async function changeUsername() {
     }
   }
 }
+
+// ==========================================
+// PASSWORT VERGESSEN & RESET LOGIK
+// ==========================================
+
+async function handleForgotPassword() {
+  const email = document.getElementById("auth-email").value.trim();
+
+  if (!email) {
+    if (typeof showToast === "function") {
+      return showToast(
+        "Bitte gib deine E-Mail oben ein, um das Passwort zurückzusetzen.",
+        "error"
+      );
+    }
+    return alert(
+      "Bitte gib deine E-Mail oben ein, um das Passwort zurückzusetzen."
+    );
+  }
+
+  const { data, error } = await _supabase.auth.resetPasswordForEmail(email, {
+    // Leitet den Nutzer nach Klick auf den E-Mail-Link wieder auf die aktuelle URL der App zurück
+    redirectTo: window.location.origin + window.location.pathname,
+  });
+
+  if (error) {
+    if (typeof showToast === "function")
+      showToast("Fehler: " + error.message, "error");
+    else alert("Fehler: " + error.message);
+  } else {
+    if (typeof showToast === "function")
+      showToast("Eine E-Mail zum Zurücksetzen wurde gesendet!", "success");
+    else alert("Eine E-Mail zum Zurücksetzen wurde gesendet!");
+  }
+}
+
+// Globaler Listener, der lauscht, ob jemand über einen "Passwort Reset Link" in die App kommt
+_supabase.auth.onAuthStateChange(async (event, session) => {
+  if (event === "PASSWORD_RECOVERY") {
+    // Der User hat auf den Link in der Mail geklickt und ist jetzt temporär authentifiziert
+    const newPassword = prompt(
+      "Bitte gib dein neues Passwort ein (min. 6 Zeichen):"
+    );
+
+    if (!newPassword || newPassword.length < 6) {
+      alert(
+        "Passwort war zu kurz oder Eingabe wurde abgebrochen. Bitte fordere den Link erneut an."
+      );
+      return;
+    }
+
+    // Neues Passwort in der Datenbank speichern
+    const { data, error } = await _supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      alert("Fehler beim Speichern des neuen Passworts: " + error.message);
+    } else {
+      alert("Dein Passwort wurde erfolgreich aktualisiert!");
+      // Danach ist der User normal eingeloggt
+      currentUser = data.user;
+      isGuest = false;
+      if (typeof initPresence === "function") initPresence();
+      if (typeof showMainApp === "function") showMainApp();
+    }
+  }
+});
