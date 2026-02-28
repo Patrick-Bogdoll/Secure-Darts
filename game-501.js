@@ -37,6 +37,9 @@ function resetStatsTracker() {
 
 function startLocal501Game() {
   bestOfLegs = parseInt(document.getElementById("best-of-legs").value || 3);
+  startingScore501 = parseInt(
+    document.getElementById("start-score-501").value || 501
+  ); // <--- NEU
   localP1Name =
     document.getElementById("local-p1-name").value.trim() || "Spieler 1";
   localP2Name =
@@ -61,8 +64,9 @@ function startLocal501Game() {
 }
 
 function resetLegLocal() {
-  localP1Score = 501;
-  localP2Score = 501;
+  localP1Score = startingScore501;
+  localP2Score = startingScore501;
+  let startingScore501 = 501;
   p1LegThrows = [];
   p2LegThrows = [];
 
@@ -117,9 +121,13 @@ function update501QoL(p1Score, p2Score) {
   let p2LegDarts = p2Darts501 - p2DartsAtLegStart;
 
   let p1LegAvg =
-    p1LegDarts > 0 ? (((501 - p1Score) / p1LegDarts) * 3).toFixed(2) : "0.00";
+    p1LegDarts > 0
+      ? (((startingScore501 - p1Score) / p1LegDarts) * 3).toFixed(2)
+      : "0.00";
   let p2LegAvg =
-    p2LegDarts > 0 ? (((501 - p2Score) / p2LegDarts) * 3).toFixed(2) : "0.00";
+    p2LegDarts > 0
+      ? (((startingScore501 - p2Score) / p2LegDarts) * 3).toFixed(2)
+      : "0.00";
 
   if (document.getElementById("p1-match-avg")) {
     document.getElementById("p1-match-avg").innerText = p1MatchAvg;
@@ -371,6 +379,9 @@ async function hostOnlineGame() {
   currentRoomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
   amIPlayer1 = true;
   bestOfLegs = parseInt(document.getElementById("best-of-legs").value || 3);
+  startingScore501 = parseInt(
+    document.getElementById("start-score-501").value || 501
+  );
   p1TotalScore = 0;
   p2TotalScore = 0;
   p1Darts501 = 0;
@@ -412,6 +423,9 @@ async function hostOnlineGame() {
       player1_avatar: myAvatar,
       status: "waiting",
       best_of_legs: bestOfLegs,
+      starting_score: startingScore501,
+      player1_score: startingScore501,
+      player2_score: startingScore501,
       player1_legs: 0,
       player2_legs: 0,
       player1_last_score: "-",
@@ -450,6 +464,7 @@ async function joinOnlineGame() {
   amIPlayer1 = false;
   currentRoomCode = codeInput;
   bestOfLegs = room.best_of_legs || 3;
+  startingScore501 = room.starting_score || 501;
   p1TotalScore = 0;
   p2TotalScore = 0;
   p1Darts501 = 0;
@@ -502,8 +517,8 @@ function sync501UI(dbData) {
   // 2. DANN WÜRFE BERECHNEN UND HISTORIE LADEN
   if (!isLocal501) {
     if (
-      dbData.player1_score === 501 &&
-      dbData.player2_score === 501 &&
+      dbData.player1_score === startingScore501 &&
+      dbData.player2_score === startingScore501 &&
       dbData.player1_darts === 0 &&
       dbData.player2_darts === 0
     ) {
@@ -549,11 +564,15 @@ function sync501UI(dbData) {
   let p2LegDarts = p2Darts501 - p2DartsAtLegStart;
   let p1LegAvg =
     p1LegDarts > 0
-      ? (((501 - dbData.player1_score) / p1LegDarts) * 3).toFixed(2)
+      ? (((startingScore501 - dbData.player1_score) / p1LegDarts) * 3).toFixed(
+          2
+        )
       : "0.00";
   let p2LegAvg =
     p2LegDarts > 0
-      ? (((501 - dbData.player2_score) / p2LegDarts) * 3).toFixed(2)
+      ? (((startingScore501 - dbData.player2_score) / p2LegDarts) * 3).toFixed(
+          2
+        )
       : "0.00";
 
   if (document.getElementById("p1-match-avg")) {
@@ -1537,8 +1556,8 @@ async function startNextLeg() {
       .from("live_matches")
       .update({
         status: "playing",
-        player1_score: 501,
-        player2_score: 501,
+        player1_score: startingScore501,
+        player2_score: startingScore501,
         player1_last_score: "-",
         player2_last_score: "-",
         current_turn: starter,
@@ -1558,8 +1577,8 @@ async function triggerRematch() {
       .from("live_matches")
       .update({
         status: "playing",
-        player1_score: 501,
-        player2_score: 501,
+        player1_score: startingScore501,
+        player2_score: startingScore501,
         player1_darts: 0,
         player2_darts: 0,
         player1_legs: 0,

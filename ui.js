@@ -564,7 +564,7 @@ async function loadOpenLobbies() {
   const { data, error } = await _supabase
     .from("live_matches")
     .select(
-      "room_code, player1_name, best_of_legs, camera_required, host_avg, created_at"
+      "room_code, player1_name, best_of_legs, starting_score, camera_required, host_avg, created_at"
     )
     .eq("status", "waiting")
     .is("player2_name", null)
@@ -609,14 +609,17 @@ async function loadOpenLobbies() {
       <div class="glass-panel" style="padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-color: var(--glass-border);">
         <div style="text-align: left;">
           <div style="font-weight: bold; font-size: 1.1em; display: flex; align-items: center;">
-            <a href="#" onclick="event.preventDefault(); openPlayerStatsFromName('${lobby.player1_name}')" style="color: white; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='white'">
+            <a href="#" onclick="event.preventDefault(); openPlayerStatsFromName('${
+              lobby.player1_name
+            }')" style="color: white; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='white'">
               ${lobby.player1_name}
             </a> 
             ${avgDisplay}
           </div>
           <div style="font-size: 0.85em; color: var(--text-muted); margin-top: 5px; display: flex; align-items: center;">
-            Best of ${lobby.best_of_legs} Legs ${camBadge}
-          </div>
+            ${lobby.starting_score || 501} - Bo${
+      lobby.best_of_legs
+    } ${camBadge} </div>
         </div>
         ${actionButton}
       </div>

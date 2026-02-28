@@ -649,45 +649,98 @@
       <div id="online-lobby-screen" style="display: none; width: 100%">
         <h3 style="text-align: center; color: var(--text-muted)">Setup</h3>
         <div id="lobby-setup">
-          <div class="glass-panel" style="margin-bottom: 20px">
-            <h4 style="color: var(--accent-blue); margin-bottom: 15px">
-              Lokal (1 Gerät)
-            </h4>
+          <div style="display: flex; gap: 10px; margin-bottom: 20px">
+            <div
+              style="
+                flex: 1;
+                background: rgba(0, 0, 0, 0.2);
+                padding: 10px;
+                border-radius: 8px;
+                border: 1px solid var(--glass-border);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 5px;
+              "
+            >
+              <span
+                style="
+                  font-size: 0.8em;
+                  color: var(--text-muted);
+                  text-transform: uppercase;
+                  font-weight: bold;
+                "
+                >Start-Score</span
+              >
+              <select
+                id="start-score-501"
+                class="custom-select"
+                style="
+                  width: 100%;
+                  border: 1px solid var(--glass-border);
+                  background-color: rgba(0, 0, 0, 0.4);
+                  color: white;
+                  font-weight: bold;
+                  padding: 8px;
+                  text-align: center;
+                  border-radius: 6px;
+                "
+              >
+                <option value="301">301</option>
+                <option value="501" selected>501</option>
+                <option value="701">701</option>
+              </select>
+            </div>
 
             <div
               style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
+                flex: 1;
                 background: rgba(0, 0, 0, 0.2);
-                padding: 10px 15px;
+                padding: 10px;
                 border-radius: 8px;
-                margin-bottom: 15px;
                 border: 1px solid var(--glass-border);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 5px;
               "
             >
-              <span style="font-size: 0.9em; color: var(--text-muted)"
-                >Match Modus:</span
+              <span
+                style="
+                  font-size: 0.8em;
+                  color: var(--text-muted);
+                  text-transform: uppercase;
+                  font-weight: bold;
+                "
+                >Modus</span
               >
               <select
                 id="best-of-legs"
                 class="custom-select"
                 style="
-                  width: auto;
+                  width: 100%;
                   border: 1px solid var(--glass-border);
                   background-color: rgba(0, 0, 0, 0.4);
                   color: white;
                   font-weight: bold;
-                  padding: 8px 35px 8px 15px; /* Adjust padding for a smaller look */
+                  padding: 8px;
+                  text-align: center;
+                  border-radius: 6px;
                 "
               >
-                <option value="1">Best of 1 Leg</option>
-                <option value="3" selected>Best of 3 Leg</option>
-                <option value="5">Best of 5 Leg</option>
-                <option value="7">Best of 7 Leg</option>
-                <option value="9">Best of 9 Leg</option>
+                <option value="1">Best of 1</option>
+                <option value="3" selected>Best of 3</option>
+                <option value="5">Best of 5</option>
+                <option value="7">Best of 7</option>
+                <option value="9">Best of 9</option>
               </select>
             </div>
+          </div>
+
+          <div class="glass-panel" style="margin-bottom: 20px">
+            <h4 style="color: var(--accent-blue); margin-bottom: 15px">
+              Lokal (1 Gerät)
+            </h4>
 
             <div
               style="
