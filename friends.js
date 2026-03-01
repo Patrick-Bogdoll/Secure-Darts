@@ -383,11 +383,23 @@ function openChallengeSetup(targetUserId, targetUserName) {
   document.getElementById("btn-execute-challenge").onclick = () => {
     const mode = document.getElementById("challenge-mode-select").value;
     const legs = document.getElementById("challenge-legs-select").value;
-    executeChallenge(targetUserId, targetUserName, mode, parseInt(legs));
+    executeChallenge(
+      targetUserId,
+      targetUserName,
+      mode,
+      parseInt(legs),
+      parseInt(mode)
+    );
   };
 }
 
-async function executeChallenge(targetUserId, targetUserName, mode, legs) {
+async function executeChallenge(
+  targetUserId,
+  targetUserName,
+  mode,
+  legs,
+  startScore
+) {
   // 1. Beide Modals ausblenden
   document.getElementById("challenge-setup-modal").style.display = "none";
   document.getElementById("friends-modal").style.display = "none";
@@ -412,6 +424,9 @@ async function executeChallenge(targetUserId, targetUserName, mode, legs) {
       player1_name: myOnlineName,
       status: "waiting",
       best_of_legs: legs, // <--- HIER übergeben wir dein Setting!
+      starting_score: startScore,
+      player1_score: startScore,
+      player2_score: startScore,
       last_action: "Herausforderung gesendet",
     },
   ]);
@@ -424,6 +439,7 @@ async function executeChallenge(targetUserId, targetUserName, mode, legs) {
   isLocal501 = false;
   currentAppMode = mode;
   bestOfLegs = legs; // Ganz wichtig für den Start
+  startingScore501 = startScore;
 
   // 5. Ab in die Online Lobby
   openOnlineLobby(roomCode, myOnlineName, null, true);
@@ -442,6 +458,7 @@ async function executeChallenge(targetUserId, targetUserName, mode, legs) {
           roomCode: roomCode,
           mode: mode,
           legs: legs, // <-- Wir sagen dem Gegner, wie viele Legs wir wollen
+          startScore: startScore,
         },
       });
       showToast(`Herausforderung an ${targetUserName} gesendet!`, "success");
@@ -459,7 +476,8 @@ function handleIncomingChallenge(data) {
   const modal = document.getElementById("generic-confirm-modal");
 
   // NEU: Den Modus und die Legs elegant formatieren
-  const modeText = data.mode === "501" ? "501 Darts" : data.mode;
+  const modeText =
+    data.mode === "501" ? `${data.startScore || 501} Darts` : data.mode;
   const legsText = data.legs ? `(Best of ${data.legs})` : "";
 
   // NEU: Anzeige aktualisieren
@@ -473,6 +491,8 @@ function handleIncomingChallenge(data) {
   btnYes.onclick = () => {
     modal.style.display = "none";
     document.getElementById("friends-modal").style.display = "none";
+
+    if (data.startScore) startingScore501 = data.startScore;
 
     // Ins Input Feld eintragen und direkt den Beitritt triggern
     const joinInput = document.getElementById("join-room-code");

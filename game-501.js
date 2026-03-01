@@ -66,7 +66,6 @@ function startLocal501Game() {
 function resetLegLocal() {
   localP1Score = startingScore501;
   localP2Score = startingScore501;
-  let startingScore501 = 501;
   p1LegThrows = [];
   p2LegThrows = [];
 
