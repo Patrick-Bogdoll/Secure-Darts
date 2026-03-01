@@ -388,34 +388,12 @@ function parse501Data(data, extraChartData) {
 
           let myHistory = isP1 ? leg.p1_history : leg.p2_history;
 
-          let f9Score = 0;
-          let f9Darts = 0;
+          // Berechnet den 3-Dart Average für das gesamte Leg (für den Graphen)
+          let darts = isP1 ? leg.p1_darts : leg.p2_darts;
+          let score = isP1 ? 501 - leg.p1_rest : 501 - leg.p2_rest;
+          let avg = darts > 0 ? ((score / darts) * 3).toFixed(2) : 0;
 
-          // Berechnet dynamisch den First-9 Average für den Graphen
-          if (myHistory && Array.isArray(myHistory)) {
-            let limit = Math.min(3, myHistory.length);
-            for (let i = 0; i < limit; i++) {
-              let val =
-                myHistory[i].thrown === "Bust"
-                  ? 0
-                  : parseInt(myHistory[i].thrown);
-              if (!isNaN(val)) {
-                f9Score += val;
-                f9Darts += 3; // Wir werten die ersten 3 Aufnahmen strikt mit 3 Darts
-              }
-            }
-          }
-
-          // Fallback für ganz alte Matches ohne Wurf-Historie
-          if (f9Darts === 0) {
-            let darts = isP1 ? leg.p1_darts : leg.p2_darts;
-            let score = isP1 ? 501 - leg.p1_rest : 501 - leg.p2_rest;
-            let avg = darts > 0 ? ((score / darts) * 3).toFixed(2) : 0;
-            cValues.push(parseFloat(avg));
-          } else {
-            let f9Avg = ((f9Score / f9Darts) * 3).toFixed(2);
-            cValues.push(parseFloat(f9Avg));
-          }
+          cValues.push(parseFloat(avg));
         });
       }
     });
