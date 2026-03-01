@@ -96,78 +96,6 @@ window.alert = function (message) {
 };
 
 // ==========================================
-// INLINE NAME EDITING
-// ==========================================
-function enableInlineNameEdit() {
-  const nameEl = document.getElementById("modal-name");
-  const currentName = currentModalPlayer; // Nimmt den Namen aus der stats.js
-
-  // Tauscht den Text gegen ein cooles Input-Feld aus
-  nameEl.innerHTML = `<input type="text" id="inline-name-input" value="${currentName}" 
-    style="background: rgba(0,0,0,0.3); color: white; border: 1px solid var(--accent-blue); padding: 8px 12px; border-radius: 8px; font-size: 1em; width: 100%; outline: none; font-family: inherit; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);"
-    onblur="saveInlineName()" 
-    onkeydown="if(event.key === 'Enter') { this.blur(); }">`;
-
-  document.getElementById("inline-name-input").focus();
-  document.getElementById("btn-edit-name").style.display = "none";
-}
-
-async function saveInlineName() {
-  const inputEl = document.getElementById("inline-name-input");
-  if (!inputEl) return;
-  const newName = inputEl.value.trim();
-  const nameEl = document.getElementById("modal-name");
-
-  // Wenn leer oder unverändert, einfach abbrechen und zurücksetzen
-  if (!newName || newName === currentModalPlayer) {
-    nameEl.innerText = currentModalPlayer;
-    document.getElementById("btn-edit-name").style.display = "block";
-    return;
-  }
-
-  // UI kurz auf Ladezustand setzen
-  nameEl.innerHTML = `<span style="color: #888; font-size: 0.8em;">Speichert...</span>`;
-
-  try {
-    // 1. Auth Metadata updaten
-    const { error: authErr } = await _supabase.auth.updateUser({
-      data: { display_name: newName, full_name: newName },
-    });
-    if (authErr) throw authErr;
-
-    // 2. Datenbanken updaten (501 und Secure)
-    await _supabase
-      .from("stats_501")
-      .update({ name: newName })
-      .eq("user_id", currentUser.id);
-    await _supabase
-      .from("highscores")
-      .update({ name: newName })
-      .eq("name", currentModalPlayer);
-
-    // ---> NEU: Namen auch in der Profile-Tabelle updaten! <---
-    await _supabase
-      .from("profiles")
-      .update({ name: newName })
-      .eq("id", currentUser.id);
-    // ---------------------------------------------------------
-
-    // 3. Lokale Variablen aktualisieren
-    myOnlineName = newName;
-    currentModalPlayer = newName;
-
-    // 4. Erfolgsmeldung!
-    showToast("Name erfolgreich geändert!", "success");
-  } catch (e) {
-    showToast("Fehler beim Speichern: " + e.message, "error");
-  } finally {
-    // UI wiederherstellen
-    nameEl.innerText = currentModalPlayer;
-    document.getElementById("btn-edit-name").style.display = "block";
-  }
-}
-
-// ==========================================
 // CUSTOM CONFIRM MODAL
 // ==========================================
 let pendingConfirmAction = null;
@@ -678,4 +606,222 @@ function joinSpecificLobby(roomCode) {
     codeInput.value = roomCode;
   }
   joinOnlineGame();
+}
+
+// ==========================================
+// SETTINGS / EINSTELLUNGEN LOGIK
+// ==========================================
+
+function openSettingsModal() {
+  if (isGuest || !currentUser) {
+    if (typeof showToast === "function")
+      showToast("Einstellungen sind als Gast nicht verfügbar.", "error");
+    return;
+  }
+
+  // Werte vorladen
+  document.getElementById("settings-name").value = myOnlineName || "";
+
+  const emailInput = document.getElementById("settings-email");
+  const passwordInput = document.getElementById("settings-password");
+
+  emailInput.value = currentUser.email || "";
+  passwordInput.value = "";
+
+  // --- NEU: Prüfen, ob der User über Google eingeloggt ist ---
+  const isGoogleUser =
+    currentUser.app_metadata &&
+    currentUser.app_metadata.providers &&
+    currentUser.app_metadata.providers.includes("google");
+
+  if (isGoogleUser) {
+    // Felder für Google-Nutzer blockieren
+    passwordInput.disabled = true;
+    passwordInput.placeholder = "Bei Google-Login nicht verfügbar";
+    passwordInput.style.opacity = "0.5";
+    passwordInput.style.cursor = "not-allowed";
+
+    emailInput.disabled = true;
+    emailInput.style.opacity = "0.5";
+    emailInput.style.cursor = "not-allowed";
+  } else {
+    // Felder für normale E-Mail-Nutzer freigeben
+    passwordInput.disabled = false;
+    passwordInput.placeholder =
+      "Mind. 6 Zeichen (Leer lassen wenn unverändert)";
+    passwordInput.style.opacity = "1";
+    passwordInput.style.cursor = "text";
+
+    emailInput.disabled = false;
+    emailInput.style.opacity = "1";
+    emailInput.style.cursor = "text";
+  }
+  // ------------------------------------------------------------
+
+  // Avatar Bild vorladen (holt sich das Bild aus dem Haupt-Modal, falls bereits geladen)
+  const currentAvatarSrc = document.getElementById("modal-avatar-preview").src;
+  document.getElementById("settings-avatar-preview").src = currentAvatarSrc;
+
+  document.getElementById("settings-modal").style.display = "flex";
+}
+
+function closeSettingsModal(e) {
+  if (e.target.id === "settings-modal") {
+    document.getElementById("settings-modal").style.display = "none";
+  }
+}
+
+async function saveSettings() {
+  const newName = document.getElementById("settings-name").value.trim();
+  const newEmail = document.getElementById("settings-email").value.trim();
+  const newPassword = document.getElementById("settings-password").value.trim();
+
+  // Die ausgewählte Datei aus dem versteckten Input holen
+  const avatarInput = document.getElementById("avatar-upload");
+  const avatarFile = avatarInput.files && avatarInput.files[0];
+
+  let updates = { data: {} };
+  let requiresUpdate = false;
+
+  // 1. Namen Update prüfen
+  if (newName && newName !== myOnlineName) {
+    updates.data.display_name = newName;
+    updates.data.full_name = newName;
+    requiresUpdate = true;
+  }
+
+  // 2. E-Mail Update prüfen
+  if (newEmail && newEmail !== currentUser.email) {
+    updates.email = newEmail;
+    requiresUpdate = true;
+  }
+
+  // 3. Passwort Update prüfen
+  if (newPassword && newPassword.length >= 6) {
+    updates.password = newPassword;
+    requiresUpdate = true;
+  } else if (newPassword.length > 0 && newPassword.length < 6) {
+    showToast("Das Passwort muss mindestens 6 Zeichen lang sein.", "error");
+    return;
+  }
+
+  // 4. Avatar Update prüfen
+  if (avatarFile) {
+    requiresUpdate = true;
+  }
+
+  // Abbruch, wenn nichts geändert wurde
+  if (!requiresUpdate) {
+    showToast("Keine Änderungen vorgenommen.", "info");
+    document.getElementById("settings-modal").style.display = "none";
+    return;
+  }
+
+  // UI auf "Laden" setzen
+  const btn = document.querySelector("#settings-modal .primary");
+  const originalText = btn.innerText;
+  btn.innerText = "Speichert...";
+  btn.disabled = true;
+
+  try {
+    // --- NEU: BILD IN SUPABASE HOCHLADEN ---
+    if (avatarFile) {
+      // Generiere einen eindeutigen Dateinamen (z.B. user-id-12345678.jpg)
+      const fileExt = avatarFile.name.split(".").pop();
+      const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
+
+      // Lade das Bild in den Supabase Storage (Bucket-Name: 'avatars')
+      const { error: uploadError } = await _supabase.storage
+        .from("avatars")
+        .upload(fileName, avatarFile, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Hole die öffentliche URL des hochgeladenen Bildes
+      const { data: publicUrlData } = _supabase.storage
+        .from("avatars")
+        .getPublicUrl(fileName);
+
+      // Füge die neue URL den Profil-Updates hinzu
+      updates.data.avatar_url = publicUrlData.publicUrl;
+    }
+    // ----------------------------------------
+
+    // Auth-Daten & Metadaten (inkl. neuer Bild-URL) aktualisieren
+    const { data, error } = await _supabase.auth.updateUser(updates);
+    if (error) throw error;
+
+    // Profil-Tabelle aktualisieren (Name & Avatar)
+    let profileUpdates = {};
+    if (updates.data.display_name) profileUpdates.name = newName;
+    if (updates.data.avatar_url)
+      profileUpdates.avatar_url = updates.data.avatar_url;
+
+    if (Object.keys(profileUpdates).length > 0) {
+      await _supabase
+        .from("profiles")
+        .update(profileUpdates)
+        .eq("id", currentUser.id);
+    }
+
+    // Wenn der Name geändert wurde, auch in den alten Tabellen updaten
+    if (updates.data.display_name) {
+      await _supabase
+        .from("stats_501")
+        .update({ name: newName })
+        .eq("user_id", currentUser.id);
+      await _supabase
+        .from("highscores")
+        .update({ name: newName })
+        .eq("name", myOnlineName);
+
+      myOnlineName = newName;
+      currentModalPlayer = newName;
+      document.getElementById("modal-name").innerText = newName;
+    }
+
+    // Das Bild auch im Profil im Hintergrund austauschen und den File-Input leeren
+    if (updates.data.avatar_url) {
+      document.getElementById("modal-avatar-preview").src =
+        updates.data.avatar_url;
+      avatarInput.value = ""; // Input zurücksetzen, damit es beim nächsten Mal wieder reagiert
+    }
+
+    showToast("Einstellungen erfolgreich gespeichert!", "success");
+    document.getElementById("settings-modal").style.display = "none";
+
+    if (updates.email) {
+      showToast(
+        "Bitte überprüfe deine neue E-Mail-Adresse für den Bestätigungslink.",
+        "info"
+      );
+    }
+  } catch (error) {
+    showToast("Fehler beim Speichern: " + error.message, "error");
+  } finally {
+    // UI wiederherstellen
+    btn.innerText = originalText;
+    btn.disabled = false;
+  }
+}
+
+// Aktualisiert das Bild in den Settings sofort lokal (ohne auf den Server-Upload zu warten)
+const avatarInput = document.getElementById("avatar-upload");
+if (avatarInput) {
+  avatarInput.addEventListener("change", function (event) {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        // Die Vorschau in den Einstellungen sofort aktualisieren
+        const settingsPreview = document.getElementById(
+          "settings-avatar-preview"
+        );
+        if (settingsPreview) {
+          settingsPreview.src = e.target.result;
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  });
 }

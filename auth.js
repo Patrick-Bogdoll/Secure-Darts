@@ -211,3 +211,50 @@ _supabase.auth.onAuthStateChange(async (event, session) => {
     }
   }
 });
+
+function requestAccountDeletion() {
+  showConfirmModal(
+    "Möchtest du deinen Account wirklich dauerhaft löschen? Dies kann nicht rückgängig gemacht werden!",
+    async () => {
+      if (!currentUser) return;
+
+      // Button UI aktualisieren, damit der User merkt, dass etwas passiert
+      const btn = document.querySelector(
+        '.reset[onclick="requestAccountDeletion()"]'
+      );
+      if (btn) {
+        btn.innerText = "Lösche Account...";
+        btn.disabled = true;
+      }
+
+      try {
+        // Die Edge Function aufrufen
+        const { data, error } = await _supabase.functions.invoke(
+          "delete-user",
+          {
+            method: "POST",
+          }
+        );
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        showToast("Dein Account wurde erfolgreich gelöscht.", "success");
+
+        // Modal schließen und ausloggen (Cookie & Session löschen)
+        document.getElementById("settings-modal").style.display = "none";
+
+        setTimeout(() => {
+          handleLogout();
+        }, 1500);
+      } catch (err) {
+        showToast("Fehler beim Löschen: " + err.message, "error");
+        if (btn) {
+          btn.innerText = "Account unwiderruflich löschen";
+          btn.disabled = false;
+        }
+      }
+    }
+  );
+}

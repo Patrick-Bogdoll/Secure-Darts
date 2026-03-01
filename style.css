@@ -540,8 +540,8 @@ input[type="checkbox"] {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  right: 0; /* NEU: Ersetzt width: 100% */
+  bottom: 0; /* NEU: Ersetzt height: 100% */
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(8px);
   display: none;
@@ -765,7 +765,42 @@ td {
   /* 7. Navbar-Menü für Mobile etwas anpassen */
   .nav-tabs {
     width: 80%; /* Nicht die ganze Breite, sieht besser aus */
+    left: -105%;
     padding: 15px;
+  }
+
+  /* 8. FIX: Kleine Popups exakt mittig zentrieren & Rauszoomen verhindern */
+  #cancel-modal,
+  #generic-confirm-modal,
+  #bot-setup-overlay,
+  #challenge-setup-modal {
+    padding: 20px !important;
+    align-items: center !important; /* Zieht es starr in die Mitte */
+    justify-content: center !important;
+  }
+
+  #cancel-modal .modal-content,
+  #generic-confirm-modal .modal-content,
+  #bot-setup-overlay .modal-content,
+  #challenge-setup-modal .modal-content {
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 350px !important;
+  }
+
+  /* 9. MOBILE POLISH: Platzoptimierung für kleine Displays */
+  .modal-content,
+  .stats-card {
+    padding: 18px !important; /* Nimmt etwas von dem wuchtigen Rand weg */
+    width: 92% !important; /* Sorgt für einen schönen, gleichmäßigen Abstand zum Bildschirmrand */
+  }
+
+  .btn-glass {
+    padding: 15px; /* Buttons minimal schlanker machen, damit mehr aufs Bild passt */
+  }
+
+  h1 {
+    font-size: 1.5em; /* Haupttitel etwas eleganter skalieren */
   }
 }
 
