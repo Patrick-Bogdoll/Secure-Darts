@@ -1450,8 +1450,16 @@ async function requestUndo() {
         (!amIPlayer1 && room.prev_state.current_turn === 2);
 
       if (wasMyTurn) {
-        // 3. Zustand sofort wiederherstellen (ohne den Gegner zu fragen!)
         let restore = room.prev_state;
+
+        // ---> NEU: STATS TRACKER WIEDERHERSTELLEN <---
+        if (restore.statsTrackerState) {
+          statsTracker = restore.statsTrackerState; // Überschreibt die falschen Stats mit dem sauberen Snapshot
+          delete restore.statsTrackerState; // WICHTIG: Verhindert einen Supabase-Crash beim Update!
+        }
+        // ---------------------------------------------
+
+        // 3. Zustand sofort wiederherstellen
         restore.undo_requested = false;
         restore.prev_state = null; // Verhindert doppeltes Undo in Folge
 
