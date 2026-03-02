@@ -1,6 +1,10 @@
 let p1LegThrows = [];
 let p2LegThrows = [];
 let botTimer501 = null;
+let localP1Id = null;
+let localP2Id = null;
+let localP2AvatarUrl = null;
+let isSubmittingThrow = false;
 
 function resetStatsTracker() {
   statsTracker = {
@@ -39,11 +43,23 @@ function startLocal501Game() {
   bestOfLegs = parseInt(document.getElementById("best-of-legs").value || 3);
   startingScore501 = parseInt(
     document.getElementById("start-score-501").value || 501
-  ); // <--- NEU
+  );
   localP1Name =
     document.getElementById("local-p1-name").value.trim() || "Spieler 1";
   localP2Name =
     document.getElementById("local-p2-name").value.trim() || "Spieler 2";
+  // Host: wenn eingeloggt, immer speichern (Name darf frei sein)
+  if (!isGuest && currentUser) {
+    localP1Id = currentUser.id;
+  } else {
+    localP1Id = null;
+  }
+
+  // Falls jemand den Namen von P2 nach der Verifizierung manuell ändert -> ID löschen!
+  const p2Input = document.getElementById("local-p2-name");
+  if (localP2Id && !p2Input.disabled && localP2Name !== p2Input.value) {
+    localP2Id = null;
+  }
   isP2Bot = localP2Name.includes("[BOT]");
   localP1Legs = 0;
   localP2Legs = 0;
@@ -85,7 +101,11 @@ function resetLegLocal() {
       p1Img || `https://api.dicebear.com/7.x/avataaars/svg?seed=${localP1Name}`;
   }
   if (avatarP2) {
-    avatarP2.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${localP2Name}`;
+    // NEU: Nutze den gespeicherten Avatar aus der Verifizierung (falls vorhanden)
+    // Wenn nicht (z.B. unregistrierter Gast), nutze den Dicebear-Fallback
+    avatarP2.src =
+      localP2AvatarUrl ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${localP2Name}`;
   }
 
   // 2. DANN ERST DIE HISTORIE LADEN!
@@ -341,6 +361,11 @@ function undo501Turn() {
   }
 
   const lastState = history501Stack.pop();
+
+  if (lastState.statsTrackerState) {
+    statsTracker = lastState.statsTrackerState;
+  }
+
   localP1Score = lastState.p1Score;
   localP2Score = lastState.p2Score;
   p1Darts501 = lastState.p1Darts;
@@ -792,353 +817,364 @@ function updateThrowHistoryUI() {
 }
 
 async function submit501Score(presetScore = null) {
-  // 1. NEU: Erlaubt Preset-Buttons (falls du welche nutzt) und fängt das Double-Click-Problem stumm ab!
-  let scoreStr =
-    presetScore !== null ? presetScore.toString() : current501Input;
-  if (scoreStr === "" || scoreStr === null) return;
+  if (isSubmittingThrow) return;
+  isSubmittingThrow = true;
 
-  if (!isLocal501 && !isMyTurn) return;
+  try {
+    // 1. NEU: Erlaubt Preset-Buttons (falls du welche nutzt) und fängt das Double-Click-Problem stumm ab!
+    let scoreStr =
+      presetScore !== null ? presetScore.toString() : current501Input;
+    if (scoreStr === "" || scoreStr === null) return;
 
-  let score = parseInt(scoreStr);
+    if (!isLocal501 && !isMyTurn) return;
 
-  // Fängt wirkliche Fehleingaben ab (z.B. Buchstaben)
-  if (isNaN(score)) {
-    showToast("Ungültige Eingabe!", "error");
-    current501Input = "";
-    update501Display();
-    return;
-  }
+    let score = parseInt(scoreStr);
 
-  if (score < 0 || score > 180) {
-    showToast("Score muss zwischen 0 und 180 liegen!", "error");
-    current501Input = "";
-    update501Display();
-    return;
-  }
-
-  const impossibleScores = [163, 166, 169, 172, 173, 175, 176, 178, 179];
-  if (impossibleScores.includes(score)) {
-    alert(`Ein Score von ${score} ist nicht möglich!`);
-    current501Input = "";
-    update501Display();
-    return;
-  }
-
-  let currentPoints = isLocal501
-    ? localCurrentTurn === 1
-      ? localP1Score
-      : localP2Score
-    : amIPlayer1
-    ? parseInt(document.getElementById("p1-score").innerText)
-    : parseInt(document.getElementById("p2-score").innerText);
-
-  const bogeyFinishes = [169, 168, 166, 165, 163, 162, 159];
-  if (score === currentPoints && bogeyFinishes.includes(score)) {
-    alert(
-      `Nice try! Aber ${score} ist eine Bogey-Zahl. Die kannst du unmöglich mit einem Doppel checken!`
-    );
-    current501Input = "";
-    update501Display();
-    return;
-  }
-
-  let newScore = currentPoints - score;
-  let isBust = false;
-  let throwText = score.toString();
-
-  if (newScore < 0 || newScore === 1) {
-    newScore = currentPoints;
-    isBust = true;
-    throwText = "Bust";
-  }
-
-  let isFinished = newScore === 0;
-
-  // --- PRO STATS & CHECKOUT TRACKING ---
-  let isOnFinish = getCheckoutPath(currentPoints) !== "";
-  let dartsThrownThisTurn = 3;
-  let doubleDarts = 0;
-  let pStats = isLocal501
-    ? localCurrentTurn === 1
-      ? statsTracker.p1
-      : statsTracker.p2
-    : amIPlayer1
-    ? statsTracker.p1
-    : statsTracker.p2;
-  let isBotThrow = isLocal501 && localCurrentTurn === 2 && isP2Bot;
-
-  // 1. ZUERST POPUPS FRAGEN (mit Möglichkeit zum Abbrechen!)
-  if (isBust) {
-    // NEU: Zuerst fragen, wie viele Darts überhaupt geworfen wurden!
-    let ansDarts = isBotThrow
-      ? botDartsThrownThisTurn
-      : await askCheckoutOverlay(
-          "Bust!\nMit dem wievielten Dart überworfen?",
-          1,
-          3,
-          true
-        );
-
-    if (ansDarts === "CANCEL") {
+    // Fängt wirkliche Fehleingaben ab (z.B. Buchstaben)
+    if (isNaN(score)) {
+      showToast("Ungültige Eingabe!", "error");
       current501Input = "";
       update501Display();
       return;
     }
-    dartsThrownThisTurn = ansDarts;
 
-    // Danach (falls man auf einem Finish stand), fragen wie viele davon aufs Doppel gingen
-    if (isOnFinish) {
-      let ansDouble = isBotThrow
-        ? botDoubleAttempts
-        : await askCheckoutOverlay(
-            `Bust! Wie viele der ${dartsThrownThisTurn} Darts gingen aufs Doppel?`,
-            0,
-            dartsThrownThisTurn, // Max Darts sind die geworfenen Darts
-            false // Kein Cancel mehr nötig
-          );
-      doubleDarts = ansDouble;
-    }
-  } else if (isFinished) {
-    let ansDarts = isBotThrow
-      ? botDartsThrownThisTurn
-      : await askCheckoutOverlay(
-          "GAME SHOT!\nMit dem wievielten Dart gecheckt?",
-          1,
-          3,
-          true
-        );
-
-    if (ansDarts === "CANCEL") {
+    if (score < 0 || score > 180) {
+      showToast("Score muss zwischen 0 und 180 liegen!", "error");
       current501Input = "";
       update501Display();
-      return; // Bricht den Wurf lautlos ab!
+      return;
     }
-    dartsThrownThisTurn = ansDarts;
 
-    // Folgefrage (Hier kein Cancel mehr nötig, da der User den Game Shot schon bestätigt hat)
-    let ansDouble = isBotThrow
-      ? botDoubleAttempts
-      : await askCheckoutOverlay(
-          `Checkout Attempts:\nWie viele der ${dartsThrownThisTurn} Darts waren aufs Doppel?`,
-          1,
-          dartsThrownThisTurn,
-          false
-        );
-    doubleDarts = ansDouble;
-  } else {
-    let isDirectDouble =
-      (currentPoints <= 40 && currentPoints % 2 === 0) || currentPoints === 50;
-    if (isOnFinish && (score > 0 || isDirectDouble)) {
-      let ans = isBotThrow
-        ? botDoubleAttempts
+    const impossibleScores = [163, 166, 169, 172, 173, 175, 176, 178, 179];
+    if (impossibleScores.includes(score)) {
+      alert(`Ein Score von ${score} ist nicht möglich!`);
+      current501Input = "";
+      update501Display();
+      return;
+    }
+
+    let currentPoints = isLocal501
+      ? localCurrentTurn === 1
+        ? localP1Score
+        : localP2Score
+      : amIPlayer1
+      ? parseInt(document.getElementById("p1-score").innerText)
+      : parseInt(document.getElementById("p2-score").innerText);
+
+    const bogeyFinishes = [169, 168, 166, 165, 163, 162, 159];
+    if (score === currentPoints && bogeyFinishes.includes(score)) {
+      alert(
+        `Nice try! Aber ${score} ist eine Bogey-Zahl. Die kannst du unmöglich mit einem Doppel checken!`
+      );
+      current501Input = "";
+      update501Display();
+      return;
+    }
+
+    let newScore = currentPoints - score;
+    let isBust = false;
+    let throwText = score.toString();
+
+    if (newScore < 0 || newScore === 1) {
+      newScore = currentPoints;
+      isBust = true;
+      throwText = "Bust";
+    }
+
+    let isFinished = newScore === 0;
+
+    // --- PRO STATS & CHECKOUT TRACKING ---
+    let isOnFinish = getCheckoutPath(currentPoints) !== "";
+    let dartsThrownThisTurn = 3;
+    let doubleDarts = 0;
+    let pStats = isLocal501
+      ? localCurrentTurn === 1
+        ? statsTracker.p1
+        : statsTracker.p2
+      : amIPlayer1
+      ? statsTracker.p1
+      : statsTracker.p2;
+    let isBotThrow = isLocal501 && localCurrentTurn === 2 && isP2Bot;
+
+    // 1. ZUERST POPUPS FRAGEN (mit Möglichkeit zum Abbrechen!)
+    if (isBust) {
+      // NEU: Zuerst fragen, wie viele Darts überhaupt geworfen wurden!
+      let ansDarts = isBotThrow
+        ? botDartsThrownThisTurn
         : await askCheckoutOverlay(
-            "Kein Finish! Wie viele Darts gingen aufs Doppel?",
-            0,
+            "Bust!\nMit dem wievielten Dart überworfen?",
+            1,
             3,
             true
           );
 
-      if (ans === "CANCEL") {
+      if (ansDarts === "CANCEL") {
+        current501Input = "";
+        update501Display();
+        return;
+      }
+      dartsThrownThisTurn = ansDarts;
+
+      // Danach (falls man auf einem Finish stand), fragen wie viele davon aufs Doppel gingen
+      if (isOnFinish) {
+        let ansDouble = isBotThrow
+          ? botDoubleAttempts
+          : await askCheckoutOverlay(
+              `Bust! Wie viele der ${dartsThrownThisTurn} Darts gingen aufs Doppel?`,
+              0,
+              dartsThrownThisTurn, // Max Darts sind die geworfenen Darts
+              false // Kein Cancel mehr nötig
+            );
+        doubleDarts = ansDouble;
+      }
+    } else if (isFinished) {
+      let ansDarts = isBotThrow
+        ? botDartsThrownThisTurn
+        : await askCheckoutOverlay(
+            "GAME SHOT!\nMit dem wievielten Dart gecheckt?",
+            1,
+            3,
+            true
+          );
+
+      if (ansDarts === "CANCEL") {
         current501Input = "";
         update501Display();
         return; // Bricht den Wurf lautlos ab!
       }
-      doubleDarts = ans;
-    }
-  }
+      dartsThrownThisTurn = ansDarts;
 
-  // 2. WENN WIR HIER SIND: DER WURF IST GÜLTIG & BESTÄTIGT! JETZT STATS SPEICHERN!
-  if (score === 180) pStats.t180++;
-  else if (score >= 140) pStats.t140++;
-  else if (score >= 100) pStats.t100++;
-
-  let thrownVal = isBust ? 0 : score;
-  if (thrownVal > 0) {
-    pStats.scoreFrequencies[thrownVal] =
-      (pStats.scoreFrequencies[thrownVal] || 0) + 1;
-  }
-
-  if (isBust) {
-    pStats.busts++;
-    pStats.checkoutAttempts += doubleDarts;
-  } else if (isFinished) {
-    pStats.checkoutHits++;
-    if (currentPoints > (pStats.highestFinish || 0)) {
-      pStats.highestFinish = currentPoints;
-    }
-    pStats.checkoutAttempts += doubleDarts;
-  } else {
-    pStats.checkoutAttempts += doubleDarts;
-  }
-
-  let dartsBeforeTurn = pStats.dartsCurrentLeg;
-  if (dartsBeforeTurn < 9) {
-    // Errechnet, wie viele Darts DIESER Aufnahme noch zu den ersten 9 gehören
-    let allowedDarts = Math.min(dartsThrownThisTurn, 9 - dartsBeforeTurn);
-    pStats.first9Darts += allowedDarts;
-
-    // Fällt die komplette Aufnahme in die ersten 9 Darts?
-    if (allowedDarts === dartsThrownThisTurn) {
-      pStats.first9Score += thrownVal;
+      // Folgefrage (Hier kein Cancel mehr nötig, da der User den Game Shot schon bestätigt hat)
+      let ansDouble = isBotThrow
+        ? botDoubleAttempts
+        : await askCheckoutOverlay(
+            `Checkout Attempts:\nWie viele der ${dartsThrownThisTurn} Darts waren aufs Doppel?`,
+            1,
+            dartsThrownThisTurn,
+            false
+          );
+      doubleDarts = ansDouble;
     } else {
-      // Falls die Aufnahme die Grenze überschreitet (z.B. Darts 8, 9, 10 der Runde)
-      // -> Rechnen wir den Score anteilig runter, da wir Einzeldarts nicht kennen.
-      pStats.first9Score += Math.round(
-        (thrownVal / dartsThrownThisTurn) * allowedDarts
+      let isDirectDouble =
+        (currentPoints <= 40 && currentPoints % 2 === 0) ||
+        currentPoints === 50;
+      if (isOnFinish && (score > 0 || isDirectDouble)) {
+        let ans = isBotThrow
+          ? botDoubleAttempts
+          : await askCheckoutOverlay(
+              "Kein Finish! Wie viele Darts gingen aufs Doppel?",
+              0,
+              3,
+              true
+            );
+
+        if (ans === "CANCEL") {
+          current501Input = "";
+          update501Display();
+          return; // Bricht den Wurf lautlos ab!
+        }
+        doubleDarts = ans;
+      }
+    }
+    let statsSnapshot = JSON.parse(JSON.stringify(statsTracker));
+    // 2. WENN WIR HIER SIND: DER WURF IST GÜLTIG & BESTÄTIGT! JETZT STATS SPEICHERN!
+    if (score === 180) pStats.t180++;
+    else if (score >= 140) pStats.t140++;
+    else if (score >= 100) pStats.t100++;
+
+    let thrownVal = isBust ? 0 : score;
+    if (thrownVal > 0) {
+      pStats.scoreFrequencies[thrownVal] =
+        (pStats.scoreFrequencies[thrownVal] || 0) + 1;
+    }
+
+    if (isBust) {
+      pStats.busts++;
+      pStats.checkoutAttempts += doubleDarts;
+    } else if (isFinished) {
+      pStats.checkoutHits++;
+      if (currentPoints > (pStats.highestFinish || 0)) {
+        pStats.highestFinish = currentPoints;
+      }
+      pStats.checkoutAttempts += doubleDarts;
+    } else {
+      pStats.checkoutAttempts += doubleDarts;
+    }
+
+    let dartsBeforeTurn = pStats.dartsCurrentLeg;
+    if (dartsBeforeTurn < 9) {
+      // Errechnet, wie viele Darts DIESER Aufnahme noch zu den ersten 9 gehören
+      let allowedDarts = Math.min(dartsThrownThisTurn, 9 - dartsBeforeTurn);
+      pStats.first9Darts += allowedDarts;
+
+      // Fällt die komplette Aufnahme in die ersten 9 Darts?
+      if (allowedDarts === dartsThrownThisTurn) {
+        pStats.first9Score += thrownVal;
+      } else {
+        // Falls die Aufnahme die Grenze überschreitet (z.B. Darts 8, 9, 10 der Runde)
+        // -> Rechnen wir den Score anteilig runter, da wir Einzeldarts nicht kennen.
+        pStats.first9Score += Math.round(
+          (thrownVal / dartsThrownThisTurn) * allowedDarts
+        );
+      }
+    }
+
+    pStats.dartsCurrentLeg += dartsThrownThisTurn;
+    if (
+      isFinished &&
+      (pStats.bestLeg === 0 || pStats.dartsCurrentLeg < pStats.bestLeg)
+    ) {
+      pStats.bestLeg = pStats.dartsCurrentLeg;
+    }
+    // -------------------------------------
+
+    if (isLocal501) {
+      history501Stack.push({
+        p1Score: localP1Score,
+        p2Score: localP2Score,
+        p1Darts: p1Darts501,
+        p2Darts: p2Darts501,
+        turn: localCurrentTurn,
+        p1Last: p1LastThrow,
+        p2Last: p2LastThrow,
+        p1Total: p1TotalScore,
+        p2Total: p2TotalScore,
+        p1Throws: [...p1LegThrows], // <--- NEU
+        p2Throws: [...p2LegThrows], // <--- NEU
+        statsTrackerState: statsSnapshot,
+      });
+
+      // --- NEU: WURF IN DIE LISTE SCHREIBEN (LOKAL) ---
+      if (localCurrentTurn === 1)
+        p1LegThrows.push({
+          old: currentPoints,
+          thrown: throwText,
+          new: newScore,
+        });
+      else
+        p2LegThrows.push({
+          old: currentPoints,
+          thrown: throwText,
+          new: newScore,
+        });
+      updateThrowHistoryUI();
+      // ------------------------------------------------
+
+      if (localCurrentTurn === 1) {
+        localP1Score = newScore;
+        p1Darts501 += dartsThrownThisTurn; // Nutzt jetzt die echten Darts!
+        p1TotalScore += currentPoints - newScore;
+        p1LastThrow = throwText;
+      } else {
+        localP2Score = newScore;
+        p2Darts501 += dartsThrownThisTurn; // Nutzt jetzt die echten Darts!
+        p2TotalScore += currentPoints - newScore;
+        p2LastThrow = throwText;
+      }
+      update501QoL(localP1Score, localP2Score);
+
+      if (isFinished) {
+        handleLegWinLocal(
+          localCurrentTurn === 1 ? localP1Name : localP2Name,
+          localCurrentTurn === 1 ? 1 : 2,
+          score
+        );
+        return;
+      }
+      localCurrentTurn = localCurrentTurn === 1 ? 2 : 1;
+      updateLocalTurnHighlight();
+      if (localCurrentTurn === 2 && isP2Bot) play501BotTurn();
+    } else {
+      let prevState = {
+        player1_score: parseInt(document.getElementById("p1-score").innerText),
+        player2_score: parseInt(document.getElementById("p2-score").innerText),
+        player1_darts: p1Darts501,
+        player2_darts: p2Darts501,
+        player1_avg:
+          parseFloat(document.getElementById("p1-match-avg").innerText) || 0,
+        player2_avg:
+          parseFloat(document.getElementById("p2-match-avg").innerText) || 0,
+        player1_last_score: document.getElementById("p1-last-throw").innerText,
+        player2_last_score: document.getElementById("p2-last-throw").innerText,
+        current_turn: amIPlayer1 ? 1 : 2,
+      };
+
+      if (amIPlayer1) {
+        p1LegThrows.push({
+          old: currentPoints,
+          thrown: throwText,
+          new: newScore,
+        });
+        p1Darts501 += dartsThrownThisTurn;
+        p1TotalScore += currentPoints - newScore;
+      } else {
+        p2LegThrows.push({
+          old: currentPoints,
+          thrown: throwText,
+          new: newScore,
+        }); // <--- NEU
+        p2Darts501 += dartsThrownThisTurn;
+        p2TotalScore += currentPoints - newScore;
+      }
+      let myDarts = amIPlayer1 ? p1Darts501 : p2Darts501;
+
+      update501QoL(
+        amIPlayer1 ? newScore : prevState.player1_score,
+        amIPlayer1 ? prevState.player2_score : newScore
       );
+      isMyTurn = false;
+      document.getElementById("input-display-501").innerText = "Sende...";
+
+      prevState.statsTrackerState = statsSnapshot;
+
+      let updatePayload = {
+        current_turn: amIPlayer1 ? 2 : 1,
+        last_action: isBust ? "Bust" : `Score: ${score}`,
+        undo_requested: false,
+        prev_state: prev_state,
+      };
+
+      if (amIPlayer1) {
+        updatePayload.player1_score = newScore;
+        updatePayload.player1_darts = myDarts;
+        updatePayload.player1_last_score = throwText;
+        updatePayload.player1_avg =
+          parseFloat(((p1TotalScore / myDarts) * 3).toFixed(2)) || 0.0;
+      } else {
+        updatePayload.player2_score = newScore;
+        updatePayload.player2_darts = myDarts;
+        updatePayload.player2_last_score = throwText;
+        updatePayload.player2_avg =
+          parseFloat(((p2TotalScore / myDarts) * 3).toFixed(2)) || 0.0;
+      }
+
+      if (isFinished) {
+        let p1LegsDB =
+          parseInt(document.getElementById("p1-legs-display").innerText) || 0;
+        let p2LegsDB =
+          parseInt(document.getElementById("p2-legs-display").innerText) || 0;
+        if (amIPlayer1) p1LegsDB++;
+        else p2LegsDB++;
+        updatePayload.player1_legs = p1LegsDB;
+        updatePayload.player2_legs = p2LegsDB;
+
+        let safeBestOf = parseInt(bestOfLegs) || 3;
+        let neededLegs = Math.max(1, Math.ceil(safeBestOf / 2));
+        if (p1LegsDB >= neededLegs || p2LegsDB >= neededLegs)
+          updatePayload.status = "match_won";
+        else updatePayload.status = "leg_won";
+      }
+      const { error: dbError } = await _supabase
+        .from("live_matches")
+        .update(updatePayload)
+        .eq("room_code", currentRoomCode);
+      if (dbError) {
+        alert("Datenbank-Fehler beim Senden: " + dbError.message);
+        document.getElementById("input-display-501").innerText = "Fehler!";
+      }
     }
-  }
-
-  pStats.dartsCurrentLeg += dartsThrownThisTurn;
-  if (
-    isFinished &&
-    (pStats.bestLeg === 0 || pStats.dartsCurrentLeg < pStats.bestLeg)
-  ) {
-    pStats.bestLeg = pStats.dartsCurrentLeg;
-  }
-  // -------------------------------------
-
-  if (isLocal501) {
-    history501Stack.push({
-      p1Score: localP1Score,
-      p2Score: localP2Score,
-      p1Darts: p1Darts501,
-      p2Darts: p2Darts501,
-      turn: localCurrentTurn,
-      p1Last: p1LastThrow,
-      p2Last: p2LastThrow,
-      p1Total: p1TotalScore,
-      p2Total: p2TotalScore,
-      p1Throws: [...p1LegThrows], // <--- NEU
-      p2Throws: [...p2LegThrows], // <--- NEU
-    });
-
-    // --- NEU: WURF IN DIE LISTE SCHREIBEN (LOKAL) ---
-    if (localCurrentTurn === 1)
-      p1LegThrows.push({
-        old: currentPoints,
-        thrown: throwText,
-        new: newScore,
-      });
-    else
-      p2LegThrows.push({
-        old: currentPoints,
-        thrown: throwText,
-        new: newScore,
-      });
-    updateThrowHistoryUI();
-    // ------------------------------------------------
-
-    if (localCurrentTurn === 1) {
-      localP1Score = newScore;
-      p1Darts501 += dartsThrownThisTurn; // Nutzt jetzt die echten Darts!
-      p1TotalScore += currentPoints - newScore;
-      p1LastThrow = throwText;
-    } else {
-      localP2Score = newScore;
-      p2Darts501 += dartsThrownThisTurn; // Nutzt jetzt die echten Darts!
-      p2TotalScore += currentPoints - newScore;
-      p2LastThrow = throwText;
-    }
-    update501QoL(localP1Score, localP2Score);
-
-    if (isFinished) {
-      handleLegWinLocal(
-        localCurrentTurn === 1 ? localP1Name : localP2Name,
-        localCurrentTurn === 1 ? 1 : 2,
-        score
-      );
-      return;
-    }
-    localCurrentTurn = localCurrentTurn === 1 ? 2 : 1;
-    updateLocalTurnHighlight();
-    if (localCurrentTurn === 2 && isP2Bot) play501BotTurn();
-  } else {
-    let prevState = {
-      player1_score: parseInt(document.getElementById("p1-score").innerText),
-      player2_score: parseInt(document.getElementById("p2-score").innerText),
-      player1_darts: p1Darts501,
-      player2_darts: p2Darts501,
-      player1_avg:
-        parseFloat(document.getElementById("p1-match-avg").innerText) || 0,
-      player2_avg:
-        parseFloat(document.getElementById("p2-match-avg").innerText) || 0,
-      player1_last_score: document.getElementById("p1-last-throw").innerText,
-      player2_last_score: document.getElementById("p2-last-throw").innerText,
-      current_turn: amIPlayer1 ? 1 : 2,
-    };
-
-    if (amIPlayer1) {
-      p1LegThrows.push({
-        old: currentPoints,
-        thrown: throwText,
-        new: newScore,
-      });
-      p1Darts501 += dartsThrownThisTurn;
-      p1TotalScore += currentPoints - newScore;
-    } else {
-      p2LegThrows.push({
-        old: currentPoints,
-        thrown: throwText,
-        new: newScore,
-      }); // <--- NEU
-      p2Darts501 += dartsThrownThisTurn;
-      p2TotalScore += currentPoints - newScore;
-    }
-    let myDarts = amIPlayer1 ? p1Darts501 : p2Darts501;
-
-    update501QoL(
-      amIPlayer1 ? newScore : prevState.player1_score,
-      amIPlayer1 ? prevState.player2_score : newScore
-    );
-    isMyTurn = false;
-    document.getElementById("input-display-501").innerText = "Sende...";
-
-    let updatePayload = {
-      current_turn: amIPlayer1 ? 2 : 1,
-      last_action: isBust ? "Bust" : `Score: ${score}`,
-      undo_requested: false,
-      prev_state: prevState,
-    };
-
-    if (amIPlayer1) {
-      updatePayload.player1_score = newScore;
-      updatePayload.player1_darts = myDarts;
-      updatePayload.player1_last_score = throwText;
-      updatePayload.player1_avg =
-        parseFloat(((p1TotalScore / myDarts) * 3).toFixed(2)) || 0.0;
-    } else {
-      updatePayload.player2_score = newScore;
-      updatePayload.player2_darts = myDarts;
-      updatePayload.player2_last_score = throwText;
-      updatePayload.player2_avg =
-        parseFloat(((p2TotalScore / myDarts) * 3).toFixed(2)) || 0.0;
-    }
-
-    if (isFinished) {
-      let p1LegsDB =
-        parseInt(document.getElementById("p1-legs-display").innerText) || 0;
-      let p2LegsDB =
-        parseInt(document.getElementById("p2-legs-display").innerText) || 0;
-      if (amIPlayer1) p1LegsDB++;
-      else p2LegsDB++;
-      updatePayload.player1_legs = p1LegsDB;
-      updatePayload.player2_legs = p2LegsDB;
-
-      let safeBestOf = parseInt(bestOfLegs) || 3;
-      let neededLegs = Math.max(1, Math.ceil(safeBestOf / 2));
-      if (p1LegsDB >= neededLegs || p2LegsDB >= neededLegs)
-        updatePayload.status = "match_won";
-      else updatePayload.status = "leg_won";
-    }
-    const { error: dbError } = await _supabase
-      .from("live_matches")
-      .update(updatePayload)
-      .eq("room_code", currentRoomCode);
-    if (dbError) {
-      alert("Datenbank-Fehler beim Senden: " + dbError.message);
-      document.getElementById("input-display-501").innerText = "Fehler!";
-    }
+  } finally {
+    isSubmittingThrow = false;
   }
 }
 
@@ -1207,6 +1243,20 @@ function listenForOpponent(roomCode) {
             ? `${winnerName} gewinnt das Match!`
             : `${winnerName} gewinnt das Leg!`;
 
+          // 1. ZUERST DAS LEG AUFZEICHNEN (Fehlerbehebung: Muss vor dem Speichern passieren!)
+          if (overlay.style.display !== "flex") {
+            let finishPoints =
+              parseInt((dbData.last_action || "0").replace(/\D/g, "")) || 0;
+            recordLegStat501(
+              winnerName,
+              dbData.player1_name,
+              dbData.player2_name,
+              dbData.player1_score,
+              dbData.player2_score,
+              finishPoints
+            );
+          }
+
           if (isMatchWon) {
             btnNext.style.display = "none";
 
@@ -1219,7 +1269,7 @@ function listenForOpponent(roomCode) {
                 "\n(Warte auf Host für Rematch...)";
             }
 
-            // Stats nur 1x speichern, wenn sich das Overlay öffnet
+            // 2. DANN ERST DIE STATS IN DIE DB SCHREIBEN (Jetzt ist das Match-Log vollständig)
             if (overlay.style.display !== "flex" && !isGuest && currentUser) {
               let totalLegs = dbData.player1_legs + dbData.player2_legs;
               let myLegs = amIPlayer1
@@ -1229,47 +1279,64 @@ function listenForOpponent(roomCode) {
               let myDarts = amIPlayer1
                 ? dbData.player1_darts
                 : dbData.player2_darts;
+
               let myAvg =
                 myDarts > 0 ? ((myScore / myDarts) * 3).toFixed(2) : 0;
-              let p1WonLeg = dbData.player1_score === 0;
+              let isWin =
+                (amIPlayer1 && p1WonLeg) || (!amIPlayer1 && !p1WonLeg);
 
               let myStatsObj = amIPlayer1 ? statsTracker.p1 : statsTracker.p2;
-
-              // ---> KORREKTUR: Nur noch das neue, sichere System nutzen! <---
               let finalScore = myStatsObj.highestFinish || 0;
 
-              save501Stats(
-                myOnlineName,
-                myLegs,
-                totalLegs,
-                myDarts,
-                myScore,
-                finalScore, // isNaN-Check ist nicht mehr nötig, da highestFinish immer eine Zahl ist
-                myStatsObj
-              );
+              const opponentName = amIPlayer1
+                ? dbData.player2_name
+                : dbData.player1_name;
 
-              save501MatchHistory(
-                myOnlineName,
-                amIPlayer1 ? dbData.player2_name : dbData.player1_name,
-                (amIPlayer1 && p1WonLeg) || (!amIPlayer1 && !p1WonLeg),
-                parseFloat(myAvg),
-                myDarts,
-                finalScore,
-                currentMatchLog501
-              );
+              const matchPayload = {
+                mode: "501",
+                players: [
+                  {
+                    user_id: currentUser.id,
+                    opponentName,
+                    isWin,
+                    legsWon: myLegs,
+                    totalLegs,
+                    dartsThrown: myDarts,
+                    scoreThrown: myScore,
+                    matchAvg: parseFloat(myAvg),
+                    highestFinish: finalScore,
+                    statsObj: myStatsObj,
+                    matchLog: currentMatchLog501, // <-- Jetzt sind hier auch beide Legs drin!
+                  },
+                ],
+              };
+
+              _supabase
+                .rpc("process_match_results", { payload: matchPayload })
+                .then(({ error }) => {
+                  if (error) {
+                    console.error("Stats Error:", error.message);
+                    if (typeof showToast === "function")
+                      showToast(
+                        "Stats konnten nicht gespeichert werden.",
+                        "error"
+                      );
+                  } else {
+                    if (typeof showToast === "function")
+                      showToast("Stats gespeichert ✓", "success");
+                  }
+                });
             }
           } else {
             btnRematch.style.display = "none";
 
-            // ---> NEU: Automatischer Start durch den Host <---
+            // Automatischer Start durch den Host
             if (isOnlineHost) {
               btnNext.style.display = "inline-block";
               btnNext.innerText = "Nächstes Leg startet...";
-              btnNext.disabled = false; // Falls man manuell schneller klicken will
+              btnNext.disabled = false;
 
-              // Wartet 3 Sekunden und startet das nächste Leg
               setTimeout(() => {
-                // Nur ausführen, falls das Overlay noch offen ist
                 if (overlay.style.display === "flex") {
                   startNextLeg();
                 }
@@ -1279,20 +1346,6 @@ function listenForOpponent(roomCode) {
               btnNext.innerText = "Nächstes Leg startet...";
               btnNext.disabled = true;
             }
-          }
-
-          // Leg-Historie aufzeichnen (nur 1x)
-          if (overlay.style.display !== "flex") {
-            let finishPoints =
-              parseInt((dbData.last_action || "0").replace(/\D/g, "")) || 0;
-            recordLegStat501(
-              winnerName,
-              dbData.player1_name,
-              dbData.player2_name,
-              dbData.player1_score,
-              dbData.player2_score,
-              finishPoints
-            );
           }
 
           overlay.style.display = "flex";
@@ -1468,52 +1521,61 @@ function handleLegWinLocal(winnerName, playerNum, finishScore) {
     matchWon = true;
     let totalLegs = localP1Legs + localP2Legs;
 
-    // Stats speichern (Nutzt trackerObj statt undefinierter p1FinalScore)
-    save501Stats(
-      localP1Name,
-      localP1Legs,
-      totalLegs,
-      p1Darts501,
-      p1TotalScore,
-      statsTracker.p1.highestFinish || 0,
-      statsTracker.p1
-    );
+    // --- NEU: Wir bauen den Payload für das Backend! ---
+    const matchPayload = {
+      mode: "501",
+      players: [],
+    };
 
-    if (!isP2Bot) {
-      save501Stats(
-        localP2Name,
-        localP2Legs,
-        totalLegs,
-        p2Darts501,
-        p2TotalScore,
-        statsTracker.p2.highestFinish || 0,
-        statsTracker.p2
-      );
+    // Spieler 1 (Host) hinzufügen, wenn er eine ID hat
+    if (localP1Id) {
+      let p1Avg =
+        p1Darts501 > 0 ? ((p1TotalScore / p1Darts501) * 3).toFixed(2) : 0;
+      matchPayload.players.push({
+        user_id: localP1Id,
+        opponentName: localP2Name,
+        isWin: localP1Legs >= legsToWin,
+        legsWon: localP1Legs,
+        totalLegs: totalLegs,
+        dartsThrown: p1Darts501,
+        scoreThrown: p1TotalScore,
+        matchAvg: parseFloat(p1Avg),
+        highestFinish: statsTracker.p1.highestFinish || 0,
+        statsObj: statsTracker.p1,
+        matchLog: currentMatchLog501,
+      });
     }
 
-    let p1Avg =
-      p1Darts501 > 0 ? ((p1TotalScore / p1Darts501) * 3).toFixed(2) : 0;
-    let p2Avg =
-      p2Darts501 > 0 ? ((p2TotalScore / p2Darts501) * 3).toFixed(2) : 0;
+    // Spieler 2 (Gast) hinzufügen, wenn er sich verifiziert hat UND kein Bot ist
+    if (localP2Id && !isP2Bot) {
+      let p2Avg =
+        p2Darts501 > 0 ? ((p2TotalScore / p2Darts501) * 3).toFixed(2) : 0;
+      matchPayload.players.push({
+        user_id: localP2Id,
+        opponentName: localP1Name,
+        isWin: localP2Legs >= legsToWin,
+        legsWon: localP2Legs,
+        totalLegs: totalLegs,
+        dartsThrown: p2Darts501,
+        scoreThrown: p2TotalScore,
+        matchAvg: parseFloat(p2Avg),
+        highestFinish: statsTracker.p2.highestFinish || 0,
+        statsObj: statsTracker.p2,
+        matchLog: currentMatchLog501,
+      });
+    }
 
-    save501MatchHistory(
-      localP1Name,
-      localP2Name,
-      localP1Legs >= legsToWin,
-      parseFloat(p1Avg),
-      p1Darts501,
-      statsTracker.p1.highestFinish || 0,
-      currentMatchLog501
-    );
-    save501MatchHistory(
-      localP2Name,
-      localP1Name,
-      localP2Legs >= legsToWin,
-      parseFloat(p2Avg),
-      p2Darts501,
-      statsTracker.p2.highestFinish || 0,
-      currentMatchLog501
-    );
+    console.log("localP1Id", localP1Id, "localP2Id", localP2Id);
+    console.log("players payload", matchPayload.players);
+
+    // Payload feuern (Ignoriert lokale Gäste ohne ID komplett)
+    if (matchPayload.players.length > 0) {
+      _supabase
+        .rpc("process_match_results", { payload: matchPayload })
+        .then(({ error }) => {
+          if (error) console.error("Stats Error:", error.message);
+        });
+    }
   }
 
   const overlay = document.getElementById("win-overlay-501");
@@ -1777,4 +1839,46 @@ function stopLocalGameLogic() {
   if (numpad) numpad.style.pointerEvents = "auto";
   if (presets) presets.style.pointerEvents = "auto";
 }
-//
+
+async function verifyLocalPlayer2_501() {
+  openPairingInputModal(async (code) => {
+    // Validierung über die neue SQL-Funktion aufrufen
+    const { data, error } = await _supabase.rpc("verify_pairing_code", {
+      p_code: code,
+    });
+
+    if (error || !data || data.length === 0) {
+      if (typeof showToast === "function")
+        showToast("Code ungültig oder abgelaufen.", "error");
+      return;
+    }
+
+    const guestData = data[0];
+    localP2Id = guestData.user_id;
+
+    // 1. Avatar URL bestimmen (Datenbank ODER generierter Fallback)
+    localP2AvatarUrl =
+      guestData.avatar_url ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${guestData.name}`;
+
+    // 2. Das Eingabefeld im Setup-Screen updaten
+    const p2Input = document.getElementById("local-p2-name");
+    if (p2Input) {
+      p2Input.value = guestData.name;
+      p2Input.disabled = true;
+    }
+
+    // 3. NEU: Den Avatar schon mal in das <img> Tag des versteckten Game-Screens laden!
+    const gameAvatarP2 = document.getElementById("avatar-p2");
+    if (gameAvatarP2) {
+      gameAvatarP2.src = localP2AvatarUrl;
+    }
+
+    if (typeof showToast === "function") {
+      showToast(
+        `✅ ${guestData.name} wurde erfolgreich verifiziert!`,
+        "success"
+      );
+    }
+  });
+}

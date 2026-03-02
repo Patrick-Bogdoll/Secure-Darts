@@ -2,18 +2,67 @@ function addPlayer() {
   const input = document.getElementById("player-input");
   const name = input.value.trim();
   if (name) {
+    // NEU: Prüfen, ob der eingegebene Name der eingeloggte Host ist
+    let p_user_id = null;
+    if (!isGuest && currentUser && name === myOnlineName) {
+      p_user_id = currentUser.id;
+    }
+
     players.push({
       isBot: false,
       name: name,
+      user_id: p_user_id, // <--- HIER: ID wird gespeichert (oder bleibt null für unregistrierte Gäste)
       score: 0,
       stats: { rounds: 0, secures: 0, doubles: 0, numberData: {} },
       matchLog: [],
     });
+
+    // Kleines optisches Feedback: Host kriegt ein Häkchen
+    let verifiedTag = p_user_id ? " ✓" : "";
     document.getElementById(
       "player-list-setup"
-    ).innerHTML += `<div style="background:#333; padding:5px; margin:5px; display:inline-block; border-radius:5px;">${name}</div>`;
+    ).innerHTML += `<div style="background:#333; padding:5px; margin:5px; display:inline-block; border-radius:5px;">${name}${verifiedTag}</div>`;
     input.value = "";
   }
+}
+
+function addVerifiedPlayer() {
+  // Wir öffnen das neue Input-Modal und warten auf den Code
+  openPairingInputModal(async (code) => {
+    // Code ans Backend senden zur Prüfung
+    const { data, error } = await _supabase.rpc("verify_pairing_code", {
+      p_code: code,
+    });
+
+    if (error || !data || data.length === 0) {
+      if (typeof showToast === "function")
+        showToast("Code ungültig oder abgelaufen.", "error");
+      return;
+    }
+
+    // data[0] enthält name und user_id aus der Datenbank
+    const guestData = data[0];
+
+    // Gast sicher in die Liste aufnehmen
+    players.push({
+      isBot: false,
+      name: guestData.name,
+      user_id: guestData.user_id, // Die sichere ID aus der Datenbank
+      score: 0,
+      stats: { rounds: 0, secures: 0, doubles: 0, numberData: {} },
+      matchLog: [],
+    });
+
+    // Optisches Feedback in der Setup-Liste (Grüner Kasten mit Häkchen)
+    document.getElementById("player-list-setup").innerHTML += `
+      <div style="background:#10b981; color:black; padding:5px; margin:5px; display:inline-block; border-radius:5px; font-weight:bold;">
+        ${guestData.name} ✓
+      </div>`;
+
+    if (typeof showToast === "function") {
+      showToast(`${guestData.name} erfolgreich verifiziert!`, "success");
+    }
+  });
 }
 
 function addBot() {
@@ -314,17 +363,30 @@ async function handleGameEnd() {
   const winner = players[currentPlayerIndex];
   document.getElementById("bot-overlay").style.display = "none";
   alert(`🏆 ${winner.name} hat gewonnen!`);
+  const matchPayload = {
+    mode: "secure",
+    is_training: isTrainingMode,
+    players: [],
+  };
+
   for (let p of players) {
     if (p.isBot) continue;
+    // Wenn es ein lokaler Gast ohne user_id ist, verwerfen wir die Stats
+    if (!p.user_id) continue;
 
-    let dbName = p.name;
-    if (isTrainingMode) dbName = `${p.name} (Training)`;
-    let isWin = p.name === winner.name;
-
-    await saveProStats(dbName, p, isWin);
-    await saveMatchHistory(dbName, p, isWin);
+    matchPayload.players.push({
+      user_id: p.user_id,
+      isWin: p.name === winner.name,
+      score: p.score,
+      stats: p.stats,
+      matchLog: p.matchLog,
+    });
   }
-  location.reload();
+
+  if (matchPayload.players.length > 0) {
+    // Senden an sichere Backend-Funktion statt direkter DB-Manipulation
+    await _supabase.rpc("process_match_results", { payload: matchPayload });
+  }
 }
 
 async function saveProStats(name, pObj, isWin) {
@@ -663,5 +725,14 @@ if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
 }
 
 function cancelSecureGame() {
+  if (recognition && isVoiceActive) {
+    recognition.stop();
+    isVoiceActive = false;
+    const btn = document.getElementById("mic-btn");
+    if (btn) {
+      btn.innerHTML = "🎤 Sprachsteuerung: AUS";
+      btn.classList.remove("mic-active");
+    }
+  }
   cancelCurrentGame("game-secure-screen");
 }

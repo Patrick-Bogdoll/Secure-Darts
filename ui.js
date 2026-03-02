@@ -825,3 +825,53 @@ if (avatarInput) {
     }
   });
 }
+
+async function generatePairingCode() {
+  if (isGuest || !currentUser) {
+    showToast?.("Du musst eingeloggt sein!", "error");
+    return;
+  }
+
+  const { data, error } = await _supabase.rpc("create_pairing_code");
+  if (error || !data || data.length === 0) {
+    console.error(error);
+    showToast?.("Fehler: Code konnte nicht erstellt werden.", "error");
+    return;
+  }
+
+  const row = data[0];
+  document.getElementById("pairing-code-display").innerText = row.code;
+  document.getElementById("pairing-display-modal").style.display = "flex";
+}
+
+// Diese Funktion MUSS im Code existieren, sonst passiert beim Klick nichts!
+function openPairingInputModal(callback) {
+  const modal = document.getElementById("pairing-input-modal");
+  const input = document.getElementById("pairing-code-input");
+  const submitBtn = document.getElementById("btn-submit-pairing");
+
+  if (!modal || !input || !submitBtn) {
+    console.error("Fehler: Modal-HTML Elemente nicht gefunden!");
+    return;
+  }
+
+  // Feld leeren und Modal anzeigen
+  input.value = "";
+  modal.style.display = "flex";
+  input.focus();
+
+  // Klick-Event für den "Verifizieren"-Button
+  submitBtn.onclick = async () => {
+    const code = input.value.trim();
+    if (!code || code.length !== 6) {
+      if (typeof showToast === "function")
+        showToast("Bitte einen 6-stelligen Code eingeben.", "error");
+      else alert("Bitte einen 6-stelligen Code eingeben.");
+      return;
+    }
+
+    // Modal schließen und den eingegebenen Code an die Hauptfunktion zurückgeben
+    modal.style.display = "none";
+    if (callback) callback(code);
+  };
+}

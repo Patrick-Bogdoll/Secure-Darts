@@ -121,39 +121,44 @@ async function initUniversalModal(mode, encodedData, isSwitching = false) {
       .replace(" (501)", "");
   }
 
-  // --- NEUER FIX: DATEN NACHLADEN ---
-  // Wenn wir aus der Freundesliste kommen, fehlen die ganzen Stats (data.wins etc. ist undefined).
-  // In dem Fall holen wir den kompletten Datensatz frisch aus der Datenbank.
+  // --- NEUER FIX: DATEN NACHLADEN (ID-Abhängig) ---
   if (data.wins === undefined && data.total_points === undefined) {
     const conf = STATS_CONFIG[mode];
 
+    let query = _supabase.from(conf.table).select("*");
+    // Nutze bevorzugt die ID, Falle nur auf den Namen zurück, wenn keine ID da ist
+    if (data.user_id) query = query.eq("user_id", data.user_id);
+    else query = query.eq("name", currentModalRawName);
+
     if (conf.fetchType === "single") {
-      let { data: dbData } = await _supabase
-        .from(conf.table)
-        .select("*")
-        .eq("name", currentModalRawName)
-        .maybeSingle();
+      let { data: dbData } = await query.maybeSingle();
       if (dbData) data = dbData;
     } else {
-      let { data: dbData } = await _supabase
-        .from(conf.table)
-        .select("*")
-        .eq("name", currentModalRawName)
-        .order("created_at", { ascending: false });
-      if (dbData && dbData.length > 0) data = dbData; // data wird dann ein Array
+      let { data: dbData } = await query.order("created_at", {
+        ascending: false,
+      });
+      if (dbData && dbData.length > 0) data = dbData;
     }
   }
-  // ----------------------------------
 
   // Für 501 brauchen wir zusätzlich die Historie für den Chart
   let extraChartData = null;
   if (mode === "501") {
-    let { data: mData } = await _supabase
+    let queryExtra = _supabase
       .from("match_history_501")
       .select("match_details, created_at")
-      .eq("player_name", data.name || currentModalRawName)
       .order("created_at", { ascending: false })
       .limit(50);
+
+    // Historie ebenfalls über ID abrufen
+    if (data.user_id) queryExtra = queryExtra.eq("user_id", data.user_id);
+    else
+      queryExtra = queryExtra.eq(
+        "player_name",
+        data.name || currentModalRawName
+      );
+
+    let { data: mData } = await queryExtra;
     extraChartData = mData;
   }
 
@@ -746,7 +751,7 @@ function renderChart(labels, dataArray, conf) {
 // ==========================================
 // 6. ALLGEMEINE STATISTIK-LOGIK (DB & UI)
 // ==========================================
-async function save501Stats(
+/*async function save501Stats(
   playerName,
   legsWon,
   legsPlayed,
@@ -876,8 +881,8 @@ async function save501Stats(
         .eq("name", ex.name);
     }
   }
-}
-
+} */
+/*
 async function save501MatchHistory(
   playerName,
   opponentName,
@@ -912,7 +917,7 @@ async function save501MatchHistory(
 
   if (!isGuest && currentUser) payload.user_id = currentUser.id;
   await _supabase.from("match_history_501").insert([payload]);
-}
+}*/
 
 async function loadHighscores() {
   const tbody = document.querySelector("#lifetime-table tbody");
@@ -1003,7 +1008,7 @@ async function loadMatchHistory() {
     let { data: matches, error } = await _supabase
       .from("match_history_secure")
       .select("*")
-      .eq("player_name", currentModalPlayer)
+      .eq("user_id", currentUser ? currentUser.id : null) // Bzw. dynamisch die ID des angezeigten Profils
       .order("created_at", { ascending: false })
       .limit(50);
 
@@ -1103,7 +1108,7 @@ async function loadMatchHistory() {
     let { data: matches, error } = await _supabase
       .from("match_history_501")
       .select("*")
-      .eq("player_name", currentModalPlayer)
+      .eq("user_id", currentUser ? currentUser.id : null) // Bzw. dynamisch die ID des angezeigten Profils
       .order("created_at", { ascending: false })
       .limit(50);
     if (error || !matches || matches.length === 0) {
@@ -1316,14 +1321,12 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
       const m = JSON.parse(decodeURIComponent(encodedData));
 
       try {
-        if (mode === "bobs") {
-          await _supabase.from("stats_bobs").delete().eq("id", matchId);
-        } else if (mode === "rtw") {
-          await _supabase.from("stats_rtw").delete().eq("id", matchId);
-        } else if (mode === "501") {
+        let diffPayload = {};
+
+        if (mode === "501") {
           let totalPointsInMatch = 0;
           let legsCount = m.match_details ? m.match_details.length : 0;
-          let legsWonInMatch = 0; // <--- NEU: Zählt die gewonnenen LEGS, nicht Matches
+          let legsWonInMatch = 0;
 
           let scoresToRemove = {};
           let bustsToRemove = 0;
@@ -1337,12 +1340,9 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
               totalPointsInMatch += isP1
                 ? 501 - leg.p1_rest
                 : 501 - leg.p2_rest;
-
-              // NEU: Hat der Spieler dieses spezielle Leg gewonnen?
               if (leg.winner === m.player_name) legsWonInMatch++;
 
               let myHistory = isP1 ? leg.p1_history : leg.p2_history;
-
               if (myHistory && Array.isArray(myHistory)) {
                 myHistory.forEach((turn) => {
                   let val = turn.thrown === "Bust" ? 0 : parseInt(turn.thrown);
@@ -1358,65 +1358,39 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
             });
           }
 
+          // Hole nur die Frequencies zum Neuberechnen
           const { data: currentStats } = await _supabase
             .from("stats_501")
-            .select("*")
+            .select("score_frequencies")
             .eq("name", m.player_name)
             .maybeSingle();
 
-          if (currentStats) {
-            let updatedFreq = { ...(currentStats.score_frequencies || {}) };
-            for (let key in scoresToRemove) {
-              if (updatedFreq[key]) {
-                updatedFreq[key] = Math.max(
-                  0,
-                  updatedFreq[key] - scoresToRemove[key]
-                );
-                if (updatedFreq[key] === 0) delete updatedFreq[key];
-              }
+          let updatedFreq = currentStats
+            ? { ...(currentStats.score_frequencies || {}) }
+            : {};
+          for (let key in scoresToRemove) {
+            if (updatedFreq[key]) {
+              updatedFreq[key] = Math.max(
+                0,
+                updatedFreq[key] - scoresToRemove[key]
+              );
+              if (updatedFreq[key] === 0) delete updatedFreq[key];
             }
-
-            await _supabase
-              .from("stats_501")
-              .update({
-                wins: Math.max(0, (currentStats.wins || 0) - legsWonInMatch), // <-- GEFIXT: Zieht Legs ab!
-                games_played: Math.max(
-                  0,
-                  (currentStats.games_played || 0) - legsCount
-                ),
-                total_darts_thrown: Math.max(
-                  0,
-                  (currentStats.total_darts_thrown || 0) - m.darts_thrown
-                ),
-                total_score_thrown: Math.max(
-                  0,
-                  (currentStats.total_score_thrown || 0) - totalPointsInMatch
-                ),
-                checkout_hits: Math.max(
-                  0,
-                  (currentStats.checkout_hits || 0) - legsWonInMatch
-                ), // <-- GEFIXT
-                count_100: Math.max(
-                  0,
-                  (currentStats.count_100 || 0) - t100ToRemove
-                ),
-                count_140: Math.max(
-                  0,
-                  (currentStats.count_140 || 0) - t140ToRemove
-                ),
-                count_180: Math.max(
-                  0,
-                  (currentStats.count_180 || 0) - t180ToRemove
-                ),
-                count_busts: Math.max(
-                  0,
-                  (currentStats.count_busts || 0) - bustsToRemove
-                ),
-                score_frequencies: updatedFreq,
-              })
-              .eq("name", m.player_name);
           }
-          await _supabase.from("match_history_501").delete().eq("id", matchId);
+
+          // Payload für Supabase vorbereiten
+          diffPayload = {
+            wins: legsWonInMatch,
+            games_played: legsCount,
+            total_darts_thrown: m.darts_thrown,
+            total_score_thrown: totalPointsInMatch,
+            checkout_hits: legsWonInMatch,
+            count_100: t100ToRemove,
+            count_140: t140ToRemove,
+            count_180: t180ToRemove,
+            count_busts: bustsToRemove,
+            score_frequencies: updatedFreq,
+          };
         } else if (mode === "secure") {
           let roundsCount = 0;
           let secureCount = 0;
@@ -1434,58 +1408,48 @@ function deleteUniversalMatch(mode, matchId, encodedData) {
               numStatsSub[key].count += 1;
             });
           }
+
           const { data: currentStats } = await _supabase
             .from("stats_secure")
-            .select("*")
+            .select("number_stats")
             .eq("name", m.player_name)
             .maybeSingle();
-          if (currentStats) {
-            let mStats = currentStats.number_stats || {};
-            for (let k in numStatsSub) {
-              if (mStats[k]) {
-                mStats[k].points = Math.max(
-                  0,
-                  mStats[k].points - numStatsSub[k].points
-                );
-                mStats[k].count = Math.max(
-                  0,
-                  mStats[k].count - numStatsSub[k].count
-                );
-              }
+
+          let mStats = currentStats
+            ? { ...(currentStats.number_stats || {}) }
+            : {};
+          for (let k in numStatsSub) {
+            if (mStats[k]) {
+              mStats[k].points = Math.max(
+                0,
+                mStats[k].points - numStatsSub[k].points
+              );
+              mStats[k].count = Math.max(
+                0,
+                mStats[k].count - numStatsSub[k].count
+              );
             }
-            await _supabase
-              .from("stats_secure")
-              .update({
-                wins: Math.max(
-                  0,
-                  (currentStats.wins || 0) - (m.is_win ? 1 : 0)
-                ),
-                games_played: Math.max(0, (currentStats.games_played || 0) - 1),
-                total_points: Math.max(
-                  0,
-                  (currentStats.total_points || 0) - (m.final_score || 0)
-                ),
-                rounds_played: Math.max(
-                  0,
-                  (currentStats.rounds_played || 0) - roundsCount
-                ),
-                secure_count: Math.max(
-                  0,
-                  (currentStats.secure_count || 0) - secureCount
-                ),
-                double_count: Math.max(
-                  0,
-                  (currentStats.double_count || 0) - doubleCount
-                ),
-                number_stats: mStats,
-              })
-              .eq("name", m.player_name);
           }
-          await _supabase
-            .from("match_history_secure")
-            .delete()
-            .eq("id", matchId);
+
+          diffPayload = {
+            wins: m.is_win ? 1 : 0,
+            games_played: 1,
+            total_points: m.final_score || 0,
+            rounds_played: roundsCount,
+            secure_count: secureCount,
+            double_count: doubleCount,
+            number_stats: mStats,
+          };
         }
+
+        // NEU: RPC Aufruf anstatt direkter `.delete()` und `.update()`
+        const { error } = await _supabase.rpc("delete_match_and_update_stats", {
+          p_mode: mode,
+          p_match_id: matchId,
+          p_diff: diffPayload,
+        });
+
+        if (error) throw error;
 
         showToast("Match gelöscht und Statistiken aktualisiert!", "success");
         switchModalMode(mode);
