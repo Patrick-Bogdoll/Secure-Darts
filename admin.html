@@ -453,7 +453,12 @@
         document.getElementById("generic-confirm-modal").style.display = "flex";
         document.getElementById("generic-confirm-yes-btn").onclick =
           async () => {
-            const { error } = await _supabase.from(table).delete().eq("id", id);
+            // NEU: Wir nutzen die dedizierte Admin-Funktion, um RLS zu umgehen
+            const { error } = await _supabase.rpc("admin_delete_record", {
+              p_table: table,
+              p_id: id,
+            });
+
             if (error) showToast(error.message, "error");
             else {
               showToast("Erfolgreich gelöscht!", "success");
