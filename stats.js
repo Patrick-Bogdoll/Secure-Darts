@@ -1142,7 +1142,8 @@ async function loadMatchHistory() {
           const myScore = isP1 ? 501 - leg.p1_rest : 501 - leg.p2_rest;
 
           legsHTML += `
-            <div class="leg-detail-container" style="margin-top:15px; border-top:1px solid #444; padding-top:10px;">
+            <div class="leg-detail-container" style="margin-top:15px; border-top:1px solid #444; padding-top:10px;
+            background-color: var(--card-bg);">
               <div style="text-align:center; font-weight:bold; color:var(--accent-blue); margin-bottom:15px; text-transform:uppercase; letter-spacing:1px;">LEG ${
                 leg.leg_number
               } (${
@@ -1233,7 +1234,7 @@ async function loadMatchHistory() {
         : ""
     }
         </div>
-        <div class="history-details" style="display:none; padding:10px; background:#111;">${legsHTML}</div>`;
+        <div class="history-details" style="display:none; padding:10px; background-color: var(--card-bg);">${legsHTML}</div>`;
       container.appendChild(div);
     });
   }
