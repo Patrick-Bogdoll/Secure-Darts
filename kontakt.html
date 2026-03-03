@@ -153,6 +153,8 @@
       const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
       const FORMSPREE_URL = "https://formspree.io/f/mnjboqwo";
 
+      let currentUser = null; // Speichert den eingeloggten User
+
       function showToast(message, type = "success") {
         const container = document.getElementById("toast-container");
         if (!container) return;
@@ -174,35 +176,61 @@
         const {
           data: { session },
         } = await _supabase.auth.getSession();
+
+        const emailInput = document.getElementById("contact-email");
+        const nameInput = document.getElementById("contact-name");
+        const msgInput = document.getElementById("contact-message");
+        const btnSubmit = document.getElementById("btn-submit");
+
         if (session && session.user) {
-          document.getElementById("contact-email").value = session.user.email;
+          currentUser = session.user;
+          // E-Mail eintragen und für Bearbeitung sperren!
+          emailInput.value = currentUser.email;
+          emailInput.disabled = true;
+          emailInput.style.opacity = "0.7";
+
           const name =
-            session.user.user_metadata?.display_name ||
-            session.user.user_metadata?.full_name ||
+            currentUser.user_metadata?.display_name ||
+            currentUser.user_metadata?.full_name ||
             "";
-          if (name) document.getElementById("contact-name").value = name;
+          if (name) nameInput.value = name;
+        } else {
+          // NICHT EINGELOGGT -> Formular komplett sperren
+          emailInput.disabled = true;
+          nameInput.disabled = true;
+          msgInput.disabled = true;
+          msgInput.placeholder =
+            "Bitte logge dich ein, um uns zu kontaktieren.";
+
+          btnSubmit.disabled = true;
+          btnSubmit.innerText = "BITTE EINLOGGEN";
+          btnSubmit.style.opacity = "0.5";
+          btnSubmit.style.cursor = "not-allowed";
         }
       });
 
       async function submitContactForm() {
-        const name = document.getElementById("contact-name").value.trim();
-        const email = document.getElementById("contact-email").value.trim();
+        // Sicherheits-Check: Ist der User wirklich da?
+        if (!currentUser) {
+          return showToast(
+            "Bitte logge dich ein, um eine Nachricht zu senden!",
+            "error"
+          );
+        }
+
+        const name =
+          document.getElementById("contact-name").value.trim() || "Unbekannt";
+        // WICHTIG: Wir ziehen die E-Mail NICHT aus dem Input-Feld, sondern sicher aus der Session!
+        const email = currentUser.email;
         const category = document.getElementById("contact-category").value;
         const rawMessage = document
           .getElementById("contact-message")
           .value.trim();
 
-        if (!email)
-          return showToast("Bitte gib eine E-Mail Adresse an!", "error");
-        if (!email.includes("@"))
-          return showToast("Bitte gib eine gültige E-Mail an!", "error");
         if (!rawMessage)
           return showToast("Deine Nachricht darf nicht leer sein!", "error");
 
-        // Setzt die Kategorie vor die Nachricht, damit sie im Admin-Panel sichtbar ist
         const message = `[Kategorie: ${category}]\n\n${rawMessage}`;
-
-        // Prüft, ob es an Formspree geschickt werden soll
         const isImportant = category === "Wichtig" || category === "Bug";
 
         const btn = document.getElementById("btn-submit");
@@ -210,13 +238,21 @@
         btn.disabled = true;
 
         try {
-          // 1. Immer in der Datenbank für das Admin-Panel speichern
+          // 1. In der Datenbank speichern (Mit User-ID verknüpfen!)
           const { error: sbError } = await _supabase
             .from("contact_messages")
-            .insert([{ name: name, email: email, message: message }]);
+            .insert([
+              {
+                name: name,
+                email: email,
+                message: message,
+                user_id: currentUser.id, // <--- Neu: ID mitspeichern für RLS
+              },
+            ]);
+
           if (sbError) throw new Error("Supabase Fehler: " + sbError.message);
 
-          // 2. Nur wenn wichtig, per Mail (Formspree) weiterleiten
+          // 2. Wenn wichtig, per Formspree weiterleiten
           if (isImportant) {
             const response = await fetch(FORMSPREE_URL, {
               method: "POST",
@@ -228,27 +264,20 @@
             });
 
             if (response.ok) {
-              showToast(
-                "Wichtige Nachricht gesendet & weitergeleitet!",
-                "success"
-              );
-              document.getElementById("contact-message").value = "";
-              document.getElementById("contact-category").value = "Allgemein";
+              showToast("Nachricht gesendet & weitergeleitet!", "success");
             } else {
               showToast(
-                "E-Mail Weiterleitung fehlgeschlagen, aber im Admin-Panel gespeichert.",
+                "E-Mail Weiterleitung fehlgeschlagen, aber intern gespeichert.",
                 "error"
               );
             }
           } else {
-            // Wenn nicht wichtig, nur Toast anzeigen
-            showToast(
-              "Nachricht erfolgreich ans Admin-Panel gesendet!",
-              "success"
-            );
-            document.getElementById("contact-message").value = "";
-            document.getElementById("contact-category").value = "Allgemein";
+            showToast("Nachricht erfolgreich gesendet!", "success");
           }
+
+          // Nach Erfolg: Textfeld leeren
+          document.getElementById("contact-message").value = "";
+          document.getElementById("contact-category").value = "Allgemein";
         } catch (err) {
           showToast(err.message, "error");
         } finally {
