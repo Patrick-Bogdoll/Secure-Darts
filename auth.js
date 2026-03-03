@@ -24,7 +24,7 @@ async function handleRegister() {
   if (error)
     return showToast("Registrierung fehlgeschlagen: " + error.message, "error");
 
-  showToast("Erfolgreich registriert und eingeloggt!", "success");
+  showToast("Wir haben Dir eine Bestätigungs-Mail geschickt!", "success");
   currentUser = data.user;
   isGuest = false;
   initPresence();
