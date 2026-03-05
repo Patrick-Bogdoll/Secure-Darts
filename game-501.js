@@ -707,9 +707,18 @@ function askCheckoutOverlay(question, minVal, maxVal, allowCancel = false) {
     // Auto-Skip nur, wenn man NICHT abbrechen darf (z.B. bei der Folgefrage)
     if (minVal === maxVal && !allowCancel) return resolve(minVal);
 
-    // Numpad verstecken
-    document.querySelector(".preset-grid").style.display = "none";
-    document.querySelector(".numpad-grid").style.display = "none";
+    // ALLE Eingabemethoden verstecken (Numpad UND Taschenrechner)
+    const numpadContainer = document.getElementById("numpad-container-501");
+    const calcContainer = document.getElementById("calc-container-501");
+
+    // Fallback für alte HTML-Struktur (z.B. falls es im Party-Modus aufgerufen wird)
+    const presetGrid = document.querySelector("#game-501-screen .preset-grid");
+    const numpadGrid = document.querySelector("#game-501-screen .numpad-grid");
+
+    if (numpadContainer) numpadContainer.style.display = "none";
+    if (calcContainer) calcContainer.style.display = "none";
+    if (presetGrid && !numpadContainer) presetGrid.style.display = "none";
+    if (numpadGrid && !numpadContainer) numpadGrid.style.display = "none";
 
     const overlay = document.getElementById("checkout-overlay");
     document.getElementById("checkout-question").innerText = question;
@@ -717,8 +726,26 @@ function askCheckoutOverlay(question, minVal, maxVal, allowCancel = false) {
     const btnContainer = document.getElementById("checkout-buttons");
     btnContainer.innerHTML = "";
     btnContainer.style.display = "flex";
-    btnContainer.style.flexWrap = "wrap"; // Erlaubt den Umbruch für den Cancel-Button
+    btnContainer.style.flexWrap = "wrap";
     btnContainer.style.gap = "10px";
+
+    // HILFSFUNKTION: Stellt das richtige Eingabefeld wieder her
+    const restoreInput = () => {
+      overlay.style.display = "none";
+      if (typeof inputMode501 !== "undefined") {
+        // Prüft, welcher Modus gerade aktiv ist
+        if (numpadContainer)
+          numpadContainer.style.display =
+            inputMode501 === "numpad" ? "block" : "none";
+        if (calcContainer)
+          calcContainer.style.display =
+            inputMode501 === "calc" ? "block" : "none";
+      } else {
+        // Fallback
+        if (presetGrid) presetGrid.style.display = "grid";
+        if (numpadGrid) numpadGrid.style.display = "grid";
+      }
+    };
 
     // Standard Nummern-Buttons generieren
     for (let i = minVal; i <= maxVal; i++) {
@@ -730,30 +757,26 @@ function askCheckoutOverlay(question, minVal, maxVal, allowCancel = false) {
       btn.style.minWidth = "60px";
       btn.innerText = i;
       btn.onclick = () => {
-        overlay.style.display = "none";
-        document.querySelector(".preset-grid").style.display = "grid";
-        document.querySelector(".numpad-grid").style.display = "grid";
+        restoreInput();
         resolve(i);
       };
       btnContainer.appendChild(btn);
     }
 
-    // NEU: Den roten "Verrechnet" Button hinzufügen
+    // Den roten "Verrechnet" Button hinzufügen
     if (allowCancel) {
       let cancelBtn = document.createElement("button");
       cancelBtn.className = "num-btn";
       cancelBtn.style.background = "var(--accent-red)";
       cancelBtn.style.color = "white";
-      cancelBtn.style.flexBasis = "100%"; // Nimmt die komplette untere Zeile ein
+      cancelBtn.style.flexBasis = "100%";
       cancelBtn.style.padding = "15px";
       cancelBtn.style.fontSize = "1.1em";
       cancelBtn.innerHTML =
         '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Halt, verrechnet!';
       cancelBtn.onclick = () => {
-        overlay.style.display = "none";
-        document.querySelector(".preset-grid").style.display = "grid";
-        document.querySelector(".numpad-grid").style.display = "grid";
-        resolve("CANCEL"); // Spezielles Signal zum Abbruch
+        restoreInput();
+        resolve("CANCEL");
       };
       btnContainer.appendChild(cancelBtn);
     }
