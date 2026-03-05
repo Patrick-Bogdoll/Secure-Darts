@@ -255,3 +255,108 @@ function submitPartyScore(presetScore = null) {
   updatePartyScoreboard();
   updatePartyTurnIndicator();
 }
+
+// ==========================================
+// DART-FÜR-DART TASCHENRECHNER LOGIK (PARTY)
+// ==========================================
+
+let inputModeParty = "numpad";
+let calcPartyDarts = [];
+let calcPartyCurrentMult = 1;
+
+function togglePartyInputMode() {
+  inputModeParty = inputModeParty === "numpad" ? "calc" : "numpad";
+
+  document.getElementById("numpad-container-party").style.display =
+    inputModeParty === "numpad" ? "block" : "none";
+  document.getElementById("calc-container-party").style.display =
+    inputModeParty === "calc" ? "block" : "none";
+
+  document.getElementById("toggle-input-text-party").innerText =
+    inputModeParty === "numpad"
+      ? "Dart-für-Dart Eingabe"
+      : "Ziffernblock Eingabe";
+  resetCalcPartyState();
+}
+
+function setCalcPartyMult(m) {
+  calcPartyCurrentMult = m;
+  document.getElementById("calc-party-mult-1").style.borderColor =
+    m === 1 ? "var(--accent-purple)" : "transparent";
+  document.getElementById("calc-party-mult-2").style.borderColor =
+    m === 2 ? "var(--accent-green)" : "transparent";
+  document.getElementById("calc-party-mult-3").style.borderColor =
+    m === 3 ? "var(--accent-red)" : "transparent";
+}
+
+function addCalcPartyDart(val) {
+  if (calcPartyDarts.length >= 3) return;
+
+  let mult = calcPartyCurrentMult;
+  if (val === 25 || val === 50 || val === 0) {
+    mult = 1;
+  }
+
+  let label = val.toString();
+  if (val === 25) label = "BULL";
+  else if (val === 50) label = "B-EYE";
+  else if (val === 0) label = "MISS";
+  else {
+    if (mult === 2) label = "D" + val;
+    if (mult === 3) label = "T" + val;
+  }
+
+  let points = val * mult;
+  calcPartyDarts.push({ val: points, label: label });
+
+  setCalcPartyMult(1);
+  updateCalcPartyUI();
+}
+
+function delCalcPartyDart() {
+  calcPartyDarts.pop();
+  updateCalcPartyUI();
+}
+
+function updateCalcPartyUI() {
+  let sum = 0;
+  for (let i = 1; i <= 3; i++) {
+    let box = document.getElementById("calc-party-box-" + i);
+    if (calcPartyDarts[i - 1]) {
+      box.innerText = calcPartyDarts[i - 1].label;
+      if (
+        calcPartyDarts[i - 1].label.startsWith("T") ||
+        calcPartyDarts[i - 1].label === "B-EYE"
+      )
+        box.style.color = "var(--accent-red)";
+      else if (
+        calcPartyDarts[i - 1].label.startsWith("D") ||
+        calcPartyDarts[i - 1].label === "BULL"
+      )
+        box.style.color = "var(--accent-green)";
+      else if (calcPartyDarts[i - 1].label === "MISS") box.style.color = "#888";
+      else box.style.color = "white";
+
+      sum += calcPartyDarts[i - 1].val;
+    } else {
+      box.innerText = "-";
+      box.style.color = "white";
+    }
+  }
+  document.getElementById("calc-party-sum-display").innerText = sum;
+}
+
+function submitCalcPartyDarts() {
+  if (calcPartyDarts.length === 0) return;
+  let sum = calcPartyDarts.reduce((acc, dart) => acc + dart.val, 0);
+
+  // Übergibt die Summe exakt an deine bestehende Party-Logik!
+  submitPartyScore(sum);
+  resetCalcPartyState();
+}
+
+function resetCalcPartyState() {
+  calcPartyDarts = [];
+  setCalcPartyMult(1);
+  updateCalcPartyUI();
+}

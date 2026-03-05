@@ -1890,3 +1890,118 @@ async function verifyLocalPlayer2_501() {
     }
   });
 }
+
+// ==========================================
+// DART-FÜR-DART TASCHENRECHNER LOGIK
+// ==========================================
+
+let inputMode501 = "numpad"; // 'numpad' oder 'calc'
+let calcDarts = [];
+let calcCurrentMult = 1;
+
+function toggle501InputMode() {
+  inputMode501 = inputMode501 === "numpad" ? "calc" : "numpad";
+
+  document.getElementById("numpad-container-501").style.display =
+    inputMode501 === "numpad" ? "block" : "none";
+  document.getElementById("calc-container-501").style.display =
+    inputMode501 === "calc" ? "block" : "none";
+
+  document.getElementById("toggle-input-text").innerText =
+    inputMode501 === "numpad"
+      ? "Dart-für-Dart Eingabe"
+      : "Ziffernblock Eingabe";
+  resetCalcState();
+}
+
+function setCalcMult(m) {
+  calcCurrentMult = m;
+  document.getElementById("calc-mult-1").style.borderColor =
+    m === 1 ? "var(--accent-blue)" : "transparent";
+  document.getElementById("calc-mult-2").style.borderColor =
+    m === 2 ? "var(--accent-green)" : "transparent";
+  document.getElementById("calc-mult-3").style.borderColor =
+    m === 3 ? "var(--accent-red)" : "transparent";
+}
+
+function addCalcDart(val) {
+  // Verhindern, dass man tippt, wenn der Gegner dran ist
+  if (!isLocal501 && !isMyTurn) return;
+  if (calcDarts.length >= 3) return;
+
+  // Spezielle Regeln (Idioten-Sicher)
+  let mult = calcCurrentMult;
+  if (val === 25 || val === 50 || val === 0) {
+    mult = 1; // Bull, Bullseye und Miss haben keine eigenen Multiplikatoren hier
+  }
+
+  let label = val.toString();
+  if (val === 25) label = "BULL";
+  else if (val === 50) label = "B-EYE";
+  else if (val === 0) label = "MISS";
+  else {
+    if (mult === 2) label = "D" + val;
+    if (mult === 3) label = "T" + val;
+  }
+
+  let points = val * mult;
+  calcDarts.push({ val: points, label: label });
+
+  setCalcMult(1); // Setzt den Multiplikator nach jedem Pfeil automatisch auf Single zurück
+  updateCalcUI();
+}
+
+function delCalcDart() {
+  if (!isLocal501 && !isMyTurn) return;
+  calcDarts.pop();
+  updateCalcUI();
+}
+
+function updateCalcUI() {
+  let sum = 0;
+  for (let i = 1; i <= 3; i++) {
+    let box = document.getElementById("calc-box-" + i);
+    if (calcDarts[i - 1]) {
+      box.innerText = calcDarts[i - 1].label;
+
+      // Box Farbe anpassen basierend auf Treffer
+      if (
+        calcDarts[i - 1].label.startsWith("T") ||
+        calcDarts[i - 1].label === "B-EYE"
+      )
+        box.style.color = "var(--accent-red)";
+      else if (
+        calcDarts[i - 1].label.startsWith("D") ||
+        calcDarts[i - 1].label === "BULL"
+      )
+        box.style.color = "var(--accent-green)";
+      else if (calcDarts[i - 1].label === "MISS") box.style.color = "#888";
+      else box.style.color = "white";
+
+      sum += calcDarts[i - 1].val;
+    } else {
+      box.innerText = "-";
+      box.style.color = "white";
+    }
+  }
+  document.getElementById("calc-sum-display").innerText = sum;
+}
+
+function submitCalcDarts() {
+  if (!isLocal501 && !isMyTurn) return;
+  if (calcDarts.length === 0) return; // Nichts geworfen
+
+  // Addiert alle Pfeile zusammen
+  let sum = calcDarts.reduce((acc, dart) => acc + dart.val, 0);
+
+  // Übergebe die Summe an die exakt selbe Funktion wie beim normalen Numpad!
+  submit501Score(sum);
+
+  resetCalcState();
+}
+
+function resetCalcState() {
+  calcDarts = [];
+  setCalcMult(1);
+  updateCalcUI();
+}

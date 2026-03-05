@@ -1292,34 +1292,293 @@
 
         <div id="input-display-501"></div>
 
-        <div class="preset-grid">
-          <button class="preset-btn" onclick="set501Input('26')">26</button>
-          <button class="preset-btn" onclick="set501Input('41')">41</button>
-          <button class="preset-btn" onclick="set501Input('45')">45</button>
-          <button class="preset-btn" onclick="set501Input('60')">60</button>
-          <button class="preset-btn" onclick="set501Input('81')">81</button>
-          <button class="preset-btn" onclick="set501Input('100')">100</button>
+        <div style="text-align: right; margin-bottom: 10px; padding: 0 10px">
+          <button
+            onclick="toggle501InputMode()"
+            class="reset"
+            style="
+              margin: 0;
+              font-size: 0.8em;
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              color: var(--accent-blue);
+            "
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+              <rect x="8" y="10" width="8" height="8"></rect>
+              <line x1="8" y1="6" x2="16" y2="6"></line>
+            </svg>
+            <span id="toggle-input-text">Dart-für-Dart Eingabe</span>
+          </button>
         </div>
 
-        <div class="preset-numpad-divider"></div>
+        <div id="numpad-container-501">
+          <div class="preset-grid">
+            <button class="preset-btn" onclick="set501Input('26')">26</button>
+            <button class="preset-btn" onclick="set501Input('41')">41</button>
+            <button class="preset-btn" onclick="set501Input('45')">45</button>
+            <button class="preset-btn" onclick="set501Input('60')">60</button>
+            <button class="preset-btn" onclick="set501Input('81')">81</button>
+            <button class="preset-btn" onclick="set501Input('100')">100</button>
+          </div>
+          <div class="preset-numpad-divider"></div>
+          <div class="numpad-grid">
+            <button class="num-btn" onclick="append501Input('1')">1</button>
+            <button class="num-btn" onclick="append501Input('2')">2</button>
+            <button class="num-btn" onclick="append501Input('3')">3</button>
+            <button class="num-btn" onclick="append501Input('4')">4</button>
+            <button class="num-btn" onclick="append501Input('5')">5</button>
+            <button class="num-btn" onclick="append501Input('6')">6</button>
+            <button class="num-btn" onclick="append501Input('7')">7</button>
+            <button class="num-btn" onclick="append501Input('8')">8</button>
+            <button class="num-btn" onclick="append501Input('9')">9</button>
+            <button class="num-btn action-del" onclick="delete501Input()">
+              DEL
+            </button>
+            <button class="num-btn" onclick="append501Input('0')">0</button>
+            <button class="num-btn action-ok" onclick="submit501Score()">
+              OK
+            </button>
+          </div>
+        </div>
 
-        <div class="numpad-grid">
-          <button class="num-btn" onclick="append501Input('1')">1</button>
-          <button class="num-btn" onclick="append501Input('2')">2</button>
-          <button class="num-btn" onclick="append501Input('3')">3</button>
-          <button class="num-btn" onclick="append501Input('4')">4</button>
-          <button class="num-btn" onclick="append501Input('5')">5</button>
-          <button class="num-btn" onclick="append501Input('6')">6</button>
-          <button class="num-btn" onclick="append501Input('7')">7</button>
-          <button class="num-btn" onclick="append501Input('8')">8</button>
-          <button class="num-btn" onclick="append501Input('9')">9</button>
-          <button class="num-btn action-del" onclick="delete501Input()">
-            DEL
-          </button>
-          <button class="num-btn" onclick="append501Input('0')">0</button>
-          <button class="num-btn action-ok" onclick="submit501Score()">
-            OK
-          </button>
+        <div id="calc-container-501" style="display: none; padding: 0 10px">
+          <div style="display: flex; gap: 10px; margin-bottom: 10px">
+            <div
+              id="calc-box-1"
+              style="
+                flex: 1;
+                background: rgba(0, 0, 0, 0.4);
+                border: 1px solid var(--glass-border);
+                border-radius: 8px;
+                height: 50px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.3em;
+                font-weight: bold;
+                color: white;
+              "
+            >
+              -
+            </div>
+            <div
+              id="calc-box-2"
+              style="
+                flex: 1;
+                background: rgba(0, 0, 0, 0.4);
+                border: 1px solid var(--glass-border);
+                border-radius: 8px;
+                height: 50px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.3em;
+                font-weight: bold;
+                color: white;
+              "
+            >
+              -
+            </div>
+            <div
+              id="calc-box-3"
+              style="
+                flex: 1;
+                background: rgba(0, 0, 0, 0.4);
+                border: 1px solid var(--glass-border);
+                border-radius: 8px;
+                height: 50px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.3em;
+                font-weight: bold;
+                color: white;
+              "
+            >
+              -
+            </div>
+          </div>
+
+          <div
+            style="
+              text-align: center;
+              margin-bottom: 15px;
+              font-size: 1em;
+              color: var(--text-muted);
+              text-transform: uppercase;
+              font-weight: bold;
+              letter-spacing: 1px;
+            "
+          >
+            Gesamt:
+            <span
+              id="calc-sum-display"
+              style="
+                color: var(--accent-blue);
+                font-size: 1.4em;
+                margin-left: 5px;
+              "
+              >0</span
+            >
+          </div>
+
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 1fr 1fr 1fr;
+              gap: 8px;
+              margin-bottom: 12px;
+            "
+          >
+            <button
+              id="calc-mult-1"
+              onclick="setCalcMult(1)"
+              style="
+                background: rgba(255, 255, 255, 0.05);
+                border: 2px solid var(--accent-blue);
+                color: white;
+                padding: 12px 0;
+                border-radius: 6px;
+                font-weight: bold;
+                cursor: pointer;
+              "
+            >
+              SINGLE
+            </button>
+            <button
+              id="calc-mult-2"
+              onclick="setCalcMult(2)"
+              style="
+                background: rgba(255, 255, 255, 0.05);
+                border: 2px solid transparent;
+                color: white;
+                padding: 12px 0;
+                border-radius: 6px;
+                font-weight: bold;
+                cursor: pointer;
+              "
+            >
+              DOUBLE
+            </button>
+            <button
+              id="calc-mult-3"
+              onclick="setCalcMult(3)"
+              style="
+                background: rgba(255, 255, 255, 0.05);
+                border: 2px solid transparent;
+                color: white;
+                padding: 12px 0;
+                border-radius: 6px;
+                font-weight: bold;
+                cursor: pointer;
+              "
+            >
+              TRIPLE
+            </button>
+          </div>
+
+          <div
+            style="
+              display: grid;
+              grid-template-columns: repeat(5, 1fr);
+              gap: 6px;
+            "
+          >
+            <script>
+              for (let i = 1; i <= 20; i++) {
+                document.write(
+                  `<button onclick="addCalcDart(${i})" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; padding: 12px 0; border-radius: 6px; font-weight: bold; font-size: 1.1em; cursor: pointer;">${i}</button>`
+                );
+              }
+            </script>
+            <button
+              onclick="addCalcDart(0)"
+              style="
+                background: rgba(255, 82, 82, 0.1);
+                border: 1px solid var(--accent-red);
+                color: var(--accent-red);
+                padding: 12px 0;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 0.9em;
+                cursor: pointer;
+              "
+            >
+              MISS
+            </button>
+            <button
+              onclick="addCalcDart(25)"
+              style="
+                background: rgba(16, 185, 129, 0.1);
+                border: 1px solid var(--accent-green);
+                color: var(--accent-green);
+                padding: 12px 0;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 0.9em;
+                cursor: pointer;
+              "
+            >
+              25
+            </button>
+            <button
+              onclick="addCalcDart(50)"
+              style="
+                background: rgba(255, 82, 82, 0.1);
+                border: 1px solid var(--accent-red);
+                color: var(--accent-red);
+                padding: 12px 0;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 0.9em;
+                cursor: pointer;
+              "
+            >
+              50
+            </button>
+            <button
+              onclick="delCalcDart()"
+              style="
+                background: #333;
+                border: 1px solid var(--glass-border);
+                color: white;
+                padding: 12px 0;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 0.9em;
+                cursor: pointer;
+              "
+            >
+              DEL
+            </button>
+            <button
+              onclick="submitCalcDarts()"
+              style="
+                background: var(--accent-blue);
+                border: none;
+                color: white;
+                padding: 12px 0;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 1.1em;
+                cursor: pointer;
+              "
+            >
+              OK
+            </button>
+          </div>
         </div>
 
         <div
@@ -1540,44 +1799,308 @@
             "
           />
 
-          <div class="preset-grid">
-            <button class="preset-btn" onclick="submitPartyScore(26)">
-              26
-            </button>
-            <button class="preset-btn" onclick="submitPartyScore(41)">
-              41
-            </button>
-            <button class="preset-btn" onclick="submitPartyScore(45)">
-              45
-            </button>
-            <button class="preset-btn" onclick="submitPartyScore(60)">
-              60
-            </button>
-            <button class="preset-btn" onclick="submitPartyScore(81)">
-              81
-            </button>
-            <button class="preset-btn" onclick="submitPartyScore(100)">
-              100
+          <div style="text-align: right; margin-bottom: 10px; padding: 0 10px">
+            <button
+              onclick="togglePartyInputMode()"
+              class="reset"
+              style="
+                margin: 0;
+                font-size: 0.8em;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                color: var(--accent-purple);
+              "
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                <rect x="8" y="10" width="8" height="8"></rect>
+                <line x1="8" y1="6" x2="16" y2="6"></line>
+              </svg>
+              <span id="toggle-input-text-party">Dart-für-Dart Eingabe</span>
             </button>
           </div>
 
-          <div class="numpad-grid">
-            <button class="num-btn" onclick="appendPartyInput('1')">1</button>
-            <button class="num-btn" onclick="appendPartyInput('2')">2</button>
-            <button class="num-btn" onclick="appendPartyInput('3')">3</button>
-            <button class="num-btn" onclick="appendPartyInput('4')">4</button>
-            <button class="num-btn" onclick="appendPartyInput('5')">5</button>
-            <button class="num-btn" onclick="appendPartyInput('6')">6</button>
-            <button class="num-btn" onclick="appendPartyInput('7')">7</button>
-            <button class="num-btn" onclick="appendPartyInput('8')">8</button>
-            <button class="num-btn" onclick="appendPartyInput('9')">9</button>
-            <button class="num-btn action-del" onclick="deletePartyInput()">
-              DEL
-            </button>
-            <button class="num-btn" onclick="appendPartyInput('0')">0</button>
-            <button class="num-btn action-ok" onclick="submitPartyScore(null)">
-              OK
-            </button>
+          <div id="numpad-container-party">
+            <div class="preset-grid">
+              <button class="preset-btn" onclick="submitPartyScore(26)">
+                26
+              </button>
+              <button class="preset-btn" onclick="submitPartyScore(41)">
+                41
+              </button>
+              <button class="preset-btn" onclick="submitPartyScore(45)">
+                45
+              </button>
+              <button class="preset-btn" onclick="submitPartyScore(60)">
+                60
+              </button>
+              <button class="preset-btn" onclick="submitPartyScore(81)">
+                81
+              </button>
+              <button class="preset-btn" onclick="submitPartyScore(100)">
+                100
+              </button>
+            </div>
+
+            <div class="numpad-grid">
+              <button class="num-btn" onclick="appendPartyInput('1')">1</button>
+              <button class="num-btn" onclick="appendPartyInput('2')">2</button>
+              <button class="num-btn" onclick="appendPartyInput('3')">3</button>
+              <button class="num-btn" onclick="appendPartyInput('4')">4</button>
+              <button class="num-btn" onclick="appendPartyInput('5')">5</button>
+              <button class="num-btn" onclick="appendPartyInput('6')">6</button>
+              <button class="num-btn" onclick="appendPartyInput('7')">7</button>
+              <button class="num-btn" onclick="appendPartyInput('8')">8</button>
+              <button class="num-btn" onclick="appendPartyInput('9')">9</button>
+              <button class="num-btn action-del" onclick="deletePartyInput()">
+                DEL
+              </button>
+              <button class="num-btn" onclick="appendPartyInput('0')">0</button>
+              <button
+                class="num-btn action-ok"
+                onclick="submitPartyScore(null)"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+
+          <div id="calc-container-party" style="display: none; padding: 0 10px">
+            <div style="display: flex; gap: 10px; margin-bottom: 10px">
+              <div
+                id="calc-party-box-1"
+                style="
+                  flex: 1;
+                  background: rgba(0, 0, 0, 0.4);
+                  border: 1px solid var(--glass-border);
+                  border-radius: 8px;
+                  height: 50px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 1.3em;
+                  font-weight: bold;
+                  color: white;
+                "
+              >
+                -
+              </div>
+              <div
+                id="calc-party-box-2"
+                style="
+                  flex: 1;
+                  background: rgba(0, 0, 0, 0.4);
+                  border: 1px solid var(--glass-border);
+                  border-radius: 8px;
+                  height: 50px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 1.3em;
+                  font-weight: bold;
+                  color: white;
+                "
+              >
+                -
+              </div>
+              <div
+                id="calc-party-box-3"
+                style="
+                  flex: 1;
+                  background: rgba(0, 0, 0, 0.4);
+                  border: 1px solid var(--glass-border);
+                  border-radius: 8px;
+                  height: 50px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 1.3em;
+                  font-weight: bold;
+                  color: white;
+                "
+              >
+                -
+              </div>
+            </div>
+
+            <div
+              style="
+                text-align: center;
+                margin-bottom: 15px;
+                font-size: 1em;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                font-weight: bold;
+                letter-spacing: 1px;
+              "
+            >
+              Gesamt:
+              <span
+                id="calc-party-sum-display"
+                style="
+                  color: var(--accent-purple);
+                  font-size: 1.4em;
+                  margin-left: 5px;
+                "
+                >0</span
+              >
+            </div>
+
+            <div
+              style="
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 8px;
+                margin-bottom: 12px;
+              "
+            >
+              <button
+                id="calc-party-mult-1"
+                onclick="setCalcPartyMult(1)"
+                style="
+                  background: rgba(255, 255, 255, 0.05);
+                  border: 2px solid var(--accent-purple);
+                  color: white;
+                  padding: 12px 0;
+                  border-radius: 6px;
+                  font-weight: bold;
+                  cursor: pointer;
+                "
+              >
+                SINGLE
+              </button>
+              <button
+                id="calc-party-mult-2"
+                onclick="setCalcPartyMult(2)"
+                style="
+                  background: rgba(255, 255, 255, 0.05);
+                  border: 2px solid transparent;
+                  color: white;
+                  padding: 12px 0;
+                  border-radius: 6px;
+                  font-weight: bold;
+                  cursor: pointer;
+                "
+              >
+                DOUBLE
+              </button>
+              <button
+                id="calc-party-mult-3"
+                onclick="setCalcPartyMult(3)"
+                style="
+                  background: rgba(255, 255, 255, 0.05);
+                  border: 2px solid transparent;
+                  color: white;
+                  padding: 12px 0;
+                  border-radius: 6px;
+                  font-weight: bold;
+                  cursor: pointer;
+                "
+              >
+                TRIPLE
+              </button>
+            </div>
+
+            <div
+              style="
+                display: grid;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 6px;
+              "
+            >
+              <script>
+                for (let i = 1; i <= 20; i++) {
+                  document.write(
+                    `<button onclick="addCalcPartyDart(${i})" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; padding: 12px 0; border-radius: 6px; font-weight: bold; font-size: 1.1em; cursor: pointer;">${i}</button>`
+                  );
+                }
+              </script>
+              <button
+                onclick="addCalcPartyDart(0)"
+                style="
+                  background: rgba(255, 82, 82, 0.1);
+                  border: 1px solid var(--accent-red);
+                  color: var(--accent-red);
+                  padding: 12px 0;
+                  border-radius: 6px;
+                  font-weight: bold;
+                  font-size: 0.9em;
+                  cursor: pointer;
+                "
+              >
+                MISS
+              </button>
+              <button
+                onclick="addCalcPartyDart(25)"
+                style="
+                  background: rgba(16, 185, 129, 0.1);
+                  border: 1px solid var(--accent-green);
+                  color: var(--accent-green);
+                  padding: 12px 0;
+                  border-radius: 6px;
+                  font-weight: bold;
+                  font-size: 0.9em;
+                  cursor: pointer;
+                "
+              >
+                25
+              </button>
+              <button
+                onclick="addCalcPartyDart(50)"
+                style="
+                  background: rgba(255, 82, 82, 0.1);
+                  border: 1px solid var(--accent-red);
+                  color: var(--accent-red);
+                  padding: 12px 0;
+                  border-radius: 6px;
+                  font-weight: bold;
+                  font-size: 0.9em;
+                  cursor: pointer;
+                "
+              >
+                50
+              </button>
+              <button
+                onclick="delCalcPartyDart()"
+                style="
+                  background: #333;
+                  border: 1px solid var(--glass-border);
+                  color: white;
+                  padding: 12px 0;
+                  border-radius: 6px;
+                  font-weight: bold;
+                  font-size: 0.9em;
+                  cursor: pointer;
+                "
+              >
+                DEL
+              </button>
+              <button
+                onclick="submitCalcPartyDarts()"
+                style="
+                  background: var(--accent-purple);
+                  border: none;
+                  color: white;
+                  padding: 12px 0;
+                  border-radius: 6px;
+                  font-weight: bold;
+                  font-size: 1.1em;
+                  cursor: pointer;
+                "
+              >
+                OK
+              </button>
+            </div>
           </div>
           <button
             id="btn-undo-party"
