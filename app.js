@@ -1,5 +1,5 @@
 const SUPABASE_URL = "https://etzkulwnjhkoiklrohbt.supabase.co";
-const SUPABASE_KEY = "sb_publishable_mSGY3nB8ivTaASBZQass3g_Ri4xOimy";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0emt1bHduamhrb2lrbHJvaGJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNTYxMjQsImV4cCI6MjA4NDgzMjEyNH0.lNFzKh5LqHV_YkEdl9v4SprFCQbfMYLkPGnhnhU13og";
 const { createClient } = supabase;
 const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const botSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 5px;"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8.01" y2="16"></line><line x1="16" y1="16" x2="16.01" y2="16"></line></svg>`;
